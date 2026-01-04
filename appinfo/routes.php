@@ -1,0 +1,55 @@
+<?php
+return [
+    'routes' => [
+        // Page routes
+        ['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
+        
+        // Customer routes
+        ['name' => 'customer#index', 'url' => '/api/customers', 'verb' => 'GET'],
+        ['name' => 'customer#show', 'url' => '/api/customers/{id}', 'verb' => 'GET'],
+        ['name' => 'customer#create', 'url' => '/api/customers', 'verb' => 'POST'],
+        ['name' => 'customer#update', 'url' => '/api/customers/{id}', 'verb' => 'PUT'],
+        ['name' => 'customer#delete', 'url' => '/api/customers/{id}', 'verb' => 'DELETE'],
+        
+        // Project routes
+        ['name' => 'project#index', 'url' => '/api/projects', 'verb' => 'GET'],
+        ['name' => 'project#show', 'url' => '/api/projects/{id}', 'verb' => 'GET'],
+        ['name' => 'project#create', 'url' => '/api/projects', 'verb' => 'POST'],
+        ['name' => 'project#update', 'url' => '/api/projects/{id}', 'verb' => 'PUT'],
+        ['name' => 'project#delete', 'url' => '/api/projects/{id}', 'verb' => 'DELETE'],
+        
+        // Time entry routes
+        ['name' => 'time_entry#index', 'url' => '/api/time-entries', 'verb' => 'GET'],
+        ['name' => 'time_entry#show', 'url' => '/api/time-entries/{id}', 'verb' => 'GET'],
+        ['name' => 'time_entry#create', 'url' => '/api/time-entries', 'verb' => 'POST'],
+        ['name' => 'time_entry#update', 'url' => '/api/time-entries/{id}', 'verb' => 'PUT'],
+        ['name' => 'time_entry#delete', 'url' => '/api/time-entries/{id}', 'verb' => 'DELETE'],
+        ['name' => 'time_entry#start_timer', 'url' => '/api/time-entries/start', 'verb' => 'POST'],
+        ['name' => 'time_entry#stop_timer', 'url' => '/api/time-entries/stop', 'verb' => 'POST'],
+        
+        // Report routes
+        ['name' => 'report#customer_monthly', 'url' => '/api/reports/customer/{customerId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#project_monthly', 'url' => '/api/reports/project/{projectId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#employee_monthly', 'url' => '/api/reports/employee/{userId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#compliance_check', 'url' => '/api/reports/compliance/{userId}/{year}/{month}', 'verb' => 'GET'],
+        
+        // Holiday routes
+        ['name' => 'holiday#index', 'url' => '/api/holidays', 'verb' => 'GET'],
+        ['name' => 'holiday#create', 'url' => '/api/holidays', 'verb' => 'POST'],
+        ['name' => 'holiday#delete', 'url' => '/api/holidays/{id}', 'verb' => 'DELETE'],
+        
+        // Vacation routes
+        ['name' => 'vacation#index', 'url' => '/api/vacations', 'verb' => 'GET'],
+        ['name' => 'vacation#show', 'url' => '/api/vacations/{id}', 'verb' => 'GET'],
+        ['name' => 'vacation#create', 'url' => '/api/vacations', 'verb' => 'POST'],
+        ['name' => 'vacation#update', 'url' => '/api/vacations/{id}', 'verb' => 'PUT'],
+        ['name' => 'vacation#destroy', 'url' => '/api/vacations/{id}', 'verb' => 'DELETE'],
+        ['name' => 'vacation#balance', 'url' => '/api/vacations/balance/{year}', 'verb' => 'GET'],
+        ['name' => 'vacation#calendar', 'url' => '/api/vacations/calendar/{year}/{month}', 'verb' => 'GET'],
+        
+        // Employee settings routes
+        ['name' => 'employee_settings#get', 'url' => '/api/employee-settings', 'verb' => 'GET'],
+        ['name' => 'employee_settings#update', 'url' => '/api/employee-settings', 'verb' => 'PUT'],
+        ['name' => 'employee_settings#get_user', 'url' => '/api/employee-settings/{userId}', 'verb' => 'GET'],
+    ]
+];

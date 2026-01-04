@@ -1,0 +1,29 @@
+import { createApp } from 'vue'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import App from './App.vue'
+import Dashboard from './views/Dashboard.vue'
+import Customers from './views/Customers.vue'
+import Projects from './views/Projects.vue'
+import TimeTracking from './views/TimeTracking.vue'
+import Reports from './views/Reports.vue'
+import Vacations from './views/Vacations.vue'
+import EmployeeSettings from './views/EmployeeSettings.vue'
+
+const routes = [
+    { path: '/', component: Dashboard },
+    { path: '/customers', component: Customers },
+    { path: '/projects', component: Projects },
+    { path: '/tracking', component: TimeTracking },
+    { path: '/reports', component: Reports },
+    { path: '/vacations', component: Vacations },
+    { path: '/settings', component: EmployeeSettings },
+]
+
+const router = createRouter({
+    history: createWebHashHistory(),
+    routes,
+})
+
+const app = createApp(App)
+app.use(router)
+app.mount('#content')

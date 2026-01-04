@@ -1,0 +1,22 @@
+{
+    "name": "nextcloud/timetracking",
+    "description": "Time tracking application for Nextcloud",
+    "type": "project",
+    "license": "AGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "moreGeo GmbH"
+        }
+    ],
+    "require": {
+        "php": "^8.0"
+    },
+    "require-dev": {
+        "nextcloud/ocp": "32.0.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "OCA\\TimeTracking\\": "lib/"
+        }
+    }
+}

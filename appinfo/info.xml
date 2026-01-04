@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>timetracking</id>
+    <name>Time Tracking</name>
+  <summary>Time tracking for projects</summary>
+  <description>
+    <![CDATA[
+# Time Tracker
+
+A comprehensive time tracking solution for businesses:
+
+* Manage customers and projects
+* Track working time per project
+* Generate monthly reports per customer and project
+* Employee working time reports compliant with German labor law
+* Holiday and vacation management
+* Automatic compliance checks for German working time regulations
+
+Perfect for agencies and companies that need to track billable hours and ensure compliance with German labor laws (Arbeitszeitgesetz).
+    ]]>
+</description>
+  <version>1.0.0</version>
+  <licence>Apache-2.0</licence>
+  <author mail="mail@moregeo.it"
+          homepage="https://moregeo.it">moreGeo</author>
+  <namespace>TimeTracking</namespace>
+  <category>office</category>
+  <category>organization</category>
+  <bugs>https://github.com/moregeo-it/timetracking/issues</bugs>
+  <repository>https://github.com/moregeo-it/timetracking</repository>
+  <dependencies>
+    <nextcloud min-version="28"
+               max-version="99" />
+  </dependencies>
+  <navigations>
+    <navigation>
+      <name>Time Tracking</name>
+      <route>timetracking.page.index</route>
+      <icon>app.svg</icon>
+    </navigation>
+  </navigations>
+</info>
