@@ -1,6 +1,7 @@
 {
   "name": "timetracking",
   "version": "1.0.0",
+  "type": "module",
   "description": "Time tracking for Nextcloud",
   "main": "src/main.js",
   "scripts": {

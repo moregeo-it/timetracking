@@ -71,13 +71,11 @@ export default {
 </script>
 
 <style>
-/* Global styles for proper background */
-#content {
-    width: 100%;
-    height: 100%;
+:deep(.app-content-wrapper) {
+    padding-top: 0;
 }
-</style>
 
-<style scoped>
-/* Nextcloud handles all styling through its components */
+:deep(.app-content > *) {
+    padding: 20px;
+}
 </style>

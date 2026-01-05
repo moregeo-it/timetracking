@@ -1,12 +1,9 @@
 # Dependencies
 /vendor/
 /node_modules/
-
-# Build outputs
-/js/*.js
-/js/*.map
-/js/*.css
-!/js/.gitkeep
+/dist/
+/css/
+/js/
 
 # IDE
 .vscode/

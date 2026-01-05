@@ -1,6 +1,10 @@
 <template>
     <div class="employee-settings">
-        <h2>{{ t('timetracking', 'Meine Arbeitszeit-Einstellungen') }}</h2>
+        <NcAppContentDetails>
+            <template #title>
+                {{ t('timetracking', 'Mitarbeitereinstellungen') }}
+            </template>
+        </NcAppContentDetails>
         
         <div v-if="loading" class="loading">{{ t('timetracking', 'Laden...') }}</div>
         
@@ -172,12 +176,13 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
+import { NcButton, NcAppContentDetails } from '@nextcloud/vue'
 
 export default {
     name: 'EmployeeSettings',
     components: {
         NcButton,
+        NcAppContentDetails,
     },
     data() {
         return {

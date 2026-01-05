@@ -1,6 +1,10 @@
 <template>
     <div class="vacation-management">
-        <h2>{{ t('timetracking', 'Urlaubsverwaltung') }}</h2>
+        <NcAppContentDetails>
+            <template #title>
+                {{ t('timetracking', 'Urlaubsverwaltung') }}
+            </template>
+        </NcAppContentDetails>
         
         <!-- Vacation Balance Card -->
         <div class="balance-card">
@@ -161,7 +165,7 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcModal, NcAppContentDetails } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
 export default {
@@ -169,6 +173,7 @@ export default {
     components: {
         NcButton,
         NcModal,
+        NcAppContentDetails,
         Plus,
     },
     data() {

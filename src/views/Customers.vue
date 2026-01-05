@@ -1,7 +1,11 @@
 <template>
     <div class="customers">
+        <NcAppContentDetails>
+            <template #title>
+                {{ t('timetracking', 'Kunden') }}
+            </template>
+        </NcAppContentDetails>
         <div class="header-row">
-            <h2>{{ t('timetracking', 'Kunden') }}</h2>
             <NcButton v-if="isAdmin" type="primary" @click="showAddDialog = true">
                 <template #icon>
                     <Plus :size="20" />
@@ -82,7 +86,7 @@ import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { getCurrentUser } from '@nextcloud/auth'
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcModal, NcAppContentDetails } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
 export default {
@@ -90,6 +94,7 @@ export default {
     components: {
         NcButton,
         NcModal,
+        NcAppContentDetails,
         Plus,
     },
     data() {

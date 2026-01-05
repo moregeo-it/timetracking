@@ -1,6 +1,10 @@
 <template>
     <div class="dashboard">
-        <h1>{{ t('timetracking', 'Dashboard') }}</h1>
+        <NcAppContentDetails>
+            <template #title>
+                {{ t('timetracking', 'Dashboard') }}
+            </template>
+        </NcAppContentDetails>
         
         <div class="dashboard-grid">
             <div class="dashboard-card">
@@ -64,9 +68,13 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
+import { NcAppContentDetails } from '@nextcloud/vue'
 
 export default {
     name: 'Dashboard',
+    components: {
+        NcAppContentDetails,
+    },
     data() {
         return {
             todayHours: 0,

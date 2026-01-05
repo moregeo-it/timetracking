@@ -1,7 +1,11 @@
 <template>
     <div class="projects">
+        <NcAppContentDetails>
+            <template #title>
+                {{ t('timetracking', 'Projekte') }}
+            </template>
+        </NcAppContentDetails>
         <div class="header-row">
-            <h1>{{ t('timetracking', 'Projekte') }}</h1>
             <button v-if="isAdmin" @click="showAddDialog = true" class="button primary">
                 <span class="icon-add"></span> {{ t('timetracking', 'Neues Projekt') }}
             </button>
@@ -108,9 +112,13 @@ import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
+import { NcAppContentDetails } from '@nextcloud/vue'
 
 export default {
     name: 'Projects',
+    components: {
+        NcAppContentDetails,
+    },
     data() {
         return {
             projects: [],

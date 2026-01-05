@@ -1,6 +1,10 @@
 <template>
     <div class="time-tracking">
-        <h1>{{ t('timetracking', 'Zeiterfassung') }}</h1>
+        <NcAppContentDetails>
+            <template #title>
+                {{ t('timetracking', 'Zeiterfassung') }}
+            </template>
+        </NcAppContentDetails>
         
         <div class="timer-section" v-if="runningTimer">
             <div class="timer-card running">
@@ -125,9 +129,13 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
+import { NcAppContentDetails } from '@nextcloud/vue'
 
 export default {
     name: 'TimeTracking',
+    components: {
+        NcAppContentDetails,
+    },
     data() {
         const today = new Date().toISOString().split('T')[0]
         const weekAgo = new Date()

@@ -1,6 +1,10 @@
 <template>
     <div class="reports">
-        <h1>{{ t('timetracking', 'Berichte') }}</h1>
+        <NcAppContentDetails>
+            <template #title>
+                {{ t('timetracking', 'Berichte') }}
+            </template>
+        </NcAppContentDetails>
         
         <div class="report-tabs">
             <button 
@@ -333,9 +337,13 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
+import { NcAppContentDetails } from '@nextcloud/vue'
 
 export default {
     name: 'Reports',
+    components: {
+        NcAppContentDetails,
+    },
     data() {
         const now = new Date()
         return {
