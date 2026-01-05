@@ -1,49 +1,49 @@
 <template>
     <div class="dashboard">
-        <h1>Time Tracker Dashboard</h1>
+        <h1>{{ t('timetracking', 'Dashboard') }}</h1>
         
         <div class="dashboard-grid">
             <div class="dashboard-card">
-                <h2>Heute</h2>
-                <div class="stat-value">{{ todayHours }} Stunden</div>
-                <p>Erfasste Arbeitszeit</p>
+                <h2>{{ t('timetracking', 'Heute') }}</h2>
+                <div class="stat-value">{{ todayHours }} {{ t('timetracking', 'Stunden') }}</div>
+                <p>{{ t('timetracking', 'Erfasste Arbeitszeit') }}</p>
             </div>
             
             <div class="dashboard-card">
-                <h2>Diese Woche</h2>
-                <div class="stat-value">{{ weekHours }} Stunden</div>
-                <p>Gesamte Arbeitszeit</p>
+                <h2>{{ t('timetracking', 'Diese Woche') }}</h2>
+                <div class="stat-value">{{ weekHours }} {{ t('timetracking', 'Stunden') }}</div>
+                <p>{{ t('timetracking', 'Gesamte Arbeitszeit') }}</p>
             </div>
             
             <div class="dashboard-card">
-                <h2>Dieser Monat</h2>
-                <div class="stat-value">{{ monthHours }} Stunden</div>
-                <p>Monatliche Arbeitszeit</p>
+                <h2>{{ t('timetracking', 'Dieser Monat') }}</h2>
+                <div class="stat-value">{{ monthHours }} {{ t('timetracking', 'Stunden') }}</div>
+                <p>{{ t('timetracking', 'Monatliche Arbeitszeit') }}</p>
             </div>
             
             <div class="dashboard-card">
-                <h2>Timer</h2>
+                <h2>{{ t('timetracking', 'Timer') }}</h2>
                 <div v-if="runningTimer" class="timer-running">
                     <div class="timer-display">{{ timerDisplay }}</div>
-                    <button @click="stopTimer" class="button primary">Timer Stoppen</button>
+                    <button @click="stopTimer" class="button primary">{{ t('timetracking', 'Timer Stoppen') }}</button>
                     <p>{{ runningProject?.name }}</p>
                 </div>
                 <div v-else>
-                    <p>Kein aktiver Timer</p>
-                    <router-link to="/tracking" class="button">Timer Starten</router-link>
+                    <p>{{ t('timetracking', 'Kein aktiver Timer') }}</p>
+                    <router-link to="/tracking" class="button">{{ t('timetracking', 'Timer Starten') }}</router-link>
                 </div>
             </div>
         </div>
         
         <div class="recent-entries">
-            <h2>Letzte Zeiteinträge</h2>
+            <h2>{{ t('timetracking', 'Letzte Zeiteinträge') }}</h2>
             <table v-if="recentEntries.length > 0">
                 <thead>
                     <tr>
-                        <th>Datum</th>
-                        <th>Projekt</th>
-                        <th>Dauer</th>
-                        <th>Beschreibung</th>
+                        <th>{{ t('timetracking', 'Datum') }}</th>
+                        <th>{{ t('timetracking', 'Projekt') }}</th>
+                        <th>{{ t('timetracking', 'Dauer') }}</th>
+                        <th>{{ t('timetracking', 'Beschreibung') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -55,7 +55,7 @@
                     </tr>
                 </tbody>
             </table>
-            <p v-else>Keine Zeiteinträge vorhanden</p>
+            <p v-else>{{ t('timetracking', 'Keine Zeiteinträge vorhanden') }}</p>
         </div>
     </div>
 </template>
@@ -63,6 +63,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { translate as t } from '@nextcloud/l10n'
 
 export default {
     name: 'Dashboard',
@@ -156,8 +157,9 @@ export default {
         },
         getProjectName(projectId) {
             const project = this.projects.find(p => p.id === projectId)
-            return project ? project.name : 'Unbekannt'
+            return project ? project.name : this.t('timetracking', 'Unbekannt')
         },
+        t,
         startTimerDisplay() {
             if (this.timerInterval) {
                 clearInterval(this.timerInterval)

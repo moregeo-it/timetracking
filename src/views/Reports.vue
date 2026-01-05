@@ -1,58 +1,58 @@
 <template>
     <div class="reports">
-        <h1>Berichte</h1>
+        <h1>{{ t('timetracking', 'Berichte') }}</h1>
         
         <div class="report-tabs">
             <button 
                 @click="activeTab = 'customer'" 
                 :class="{ active: activeTab === 'customer' }"
                 class="tab-button">
-                Kunden-Berichte
+                {{ t('timetracking', 'Kunden-Berichte') }}
             </button>
             <button 
                 @click="activeTab = 'project'" 
                 :class="{ active: activeTab === 'project' }"
                 class="tab-button">
-                Projekt-Berichte
+                {{ t('timetracking', 'Projekt-Berichte') }}
             </button>
             <button 
                 @click="activeTab = 'employee'" 
                 :class="{ active: activeTab === 'employee' }"
                 class="tab-button">
-                Mitarbeiter-Berichte
+                {{ t('timetracking', 'Mitarbeiter-Berichte') }}
             </button>
             <button 
                 @click="activeTab = 'compliance'" 
                 :class="{ active: activeTab === 'compliance' }"
                 class="tab-button">
-                Arbeitszeitgesetz-Prüfung
+                {{ t('timetracking', 'Arbeitszeitgesetz-Prüfung') }}
             </button>
         </div>
         
         <!-- Customer Report -->
         <div v-if="activeTab === 'customer'" class="report-section">
-            <h2>Monatsbericht pro Kunde</h2>
+            <h2>{{ t('timetracking', 'Monatsbericht pro Kunde') }}</h2>
             <form @submit.prevent="loadCustomerReport" class="report-form">
                 <div class="form-group">
-                    <label>Kunde</label>
+                    <label>{{ t('timetracking', 'Kunde') }}</label>
                     <select v-model="customerReportForm.customerId" required>
-                        <option value="">Bitte wählen</option>
+                        <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
                         <option v-for="customer in customers" :key="customer.id" :value="customer.id">
                             {{ customer.name }}
                         </option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Jahr</label>
+                    <label>{{ t('timetracking', 'Jahr') }}</label>
                     <input v-model.number="customerReportForm.year" type="number" :min="2020" :max="2030" required>
                 </div>
                 <div class="form-group">
-                    <label>Monat</label>
+                    <label>{{ t('timetracking', 'Monat') }}</label>
                     <select v-model.number="customerReportForm.month" required>
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
                     </select>
                 </div>
-                <button type="submit" class="button primary">Bericht Erstellen</button>
+                <button type="submit" class="button primary">{{ t('timetracking', 'Bericht Erstellen') }}</button>
             </form>
             
             <div v-if="customerReport" class="report-result">
@@ -60,28 +60,28 @@
                 
                 <div class="summary-cards">
                     <div class="summary-card">
-                        <div class="summary-label">Gesamtstunden</div>
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
                         <div class="summary-value">{{ customerReport.totals.hours }} h</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-label">Abrechenbare Stunden</div>
+                        <div class="summary-label">{{ t('timetracking', 'Abrechenbare Stunden') }}</div>
                         <div class="summary-value">{{ customerReport.totals.billableHours }} h</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-label">Gesamtbetrag</div>
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtbetrag') }}</div>
                         <div class="summary-value">{{ customerReport.totals.amount }} €</div>
                     </div>
                 </div>
                 
-                <h4>Projekte</h4>
+                <h4>{{ t('timetracking', 'Projekte') }}</h4>
                 <table>
                     <thead>
                         <tr>
-                            <th>Projekt</th>
-                            <th>Stunden</th>
-                            <th>Abrechenbar</th>
-                            <th>Stundensatz</th>
-                            <th>Betrag</th>
+                            <th>{{ t('timetracking', 'Projekt') }}</th>
+                            <th>{{ t('timetracking', 'Stunden') }}</th>
+                            <th>{{ t('timetracking', 'Abrechenbar') }}</th>
+                            <th>{{ t('timetracking', 'Stundensatz') }}</th>
+                            <th>{{ t('timetracking', 'Betrag') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -99,57 +99,57 @@
         
         <!-- Project Report -->
         <div v-if="activeTab === 'project'" class="report-section">
-            <h2>Monatsbericht pro Projekt</h2>
+            <h2>{{ t('timetracking', 'Monatsbericht pro Projekt') }}</h2>
             <form @submit.prevent="loadProjectReport" class="report-form">
                 <div class="form-group">
-                    <label>Projekt</label>
+                    <label>{{ t('timetracking', 'Projekt') }}</label>
                     <select v-model="projectReportForm.projectId" required>
-                        <option value="">Bitte wählen</option>
+                        <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
                         <option v-for="project in projects" :key="project.id" :value="project.id">
                             {{ project.name }}
                         </option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Jahr</label>
+                    <label>{{ t('timetracking', 'Jahr') }}</label>
                     <input v-model.number="projectReportForm.year" type="number" :min="2020" :max="2030" required>
                 </div>
                 <div class="form-group">
-                    <label>Monat</label>
+                    <label>{{ t('timetracking', 'Monat') }}</label>
                     <select v-model.number="projectReportForm.month" required>
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
                     </select>
                 </div>
-                <button type="submit" class="button primary">Bericht Erstellen</button>
+                <button type="submit" class="button primary">{{ t('timetracking', 'Bericht Erstellen') }}</button>
             </form>
             
             <div v-if="projectReport" class="report-result">
                 <h3>{{ projectReport.project.name }} - {{ getMonthName(projectReport.period.month) }} {{ projectReport.period.year }}</h3>
-                <p>Kunde: {{ projectReport.customer.name }}</p>
+                <p>{{ t('timetracking', 'Kunde') }}: {{ projectReport.customer.name }}</p>
                 
                 <div class="summary-cards">
                     <div class="summary-card">
-                        <div class="summary-label">Gesamtstunden</div>
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
                         <div class="summary-value">{{ projectReport.totals.hours }} h</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-label">Abrechenbare Stunden</div>
+                        <div class="summary-label">{{ t('timetracking', 'Abrechenbare Stunden') }}</div>
                         <div class="summary-value">{{ projectReport.totals.billableHours }} h</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-label">Gesamtbetrag</div>
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtbetrag') }}</div>
                         <div class="summary-value">{{ projectReport.totals.amount }} €</div>
                     </div>
                 </div>
                 
-                <h4>Mitarbeiter</h4>
+                <h4>{{ t('timetracking', 'Mitarbeiter') }}</h4>
                 <table>
                     <thead>
                         <tr>
-                            <th>Benutzer</th>
-                            <th>Stunden</th>
-                            <th>Abrechenbare Stunden</th>
-                            <th>Einträge</th>
+                            <th>{{ t('timetracking', 'Benutzer') }}</th>
+                            <th>{{ t('timetracking', 'Stunden') }}</th>
+                            <th>{{ t('timetracking', 'Abrechenbare Stunden') }}</th>
+                            <th>{{ t('timetracking', 'Einträge') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -166,35 +166,35 @@
         
         <!-- Employee Report -->
         <div v-if="activeTab === 'employee'" class="report-section">
-            <h2>Mitarbeiter Arbeitszeitbericht</h2>
+            <h2>{{ t('timetracking', 'Mitarbeiter Arbeitszeitbericht') }}</h2>
             <form @submit.prevent="loadEmployeeReport" class="report-form">
                 <div class="form-group">
-                    <label>Jahr</label>
+                    <label>{{ t('timetracking', 'Jahr') }}</label>
                     <input v-model.number="employeeReportForm.year" type="number" :min="2020" :max="2030" required>
                 </div>
                 <div class="form-group">
-                    <label>Monat</label>
+                    <label>{{ t('timetracking', 'Monat') }}</label>
                     <select v-model.number="employeeReportForm.month" required>
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
                     </select>
                 </div>
-                <button type="submit" class="button primary">Bericht Erstellen</button>
+                <button type="submit" class="button primary">{{ t('timetracking', 'Bericht Erstellen') }}</button>
             </form>
             
             <div v-if="employeeReport" class="report-result">
-                <h3>Arbeitszeit {{ getMonthName(employeeReport.period.month) }} {{ employeeReport.period.year }}</h3>
+                <h3>{{ t('timetracking', 'Arbeitszeit') }} {{ getMonthName(employeeReport.period.month) }} {{ employeeReport.period.year }}</h3>
                 
                 <div class="summary-cards">
                     <div class="summary-card">
-                        <div class="summary-label">Gesamtstunden</div>
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
                         <div class="summary-value">{{ employeeReport.totals.hours }} h</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-label">Arbeitstage</div>
+                        <div class="summary-label">{{ t('timetracking', 'Arbeitstage') }}</div>
                         <div class="summary-value">{{ employeeReport.totals.workDays }}</div>
                     </div>
                     <div v-if="employeeReport.totals.hourlyRate" class="summary-card">
-                        <div class="summary-label">Stundensatz</div>
+                        <div class="summary-label">{{ t('timetracking', 'Stundensatz') }}</div>
                         <div class="summary-value">{{ employeeReport.totals.hourlyRate }} €</div>
                     </div>
                     <div v-if="employeeReport.totals.revenue" class="summary-card">
@@ -332,6 +332,7 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
+import { translate as t } from '@nextcloud/l10n'
 
 export default {
     name: 'Reports',
@@ -442,6 +443,7 @@ export default {
         formatDate(dateStr) {
             return new Date(dateStr).toLocaleDateString('de-DE')
         },
+        t,
     },
 }
 </script>

@@ -1,90 +1,90 @@
 <template>
     <div class="time-tracking">
-        <h1>Zeiterfassung</h1>
+        <h1>{{ t('timetracking', 'Zeiterfassung') }}</h1>
         
         <div class="timer-section" v-if="runningTimer">
             <div class="timer-card running">
-                <h2>Laufender Timer</h2>
+                <h2>{{ t('timetracking', 'Laufender Timer') }}</h2>
                 <div class="timer-display">{{ timerDisplay }}</div>
                 <p class="timer-project">{{ runningProjectName }}</p>
                 <p class="timer-description" v-if="runningTimer.description">{{ runningTimer.description }}</p>
-                <button @click="stopTimer" class="button primary">Timer Stoppen</button>
+                <button @click="stopTimer" class="button primary">{{ t('timetracking', 'Timer Stoppen') }}</button>
             </div>
         </div>
         
         <div class="timer-section" v-else>
             <div class="timer-card">
-                <h2>Timer Starten</h2>
+                <h2>{{ t('timetracking', 'Timer Starten') }}</h2>
                 <form @submit.prevent="startTimer">
                     <div class="form-group">
-                        <label>Projekt *</label>
+                        <label>{{ t('timetracking', 'Projekt') }} *</label>
                         <select v-model="timerForm.projectId" required>
-                            <option value="">Bitte wählen</option>
+                            <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
                             <option v-for="project in activeProjects" :key="project.id" :value="project.id">
                                 {{ project.name }} ({{ getCustomerName(project.customerId) }})
                             </option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Beschreibung</label>
-                        <input v-model="timerForm.description" type="text" placeholder="Was machen Sie?">
+                        <label>{{ t('timetracking', 'Beschreibung') }}</label>
+                        <input v-model="timerForm.description" type="text" :placeholder="t('timetracking', 'Was machen Sie?')">
                     </div>
-                    <button type="submit" class="button primary">Timer Starten</button>
+                    <button type="submit" class="button primary">{{ t('timetracking', 'Timer Starten') }}</button>
                 </form>
             </div>
         </div>
         
         <div class="manual-entry-section">
-            <h2>Manueller Zeiteintrag</h2>
+            <h2>{{ t('timetracking', 'Manueller Zeiteintrag') }}</h2>
             <form @submit.prevent="addManualEntry" class="manual-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Projekt *</label>
+                        <label>{{ t('timetracking', 'Projekt') }} *</label>
                         <select v-model="manualForm.projectId" required>
-                            <option value="">Bitte wählen</option>
+                            <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
                             <option v-for="project in activeProjects" :key="project.id" :value="project.id">
                                 {{ project.name }}
                             </option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Datum *</label>
+                        <label>{{ t('timetracking', 'Datum') }} *</label>
                         <input v-model="manualForm.date" type="date" required>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Start *</label>
+                        <label>{{ t('timetracking', 'Start') }} *</label>
                         <input v-model="manualForm.startTime" type="time" required>
                     </div>
                     <div class="form-group">
-                        <label>Ende *</label>
+                        <label>{{ t('timetracking', 'Ende') }} *</label>
                         <input v-model="manualForm.endTime" type="time" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Beschreibung</label>
+                    <label>{{ t('timetracking', 'Beschreibung') }}</label>
                     <input v-model="manualForm.description" type="text">
                 </div>
                 <div class="form-group">
                     <label>
                         <input v-model="manualForm.billable" type="checkbox">
-                        Abrechenbar
+                        {{ t('timetracking', 'Abrechenbar') }}
                     </label>
                 </div>
-                <button type="submit" class="button primary">Eintrag Hinzufügen</button>
+                <button type="submit" class="button primary">{{ t('timetracking', 'Eintrag Hinzufügen') }}</button>
             </form>
         </div>
         
         <div class="entries-section">
-            <h2>Letzte Einträge</h2>
+            <h2>{{ t('timetracking', 'Letzte Einträge') }}</h2>
             <div class="date-filter">
                 <label>
-                    Von:
+                    {{ t('timetracking', 'Von') }}:
                     <input v-model="filterStartDate" type="date" @change="loadEntries">
                 </label>
                 <label>
-                    Bis:
+                    {{ t('timetracking', 'Bis') }}:
                     <input v-model="filterEndDate" type="date" @change="loadEntries">
                 </label>
             </div>
@@ -92,13 +92,13 @@
             <table v-if="entries.length > 0">
                 <thead>
                     <tr>
-                        <th>Datum</th>
-                        <th>Projekt</th>
-                        <th>Start</th>
-                        <th>Ende</th>
-                        <th>Dauer</th>
-                        <th>Beschreibung</th>
-                        <th>Aktionen</th>
+                        <th>{{ t('timetracking', 'Datum') }}</th>
+                        <th>{{ t('timetracking', 'Projekt') }}</th>
+                        <th>{{ t('timetracking', 'Start') }}</th>
+                        <th>{{ t('timetracking', 'Ende') }}</th>
+                        <th>{{ t('timetracking', 'Dauer') }}</th>
+                        <th>{{ t('timetracking', 'Beschreibung') }}</th>
+                        <th>{{ t('timetracking', 'Aktionen') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -110,12 +110,12 @@
                         <td>{{ formatDuration(entry.durationMinutes) }}</td>
                         <td>{{ entry.description || '-' }}</td>
                         <td class="actions">
-                            <button @click="deleteEntry(entry.id)" class="icon-delete" title="Löschen"></button>
+                            <button @click="deleteEntry(entry.id)" class="icon-delete" :title="t('timetracking', 'Löschen')"></button>
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <p v-else>Keine Einträge vorhanden</p>
+            <p v-else>{{ t('timetracking', 'Keine Einträge vorhanden') }}</p>
         </div>
     </div>
 </template>
@@ -124,6 +124,7 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
+import { translate as t } from '@nextcloud/l10n'
 
 export default {
     name: 'TimeTracking',
@@ -195,10 +196,11 @@ export default {
                 const response = await axios.get(generateUrl(url))
                 this.entries = response.data
             } catch (error) {
-                showError('Fehler beim Laden der Einträge')
+                showError(this.t('timetracking', 'Fehler beim Laden der Einträge'))
                 console.error(error)
             }
         },
+        t,
         async checkRunningTimer() {
             try {
                 const response = await axios.get(generateUrl('/apps/timetracking/api/time-entries'))

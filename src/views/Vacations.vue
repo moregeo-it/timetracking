@@ -304,9 +304,9 @@ export default {
         },
         getStatusLabel(status) {
             const labels = {
-                pending: 'Beantragt',
-                approved: 'Genehmigt',
-                rejected: 'Abgelehnt',
+                pending: this.t('timetracking', 'Beantragt'),
+                approved: this.t('timetracking', 'Genehmigt'),
+                rejected: this.t('timetracking', 'Abgelehnt'),
             }
             return labels[status] || status
         },

@@ -1,20 +1,20 @@
 <template>
     <div class="projects">
         <div class="header-row">
-            <h1>Projekte</h1>
+            <h1>{{ t('timetracking', 'Projekte') }}</h1>
             <button v-if="isAdmin" @click="showAddDialog = true" class="button primary">
-                <span class="icon-add"></span> Neues Projekt
+                <span class="icon-add"></span> {{ t('timetracking', 'Neues Projekt') }}
             </button>
             <div v-else class="info-message">
-                Nur Administratoren können Projekte verwalten
+                {{ t('timetracking', 'Nur Administratoren können Projekte verwalten') }}
             </div>
         </div>
         
         <div class="filters">
             <label>
-                Kunde filtern:
+                {{ t('timetracking', 'Kunde filtern') }}:
                 <select v-model="filterCustomerId" @change="loadProjects">
-                    <option value="">Alle Kunden</option>
+                    <option value="">{{ t('timetracking', 'Alle Kunden') }}</option>
                     <option v-for="customer in customers" :key="customer.id" :value="customer.id">
                         {{ customer.name }}
                     </option>
@@ -22,17 +22,17 @@
             </label>
         </div>
         
-        <div v-if="loading" class="loading">Laden...</div>
+        <div v-if="loading" class="loading">{{ t('timetracking', 'Laden...') }}</div>
         
         <table v-else-if="projects.length > 0">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Kunde</th>
-                    <th>Stundensatz</th>
-                    <th>Budget (Stunden)</th>
-                    <th>Status</th>
-                    <th v-if="isAdmin">Aktionen</th>
+                    <th>{{ t('timetracking', 'Name') }}</th>
+                    <th>{{ t('timetracking', 'Kunde') }}</th>
+                    <th>{{ t('timetracking', 'Stundensatz') }}</th>
+                    <th>{{ t('timetracking', 'Budget (Stunden)') }}</th>
+                    <th>{{ t('timetracking', 'Status') }}</th>
+                    <th v-if="isAdmin">{{ t('timetracking', 'Aktionen') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -43,58 +43,58 @@
                     <td>{{ project.budgetHours ? project.budgetHours + ' h' : '-' }}</td>
                     <td>
                         <span :class="project.active ? 'status-active' : 'status-inactive'">
-                            {{ project.active ? 'Aktiv' : 'Inaktiv' }}
+                            {{ project.active ? t('timetracking', 'Aktiv') : t('timetracking', 'Inaktiv') }}
                         </span>
                     </td>
                     <td v-if="isAdmin" class="actions">
-                        <button @click="editProject(project)" class="icon-rename" title="Bearbeiten"></button>
-                        <button @click="deleteProject(project.id)" class="icon-delete" title="Löschen"></button>
+                        <button @click="editProject(project)" class="icon-rename" :title="t('timetracking', 'Bearbeiten')"></button>
+                        <button @click="deleteProject(project.id)" class="icon-delete" :title="t('timetracking', 'Löschen')"></button>
                     </td>
                 </tr>
             </tbody>
         </table>
         
-        <p v-else>Keine Projekte vorhanden</p>
+        <p v-else>{{ t('timetracking', 'Keine Projekte vorhanden') }}</p>
         
         <!-- Add/Edit Dialog -->
         <div v-if="showAddDialog || editingProject" class="dialog-overlay" @click.self="closeDialog">
             <div class="dialog">
-                <h2>{{ editingProject ? 'Projekt bearbeiten' : 'Neues Projekt' }}</h2>
+                <h2>{{ editingProject ? t('timetracking', 'Projekt bearbeiten') : t('timetracking', 'Neues Projekt') }}</h2>
                 <form @submit.prevent="saveProject">
                     <div class="form-group">
-                        <label>Kunde *</label>
+                        <label>{{ t('timetracking', 'Kunde') }} *</label>
                         <select v-model="form.customerId" required>
-                            <option value="">Bitte wählen</option>
+                            <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
                             <option v-for="customer in customers" :key="customer.id" :value="customer.id">
                                 {{ customer.name }}
                             </option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Projektname *</label>
+                        <label>{{ t('timetracking', 'Projektname') }} *</label>
                         <input v-model="form.name" type="text" required>
                     </div>
                     <div class="form-group">
-                        <label>Beschreibung</label>
+                        <label>{{ t('timetracking', 'Beschreibung') }}</label>
                         <textarea v-model="form.description" rows="3"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Stundensatz (€)</label>
+                        <label>{{ t('timetracking', 'Stundensatz (€)') }}</label>
                         <input v-model.number="form.hourlyRate" type="number" step="0.01" min="0">
                     </div>
                     <div class="form-group">
-                        <label>Budget (Stunden)</label>
+                        <label>{{ t('timetracking', 'Budget (Stunden)') }}</label>
                         <input v-model.number="form.budgetHours" type="number" step="0.5" min="0">
                     </div>
                     <div class="form-group" v-if="editingProject">
                         <label>
                             <input v-model="form.active" type="checkbox">
-                            Aktiv
+                            {{ t('timetracking', 'Aktiv') }}
                         </label>
                     </div>
                     <div class="dialog-actions">
-                        <button type="button" @click="closeDialog" class="button">Abbrechen</button>
-                        <button type="submit" class="button primary">Speichern</button>
+                        <button type="button" @click="closeDialog" class="button">{{ t('timetracking', 'Abbrechen') }}</button>
+                        <button type="submit" class="button primary">{{ t('timetracking', 'Speichern') }}</button>
                     </div>
                 </form>
             </div>
@@ -107,6 +107,7 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { getCurrentUser } from '@nextcloud/auth'
+import { translate as t } from '@nextcloud/l10n'
 
 export default {
     name: 'Projects',
@@ -152,7 +153,7 @@ export default {
                 const response = await axios.get(generateUrl(url))
                 this.projects = response.data
             } catch (error) {
-                showError('Fehler beim Laden der Projekte')
+                showError(this.t('timetracking', 'Fehler beim Laden der Projekte'))
                 console.error(error)
             } finally {
                 this.loading = false
@@ -160,8 +161,9 @@ export default {
         },
         getCustomerName(customerId) {
             const customer = this.customers.find(c => c.id === customerId)
-            return customer ? customer.name : 'Unbekannt'
+            return customer ? customer.name : this.t('timetracking', 'Unbekannt')
         },
+        t,
         editProject(project) {
             this.editingProject = project
             this.form = {
@@ -180,32 +182,32 @@ export default {
                         generateUrl('/apps/timetracking/api/projects/' + this.editingProject.id),
                         this.form
                     )
-                    showSuccess('Projekt aktualisiert')
+                    showSuccess(this.t('timetracking', 'Projekt aktualisiert'))
                 } else {
                     await axios.post(
                         generateUrl('/apps/timetracking/api/projects'),
                         this.form
                     )
-                    showSuccess('Projekt erstellt')
+                    showSuccess(this.t('timetracking', 'Projekt erstellt'))
                 }
                 this.closeDialog()
                 this.loadProjects()
             } catch (error) {
-                showError('Fehler beim Speichern')
+                showError(this.t('timetracking', 'Fehler beim Speichern'))
                 console.error(error)
             }
         },
         async deleteProject(id) {
-            if (!confirm('Möchten Sie dieses Projekt wirklich löschen?')) {
+            if (!confirm(this.t('timetracking', 'Möchten Sie dieses Projekt wirklich löschen?'))) {
                 return
             }
             
             try {
                 await axios.delete(generateUrl('/apps/timetracking/api/projects/' + id))
-                showSuccess('Projekt gelöscht')
+                showSuccess(this.t('timetracking', 'Projekt gelöscht'))
                 this.loadProjects()
             } catch (error) {
-                showError('Fehler beim Löschen')
+                showError(this.t('timetracking', 'Fehler beim Löschen'))
                 console.error(error)
             }
         },
