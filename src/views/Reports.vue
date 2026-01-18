@@ -71,7 +71,7 @@
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">{{ t('timetracking', 'Gesamtbetrag') }}</div>
-                        <div class="summary-value">{{ customerReport.totals.amount }} €</div>
+                        <div class="summary-value">{{ customerReport.totals.amount }} {{ getCurrencySymbol(customerReport.customer.currency) }}</div>
                     </div>
                 </div>
                 
@@ -91,8 +91,8 @@
                             <td>{{ item.project.name }}</td>
                             <td>{{ item.hours }} h</td>
                             <td>{{ item.billableHours }} h</td>
-                            <td>{{ item.hourlyRate || '-' }} €</td>
-                            <td>{{ item.amount }} €</td>
+                            <td>{{ item.hourlyRate ? item.hourlyRate + ' ' + getCurrencySymbol(customerReport.customer.currency) : '-' }}</td>
+                            <td>{{ item.amount }} {{ getCurrencySymbol(customerReport.customer.currency) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -140,7 +140,7 @@
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">{{ t('timetracking', 'Gesamtbetrag') }}</div>
-                        <div class="summary-value">{{ projectReport.totals.amount }} €</div>
+                        <div class="summary-value">{{ projectReport.totals.amount }} {{ getCurrencySymbol(projectReport.customer.currency) }}</div>
                     </div>
                 </div>
                 
@@ -352,6 +352,20 @@ export default {
             projectReport: null,
             employeeReport: null,
             complianceReport: null,
+            currencies: [
+                { code: 'EUR', symbol: '€', name: 'Euro' },
+                { code: 'USD', symbol: '$', name: 'US Dollar' },
+                { code: 'GBP', symbol: '£', name: 'Britisches Pfund' },
+                { code: 'CHF', symbol: 'CHF', name: 'Schweizer Franken' },
+                { code: 'JPY', symbol: '¥', name: 'Japanischer Yen' },
+                { code: 'CAD', symbol: 'C$', name: 'Kanadischer Dollar' },
+                { code: 'AUD', symbol: 'A$', name: 'Australischer Dollar' },
+                { code: 'SEK', symbol: 'kr', name: 'Schwedische Krone' },
+                { code: 'NOK', symbol: 'kr', name: 'Norwegische Krone' },
+                { code: 'DKK', symbol: 'kr', name: 'Dänische Krone' },
+                { code: 'PLN', symbol: 'zł', name: 'Polnischer Zloty' },
+                { code: 'CZK', symbol: 'Kč', name: 'Tschechische Krone' },
+            ],
             customerReportForm: {
                 customerId: '',
                 year: now.getFullYear(),
@@ -448,6 +462,10 @@ export default {
         },
         formatDate(dateStr) {
             return new Date(dateStr).toLocaleDateString('de-DE')
+        },
+        getCurrencySymbol(code) {
+            const currency = this.currencies.find(c => c.code === code)
+            return currency ? currency.symbol : (code || '€')
         },
         t,
     },

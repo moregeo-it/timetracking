@@ -138,6 +138,19 @@
         "Urlaubsantrag wirklich löschen?": "Really delete vacation request?",
         "Urlaubsantrag gelöscht": "Vacation request deleted",
         "Genehmigt": "Approved",
-        "Abgelehnt": "Rejected"
+        "Abgelehnt": "Rejected",
+        "Währung": "Currency",
+        "Euro": "Euro",
+        "US Dollar": "US Dollar",
+        "Britisches Pfund": "British Pound",
+        "Schweizer Franken": "Swiss Franc",
+        "Japanischer Yen": "Japanese Yen",
+        "Kanadischer Dollar": "Canadian Dollar",
+        "Australischer Dollar": "Australian Dollar",
+        "Schwedische Krone": "Swedish Krona",
+        "Norwegische Krone": "Norwegian Krone",
+        "Dänische Krone": "Danish Krone",
+        "Polnischer Zloty": "Polish Zloty",
+        "Tschechische Krone": "Czech Koruna"
     }
 }

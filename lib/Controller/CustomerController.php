@@ -54,13 +54,14 @@ class CustomerController extends Controller {
     /**
      * @NoAdminRequired
      */
-    public function create(string $name): DataResponse {
+    public function create(string $name, ?string $currency = 'EUR'): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can create customers'], 403);
         }
         $customer = new Customer();
         $customer->setName($name);
         $customer->setActive(true);
+        $customer->setCurrency($currency ?? 'EUR');
         $customer->setCreatedAt(new \DateTime());
         $customer->setUpdatedAt(new \DateTime());
         
@@ -70,16 +71,21 @@ class CustomerController extends Controller {
     /**
      * @NoAdminRequired
      */
-    public function update(int $id, string $name, ?bool $active = null): DataResponse {
+    public function update(int $id, ?string $name = null, ?bool $active = null, ?string $currency = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can update customers'], 403);
         }
         
         try {
             $customer = $this->mapper->find($id);
-            $customer->setName($name);
+            if ($name !== null) {
+                $customer->setName($name);
+            }
             if ($active !== null) {
                 $customer->setActive($active);
+            }
+            if ($currency !== null) {
+                $customer->setCurrency($currency);
             }
             $customer->setUpdatedAt(new \DateTime());
             

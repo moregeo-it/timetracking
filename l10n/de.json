@@ -138,6 +138,19 @@
         "Urlaubsantrag wirklich löschen?": "Urlaubsantrag wirklich löschen?",
         "Urlaubsantrag gelöscht": "Urlaubsantrag gelöscht",
         "Genehmigt": "Genehmigt",
-        "Abgelehnt": "Abgelehnt"
+        "Abgelehnt": "Abgelehnt",
+        "Währung": "Währung",
+        "Euro": "Euro",
+        "US Dollar": "US Dollar",
+        "Britisches Pfund": "Britisches Pfund",
+        "Schweizer Franken": "Schweizer Franken",
+        "Japanischer Yen": "Japanischer Yen",
+        "Kanadischer Dollar": "Kanadischer Dollar",
+        "Australischer Dollar": "Australischer Dollar",
+        "Schwedische Krone": "Schwedische Krone",
+        "Norwegische Krone": "Norwegische Krone",
+        "Dänische Krone": "Dänische Krone",
+        "Polnischer Zloty": "Polnischer Zloty",
+        "Tschechische Krone": "Tschechische Krone"
     }
 }

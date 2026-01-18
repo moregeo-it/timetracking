@@ -44,7 +44,7 @@
                 <tr v-for="project in projects" :key="project.id">
                     <td>{{ project.name }}</td>
                     <td>{{ getCustomerName(project.customerId) }}</td>
-                    <td>{{ project.hourlyRate ? project.hourlyRate + ' €' : '-' }}</td>
+                    <td>{{ project.hourlyRate ? project.hourlyRate + ' ' + getCustomerCurrency(project.customerId) : '-' }}</td>
                     <td>{{ project.budgetHours ? project.budgetHours + ' h' : '-' }}</td>
                     <td>
                         <span :class="project.active ? 'status-active' : 'status-inactive'">
@@ -92,7 +92,7 @@
                         <textarea v-model="form.description" rows="3"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>{{ t('timetracking', 'Stundensatz (€)') }}</label>
+                        <label>{{ t('timetracking', 'Stundensatz') }} ({{ getSelectedCustomerCurrency() }})</label>
                         <input v-model.number="form.hourlyRate" type="number" step="0.01" min="0">
                     </div>
                     <div class="form-group">
@@ -143,6 +143,20 @@ export default {
             editingProject: null,
             filterCustomerId: '',
             isAdmin: getCurrentUser()?.isAdmin || false,
+            currencies: [
+                { code: 'EUR', symbol: '€', name: 'Euro' },
+                { code: 'USD', symbol: '$', name: 'US Dollar' },
+                { code: 'GBP', symbol: '£', name: 'Britisches Pfund' },
+                { code: 'CHF', symbol: 'CHF', name: 'Schweizer Franken' },
+                { code: 'JPY', symbol: '¥', name: 'Japanischer Yen' },
+                { code: 'CAD', symbol: 'C$', name: 'Kanadischer Dollar' },
+                { code: 'AUD', symbol: 'A$', name: 'Australischer Dollar' },
+                { code: 'SEK', symbol: 'kr', name: 'Schwedische Krone' },
+                { code: 'NOK', symbol: 'kr', name: 'Norwegische Krone' },
+                { code: 'DKK', symbol: 'kr', name: 'Dänische Krone' },
+                { code: 'PLN', symbol: 'zł', name: 'Polnischer Zloty' },
+                { code: 'CZK', symbol: 'Kč', name: 'Tschechische Krone' },
+            ],
             form: {
                 customerId: '',
                 name: '',
@@ -185,6 +199,20 @@ export default {
         getCustomerName(customerId) {
             const customer = this.customers.find(c => c.id === customerId)
             return customer ? customer.name : this.t('timetracking', 'Unbekannt')
+        },
+        getCustomerCurrency(customerId) {
+            const customer = this.customers.find(c => c.id === customerId)
+            if (customer && customer.currency) {
+                const currency = this.currencies.find(c => c.code === customer.currency)
+                return currency ? currency.symbol : customer.currency
+            }
+            return '€'
+        },
+        getSelectedCustomerCurrency() {
+            if (this.form.customerId) {
+                return this.getCustomerCurrency(this.form.customerId)
+            }
+            return '€'
         },
         t,
         editProject(project) {

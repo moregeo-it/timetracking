@@ -21,6 +21,7 @@
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>{{ t('timetracking', 'Währung') }}</th>
                     <th>Status</th>
                     <th v-if="isAdmin">Aktionen</th>
                 </tr>
@@ -28,6 +29,7 @@
             <tbody>
                 <tr v-for="customer in customers" :key="customer.id">
                     <td>{{ customer.name }}</td>
+                    <td>{{ getCurrencySymbol(customer.currency) }}</td>
                     <td>
                         <span :class="customer.active ? 'status-active' : 'status-inactive'">
                             {{ customer.active ? 'Aktiv' : 'Inaktiv' }}
@@ -57,6 +59,14 @@
                     <div class="form-group">
                         <label>Name *</label>
                         <input v-model="form.name" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Währung') }} *</label>
+                        <select v-model="form.currency" required>
+                            <option v-for="curr in currencies" :key="curr.code" :value="curr.code">
+                                {{ curr.symbol }} - {{ curr.name }}
+                            </option>
+                        </select>
                     </div>
                     <div class="form-group" v-if="editingCustomer">
                         <label>
@@ -103,7 +113,22 @@ export default {
             form: {
                 name: '',
                 active: true,
+                currency: 'EUR',
             },
+            currencies: [
+                { code: 'EUR', symbol: '€', name: 'Euro' },
+                { code: 'USD', symbol: '$', name: 'US Dollar' },
+                { code: 'GBP', symbol: '£', name: 'Britisches Pfund' },
+                { code: 'CHF', symbol: 'CHF', name: 'Schweizer Franken' },
+                { code: 'JPY', symbol: '¥', name: 'Japanischer Yen' },
+                { code: 'CAD', symbol: 'C$', name: 'Kanadischer Dollar' },
+                { code: 'AUD', symbol: 'A$', name: 'Australischer Dollar' },
+                { code: 'SEK', symbol: 'kr', name: 'Schwedische Krone' },
+                { code: 'NOK', symbol: 'kr', name: 'Norwegische Krone' },
+                { code: 'DKK', symbol: 'kr', name: 'Dänische Krone' },
+                { code: 'PLN', symbol: 'zł', name: 'Polnischer Zloty' },
+                { code: 'CZK', symbol: 'Kč', name: 'Tschechische Krone' },
+            ],
             isAdmin: getCurrentUser()?.isAdmin || false,
         }
     },
@@ -129,6 +154,7 @@ export default {
             this.form = {
                 name: customer.name,
                 active: customer.active,
+                currency: customer.currency || 'EUR',
             }
         },
         async saveCustomer() {
@@ -149,8 +175,9 @@ export default {
                 this.closeDialog()
                 this.loadCustomers()
             } catch (error) {
-                showError('Fehler beim Speichern')
-                console.error(error)
+                const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Unbekannter Fehler'
+                showError('Fehler beim Speichern: ' + errorMsg)
+                console.error('Save customer error:', error.response?.data || error)
             }
         },
         async deleteCustomer(id) {
@@ -173,7 +200,12 @@ export default {
             this.form = {
                 name: '',
                 active: true,
+                currency: 'EUR',
             }
+        },
+        getCurrencySymbol(code) {
+            const currency = this.currencies.find(c => c.code === code)
+            return currency ? currency.symbol : code
         },
     },
 }
