@@ -6,7 +6,7 @@
         
         <div class="timer-section" v-if="runningTimer">
             <div class="timer-card running">
-                <h2>{{ t('timetracking', 'Laufender Timer') }}</h2>
+                <h3>{{ t('timetracking', 'Laufender Timer') }}</h3>
                 <div class="timer-display">{{ timerDisplay }}</div>
                 <p class="timer-project">{{ runningProjectName }}</p>
                 <p class="timer-description" v-if="runningTimer.description">{{ runningTimer.description }}</p>
@@ -16,7 +16,7 @@
         
         <div class="timer-section" v-else>
             <div class="timer-card">
-                <h2>{{ t('timetracking', 'Timer Starten') }}</h2>
+                <h3>{{ t('timetracking', 'Timer Starten') }}</h3>
                 <form @submit.prevent="startTimer">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Projekt') }} *</label>
@@ -264,20 +264,27 @@ export default {
                 clearInterval(this.timerInterval)
             }
             
+            // Update display immediately
+            this.updateTimerDisplay()
+            
+            // Then update every second
             this.timerInterval = setInterval(() => {
-                const start = new Date(this.runningTimer.startTime)
-                const now = new Date()
-                const diff = Math.floor((now - start) / 1000)
-                
-                const hours = Math.floor(diff / 3600)
-                const minutes = Math.floor((diff % 3600) / 60)
-                const seconds = diff % 60
-                
-                this.timerDisplay = 
-                    hours.toString().padStart(2, '0') + ':' +
-                    minutes.toString().padStart(2, '0') + ':' +
-                    seconds.toString().padStart(2, '0')
+                this.updateTimerDisplay()
             }, 1000)
+        },
+        updateTimerDisplay() {
+            const start = new Date(this.runningTimer.startTime)
+            const now = new Date()
+            const diff = Math.floor((now - start) / 1000)
+            
+            const hours = Math.floor(diff / 3600)
+            const minutes = Math.floor((diff % 3600) / 60)
+            const seconds = diff % 60
+            
+            this.timerDisplay = 
+                hours.toString().padStart(2, '0') + ':' +
+                minutes.toString().padStart(2, '0') + ':' +
+                seconds.toString().padStart(2, '0')
         },
         async addManualEntry() {
             try {
@@ -359,14 +366,14 @@ export default {
 }
 
 .timer-card.running {
-    border-color: var(--color-success);
+    border-color: #2e7d32;
     background: var(--color-background-hover);
 }
 
 .timer-display {
     font-size: 48px;
     font-weight: bold;
-    color: var(--color-success);
+    color: #2e7d32;
     text-align: center;
     margin: 20px 0;
 }

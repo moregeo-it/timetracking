@@ -6,25 +6,22 @@
         
         <div class="dashboard-grid">
             <div class="dashboard-card">
-                <h2>{{ t('timetracking', 'Heute') }}</h2>
+                <h3>{{ t('timetracking', 'Heute') }}</h3>
                 <div class="stat-value">{{ todayHours }} {{ t('timetracking', 'Stunden') }}</div>
-                <p>{{ t('timetracking', 'Erfasste Arbeitszeit') }}</p>
             </div>
             
             <div class="dashboard-card">
-                <h2>{{ t('timetracking', 'Diese Woche') }}</h2>
+                <h3>{{ t('timetracking', 'Diese Woche') }}</h3>
                 <div class="stat-value">{{ weekHours }} {{ t('timetracking', 'Stunden') }}</div>
-                <p>{{ t('timetracking', 'Gesamte Arbeitszeit') }}</p>
             </div>
             
             <div class="dashboard-card">
-                <h2>{{ t('timetracking', 'Dieser Monat') }}</h2>
+                <h3>{{ t('timetracking', 'Dieser Monat') }}</h3>
                 <div class="stat-value">{{ monthHours }} {{ t('timetracking', 'Stunden') }}</div>
-                <p>{{ t('timetracking', 'Monatliche Arbeitszeit') }}</p>
             </div>
             
             <div class="dashboard-card">
-                <h2>{{ t('timetracking', 'Timer') }}</h2>
+                <h3>{{ t('timetracking', 'Timer') }}</h3>
                 <div v-if="runningTimer" class="timer-running">
                     <div class="timer-display">{{ timerDisplay }}</div>
                     <NcButton type="primary" @click="stopTimer">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
@@ -103,7 +100,9 @@ export default {
                 
                 // Get this week's Monday
                 const monday = new Date(today)
-                monday.setDate(today.getDate() - today.getDay() + 1)
+                const dayOfWeek = today.getDay()
+                const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+                monday.setDate(today.getDate() + daysToMonday)
                 const mondayStr = monday.toISOString().split('T')[0]
                 
                 // Get first day of month
