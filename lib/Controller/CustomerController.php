@@ -77,7 +77,7 @@ class CustomerController extends Controller {
         }
         
         try {
-            $customer = $this->mapper->find($id);
+            $customer = $this->mapper->find((int)$id);
             if ($name !== null) {
                 $customer->setName($name);
             }
@@ -91,7 +91,7 @@ class CustomerController extends Controller {
             
             return new DataResponse($this->mapper->update($customer));
         } catch (\Exception $e) {
-            return new DataResponse(['error' => 'Customer not found'], 404);
+            return new DataResponse(['error' => 'Customer not found: ' . $e->getMessage()], 404);
         }
     }
 

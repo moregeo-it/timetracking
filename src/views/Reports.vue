@@ -91,7 +91,7 @@
                             <td>{{ item.project.name }}</td>
                             <td>{{ item.hours }} h</td>
                             <td>{{ item.billableHours }} h</td>
-                            <td>{{ item.hourlyRate ? item.hourlyRate + ' ' + getCurrencySymbol(customerReport.customer.currency) : '-' }}</td>
+                            <td>{{ item.hourlyRate !== null && item.hourlyRate !== undefined ? item.hourlyRate + ' ' + getCurrencySymbol(customerReport.customer.currency) : '-' }}</td>
                             <td>{{ item.amount }} {{ getCurrencySymbol(customerReport.customer.currency) }}</td>
                         </tr>
                     </tbody>

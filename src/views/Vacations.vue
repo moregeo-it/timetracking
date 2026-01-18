@@ -36,6 +36,7 @@
                 <div class="progress-bar">
                     <div class="progress-segment used" :style="{ width: usedPercentage + '%' }"></div>
                     <div class="progress-segment pending" :style="{ width: pendingPercentage + '%' }"></div>
+                    <div class="progress-segment remaining" :style="{ width: remainingPercentage + '%' }"></div>
                 </div>
                 <div class="progress-legend">
                     <span class="legend-item">
@@ -125,12 +126,12 @@
                 <form @submit.prevent="saveVacation">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Startdatum') }} *</label>
-                        <input v-model="form.startDate" type="date" required :min="minDate">
+                        <input v-model="form.startDate" type="date" required>
                     </div>
                     
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Enddatum') }} *</label>
-                        <input v-model="form.endDate" type="date" required :min="form.startDate || minDate">
+                        <input v-model="form.endDate" type="date" required :min="form.startDate">
                     </div>
                     
                     <div class="form-group">
@@ -195,9 +196,6 @@ export default {
             const currentYear = new Date().getFullYear()
             return [currentYear - 1, currentYear, currentYear + 1]
         },
-        minDate() {
-            return new Date().toISOString().split('T')[0]
-        },
         usedPercentage() {
             if (!this.balance) return 0
             return (this.balance.usedDays / this.balance.totalDays) * 100
@@ -205,6 +203,10 @@ export default {
         pendingPercentage() {
             if (!this.balance) return 0
             return (this.balance.pendingDays / this.balance.totalDays) * 100
+        },
+        remainingPercentage() {
+            if (!this.balance) return 0
+            return (this.balance.remainingDays / this.balance.totalDays) * 100
         },
     },
     mounted() {
@@ -297,7 +299,23 @@ export default {
         },
         formatDate(dateString) {
             if (!dateString) return ''
-            const date = new Date(dateString)
+            
+            // Handle different date formats
+            let date
+            if (typeof dateString === 'string') {
+                // If it's YYYY-MM-DD format
+                if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const [year, month, day] = dateString.split('-')
+                    date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                } else {
+                    date = new Date(dateString)
+                }
+            } else {
+                date = new Date(dateString)
+            }
+            
+            if (isNaN(date.getTime())) return dateString
+            
             return date.toLocaleDateString('de-DE', {
                 day: '2-digit',
                 month: '2-digit',
@@ -392,7 +410,8 @@ export default {
 }
 
 .stat-value.success {
-    color: var(--color-success);
+    color: #2e7d32;
+    font-weight: bold;
 }
 
 .balance-progress {
@@ -401,7 +420,7 @@ export default {
 
 .progress-bar {
     height: 30px;
-    background: #e0e0e0;
+    background: #f5f5f5;
     border-radius: 15px;
     overflow: hidden;
     display: flex;
@@ -418,6 +437,10 @@ export default {
 
 .progress-segment.pending {
     background: #0082c9;
+}
+
+.progress-segment.remaining {
+    background: #2e7d32;
 }
 
 .progress-legend {
@@ -448,7 +471,7 @@ export default {
 }
 
 .legend-color.remaining {
-    background: #e0e0e0;
+    background: #2e7d32;
 }
 
 .vacation-actions {

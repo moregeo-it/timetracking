@@ -41,11 +41,11 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="project in projects" :key="project.id">
+                <tr v-for="project in sortedProjects" :key="project.id">
                     <td>{{ project.name }}</td>
                     <td>{{ getCustomerName(project.customerId) }}</td>
-                    <td>{{ project.hourlyRate ? project.hourlyRate + ' ' + getCustomerCurrency(project.customerId) : '-' }}</td>
-                    <td>{{ project.budgetHours ? project.budgetHours + ' h' : '-' }}</td>
+                    <td>{{ project.hourlyRate !== null && project.hourlyRate !== undefined ? project.hourlyRate + ' ' + getCustomerCurrency(project.customerId) : '-' }}</td>
+                    <td>{{ project.budgetHours !== null && project.budgetHours !== undefined ? project.budgetHours + ' h' : '-' }}</td>
                     <td>
                         <span :class="project.active ? 'status-active' : 'status-inactive'">
                             {{ project.active ? t('timetracking', 'Aktiv') : t('timetracking', 'Inaktiv') }}
@@ -93,11 +93,11 @@
                     </div>
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Stundensatz') }} ({{ getSelectedCustomerCurrency() }})</label>
-                        <input v-model.number="form.hourlyRate" type="number" step="0.01" min="0">
+                        <input v-model="form.hourlyRate" type="number" step="0.01" min="0" placeholder="-">
                     </div>
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Budget (Stunden)') }}</label>
-                        <input v-model.number="form.budgetHours" type="number" step="0.5" min="0">
+                        <input v-model="form.budgetHours" type="number" step="0.5" min="0" placeholder="-">
                     </div>
                     <div class="form-group" v-if="editingProject">
                         <label>
@@ -167,6 +167,24 @@ export default {
             },
         }
     },
+    computed: {
+        sortedProjects() {
+            return [...this.projects].sort((a, b) => {
+                // 1. Sort by active status (active first)
+                if (a.active !== b.active) {
+                    return a.active ? -1 : 1
+                }
+                // 2. Sort by customer name
+                const customerA = this.getCustomerName(a.customerId).toLowerCase()
+                const customerB = this.getCustomerName(b.customerId).toLowerCase()
+                if (customerA !== customerB) {
+                    return customerA.localeCompare(customerB, 'de')
+                }
+                // 3. Sort by project name alphabetically
+                return a.name.toLowerCase().localeCompare(b.name.toLowerCase(), 'de')
+            })
+        },
+    },
     mounted() {
         this.loadCustomers()
         this.loadProjects()
@@ -228,16 +246,23 @@ export default {
         },
         async saveProject() {
             try {
+                // Convert empty strings to null for optional numeric fields
+                const data = {
+                    ...this.form,
+                    hourlyRate: this.form.hourlyRate === '' || this.form.hourlyRate === null ? null : parseFloat(this.form.hourlyRate),
+                    budgetHours: this.form.budgetHours === '' || this.form.budgetHours === null ? null : parseFloat(this.form.budgetHours),
+                }
+                
                 if (this.editingProject) {
                     await axios.put(
                         generateUrl('/apps/timetracking/api/projects/' + this.editingProject.id),
-                        this.form
+                        data
                     )
                     showSuccess(this.t('timetracking', 'Projekt aktualisiert'))
                 } else {
                     await axios.post(
                         generateUrl('/apps/timetracking/api/projects'),
-                        this.form
+                        data
                     )
                     showSuccess(this.t('timetracking', 'Projekt erstellt'))
                 }

@@ -141,7 +141,7 @@ export default {
 .tt-app .form-group label {
     display: block;
     margin-bottom: 6px;
-    font-weight: 600;
+    font-weight: bold;
 }
 
 .tt-app .form-group input[type="text"],
@@ -204,7 +204,7 @@ export default {
 .modal-wrapper .modal-content h2 {
     margin: 0 0 24px 0;
     font-size: 20px;
-    font-weight: 600;
+    font-weight: bold;
     color: var(--color-main-text);
 }
 
@@ -219,7 +219,7 @@ export default {
 .tt-app .modal-content .form-group label,
 .modal-wrapper .modal-content .form-group label {
     display: block;
-    font-weight: 500;
+    font-weight: bold;
     margin-bottom: 0;
 }
 
@@ -293,7 +293,7 @@ export default {
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: bold;
 }
 
 .tt-app .status-active {
@@ -403,5 +403,11 @@ export default {
     text-align: center;
     padding: 40px;
     color: var(--color-text-maxcontrast);
+}
+
+/* Toast Notifications - Position bottom-right */
+.toastify.dialogs {
+    top: unset !important;
+    bottom: 20px !important;
 }
 </style>
