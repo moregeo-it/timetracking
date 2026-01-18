@@ -101,11 +101,24 @@ class VacationMapper extends QBMapper {
     }
 
     /**
+     * Find all pending vacations (for admin approval)
+     */
+    public function findAllPending(): array {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('status', $qb->createNamedParameter('pending')))
+            ->orderBy('created_at', 'ASC');
+
+        return $this->findEntities($qb);
+    }
+
+    /**
      * Calculate total vacation days used by user in a year
      */
-    public function getTotalDaysUsed(string $userId, int $year): int {
+    public function getTotalDaysUsed(string $userId, int $year): float {
         $qb = $this->db->getQueryBuilder();
-        $qb->select($qb->func()->sum('days'))
+        $qb->select($qb->createFunction('COALESCE(SUM(days), 0) as total_days'))
             ->from($this->getTableName())
             ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
             ->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('approved')))
@@ -122,11 +135,11 @@ class VacationMapper extends QBMapper {
                 )
             );
 
-        $result = $qb->execute();
+        $result = $qb->executeQuery();
         $row = $result->fetch();
         $result->closeCursor();
 
-        return (int)($row['sum'] ?? 0);
+        return (float)($row['total_days'] ?? 0);
     }
 }
 

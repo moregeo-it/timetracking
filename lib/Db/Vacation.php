@@ -51,13 +51,13 @@ class Vacation extends Entity implements JsonSerializable {
         return [
             'id' => $this->id,
             'userId' => $this->userId,
-            'startDate' => $this->startDate,
-            'endDate' => $this->endDate,
+            'startDate' => $this->startDate?->format('Y-m-d'),
+            'endDate' => $this->endDate?->format('Y-m-d'),
             'days' => $this->days,
             'status' => $this->status,
             'notes' => $this->notes,
-            'createdAt' => $this->createdAt,
-            'updatedAt' => $this->updatedAt,
+            'createdAt' => $this->createdAt?->format('Y-m-d H:i:s'),
+            'updatedAt' => $this->updatedAt?->format('Y-m-d H:i:s'),
         ];
     }
 }

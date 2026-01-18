@@ -4,6 +4,44 @@
             <h1>{{ t('timetracking', 'Urlaubsverwaltung') }}</h1>
         </div>
         
+        <!-- Admin: Pending Requests Section -->
+        <div v-if="isAdmin && pendingRequests.length > 0" class="pending-requests-card">
+            <h3>{{ t('timetracking', 'Ausstehende Genehmigungen') }} ({{ pendingRequests.length }})</h3>
+            
+            <table class="vacation-table">
+                <thead>
+                    <tr>
+                        <th>{{ t('timetracking', 'Mitarbeiter') }}</th>
+                        <th>{{ t('timetracking', 'Zeitraum') }}</th>
+                        <th>{{ t('timetracking', 'Tage') }}</th>
+                        <th>{{ t('timetracking', 'Notizen') }}</th>
+                        <th>{{ t('timetracking', 'Aktionen') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="request in pendingRequests" :key="request.id" class="status-pending">
+                        <td>{{ request.userId }}</td>
+                        <td>
+                            <strong>{{ formatDate(request.startDate) }}</strong>
+                            <span v-if="request.startDate !== request.endDate">
+                                - {{ formatDate(request.endDate) }}
+                            </span>
+                        </td>
+                        <td>{{ request.days }}</td>
+                        <td class="notes-cell">{{ request.notes || '-' }}</td>
+                        <td class="actions-cell">
+                            <NcButton type="primary" @click="approveRequest(request.id)">
+                                {{ t('timetracking', 'Genehmigen') }}
+                            </NcButton>
+                            <NcButton type="error" @click="rejectRequest(request.id)">
+                                {{ t('timetracking', 'Ablehnen') }}
+                            </NcButton>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
         <!-- Vacation Balance Card -->
         <div class="balance-card">
             <div class="balance-header">
@@ -101,13 +139,25 @@
                         <td class="notes-cell">{{ vacation.notes || '-' }}</td>
                         <td class="actions-cell">
                             <NcButton
-                                v-if="vacation.status === 'pending'"
+                                v-if="isAdmin && vacation.status === 'pending'"
+                                type="primary"
+                                @click="approveRequest(vacation.id)">
+                                {{ t('timetracking', 'Genehmigen') }}
+                            </NcButton>
+                            <NcButton
+                                v-if="isAdmin && vacation.status === 'pending'"
+                                type="warning"
+                                @click="rejectRequest(vacation.id)">
+                                {{ t('timetracking', 'Ablehnen') }}
+                            </NcButton>
+                            <NcButton
+                                v-if="vacation.status === 'pending' || isAdmin"
                                 type="tertiary"
                                 @click="editVacation(vacation)">
                                 {{ t('timetracking', 'Bearbeiten') }}
                             </NcButton>
                             <NcButton
-                                v-if="vacation.status === 'pending'"
+                                v-if="vacation.status === 'pending' || isAdmin"
                                 type="error"
                                 @click="deleteVacation(vacation.id)">
                                 {{ t('timetracking', 'Löschen') }}
@@ -131,13 +181,13 @@
                     
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Enddatum') }} *</label>
-                        <input v-model="form.endDate" type="date" required :min="form.startDate">
+                        <input v-model="form.endDate" type="date" required :min="form.startDate">  
                     </div>
                     
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Anzahl Tage') }} *</label>
-                        <input v-model.number="form.days" type="number" min="0.5" step="0.5" required>
-                        <p class="hint">{{ t('timetracking', 'Halbe Tage sind möglich (z.B. 2.5)') }}</p>
+                        <input v-model.number="form.days" type="number" min="0.5" step="0.5" required :placeholder="t('timetracking', 'Anzahl der Urlaubstage eingeben')">
+                        <p class="hint">{{ t('timetracking', 'Bitte Wochenenden und Feiertage nicht mitzählen. Halbe Tage sind möglich (z.B. 0.5).') }}</p>
                     </div>
                     
                     <div class="form-group">
@@ -164,6 +214,7 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
+import { getCurrentUser } from '@nextcloud/auth'
 import { NcButton, NcModal } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
@@ -180,13 +231,15 @@ export default {
             loading: true,
             currentYear: now.getFullYear(),
             vacations: [],
+            pendingRequests: [],
             balance: null,
             showModal: false,
             editingVacation: null,
+            isAdmin: getCurrentUser()?.isAdmin || false,
             form: {
                 startDate: '',
                 endDate: '',
-                days: 1,
+                days: '',
                 notes: '',
             },
         }
@@ -212,6 +265,9 @@ export default {
     mounted() {
         this.loadVacations()
         this.loadBalance()
+        if (this.isAdmin) {
+            this.loadPendingRequests()
+        }
     },
     methods: {
         t,
@@ -240,10 +296,33 @@ export default {
                 console.error(error)
             }
         },
+        extractDateString(dateInput) {
+            if (!dateInput) return ''
+            
+            // Handle PHP DateTime JSON object
+            if (typeof dateInput === 'object' && dateInput.date) {
+                const datePart = dateInput.date.split(' ')[0]
+                return datePart
+            }
+            
+            // Handle string formats
+            if (typeof dateInput === 'string') {
+                // Remove time part if present (T or space separator)
+                if (dateInput.includes('T')) {
+                    return dateInput.split('T')[0]
+                }
+                if (dateInput.includes(' ')) {
+                    return dateInput.split(' ')[0]
+                }
+                return dateInput
+            }
+            
+            return String(dateInput)
+        },
         editVacation(vacation) {
             this.editingVacation = vacation
-            this.form.startDate = vacation.startDate.split('T')[0]
-            this.form.endDate = vacation.endDate.split('T')[0]
+            this.form.startDate = this.extractDateString(vacation.startDate)
+            this.form.endDate = this.extractDateString(vacation.endDate)
             this.form.days = vacation.days
             this.form.notes = vacation.notes || ''
             this.showModal = true
@@ -293,18 +372,31 @@ export default {
             this.form = {
                 startDate: '',
                 endDate: '',
-                days: 1,
+                days: '',
                 notes: '',
             }
         },
-        formatDate(dateString) {
-            if (!dateString) return ''
+        formatDate(dateInput) {
+            if (!dateInput) return ''
+            
+            let dateString = dateInput
+            
+            // Handle PHP DateTime JSON object format: { date: "2026-01-02 00:00:00.000000", timezone_type: 3, timezone: "UTC" }
+            if (typeof dateInput === 'object' && dateInput.date) {
+                dateString = dateInput.date
+            }
             
             // Handle different date formats
             let date
             if (typeof dateString === 'string') {
+                // If it's YYYY-MM-DD HH:MM:SS.microseconds format (PHP DateTime)
+                if (dateString.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+                    const [datePart] = dateString.split(' ')
+                    const [year, month, day] = datePart.split('-')
+                    date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                }
                 // If it's YYYY-MM-DD format
-                if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                else if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
                     const [year, month, day] = dateString.split('-')
                     date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
                 } else {
@@ -314,7 +406,7 @@ export default {
                 date = new Date(dateString)
             }
             
-            if (isNaN(date.getTime())) return dateString
+            if (isNaN(date.getTime())) return String(dateInput)
             
             return date.toLocaleDateString('de-DE', {
                 day: '2-digit',
@@ -329,6 +421,48 @@ export default {
                 rejected: this.t('timetracking', 'Abgelehnt'),
             }
             return labels[status] || status
+        },
+        async loadPendingRequests() {
+            try {
+                const response = await axios.get(
+                    generateUrl('/apps/timetracking/api/vacations/pending')
+                )
+                this.pendingRequests = response.data
+            } catch (error) {
+                console.error('Error loading pending requests:', error)
+            }
+        },
+        async approveRequest(id) {
+            try {
+                await axios.post(
+                    generateUrl(`/apps/timetracking/api/vacations/${id}/approve`)
+                )
+                showSuccess(t('timetracking', 'Urlaubsantrag genehmigt'))
+                this.loadPendingRequests()
+                this.loadVacations()
+                this.loadBalance()
+            } catch (error) {
+                showError(t('timetracking', 'Fehler beim Genehmigen'))
+                console.error(error)
+            }
+        },
+        async rejectRequest(id) {
+            if (!confirm(t('timetracking', 'Urlaubsantrag wirklich ablehnen?'))) {
+                return
+            }
+            
+            try {
+                await axios.post(
+                    generateUrl(`/apps/timetracking/api/vacations/${id}/reject`)
+                )
+                showSuccess(t('timetracking', 'Urlaubsantrag abgelehnt'))
+                this.loadPendingRequests()
+                this.loadVacations()
+                this.loadBalance()
+            } catch (error) {
+                showError(t('timetracking', 'Fehler beim Ablehnen'))
+                console.error(error)
+            }
         },
     },
 }
@@ -497,5 +631,18 @@ export default {
 .actions-cell {
     display: flex;
     gap: 8px;
+}
+
+.pending-requests-card {
+    background: var(--color-main-background);
+    border: 2px solid #e67700;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.pending-requests-card h3 {
+    color: #e67700;
+    margin-bottom: 16px;
 }
 </style>

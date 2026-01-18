@@ -12,23 +12,110 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
 use OCP\IUserSession;
+use OCP\IGroupManager;
+use OCP\IUserManager;
+use OCP\Mail\IMailer;
+use OCP\IL10N;
+use OCP\IURLGenerator;
 
 class VacationController extends Controller {
     private $userId;
     private $vacationMapper;
     private $employeeSettingsMapper;
+    private $groupManager;
+    private $userManager;
+    private $mailer;
+    private $l10n;
+    private $urlGenerator;
 
     public function __construct(
         string $appName,
         IRequest $request,
         IUserSession $userSession,
         VacationMapper $vacationMapper,
-        EmployeeSettingsMapper $employeeSettingsMapper
+        EmployeeSettingsMapper $employeeSettingsMapper,
+        IGroupManager $groupManager,
+        IUserManager $userManager,
+        IMailer $mailer,
+        IL10N $l10n,
+        IURLGenerator $urlGenerator
     ) {
         parent::__construct($appName, $request);
         $this->userId = $userSession->getUser()->getUID();
         $this->vacationMapper = $vacationMapper;
         $this->employeeSettingsMapper = $employeeSettingsMapper;
+        $this->groupManager = $groupManager;
+        $this->userManager = $userManager;
+        $this->mailer = $mailer;
+        $this->l10n = $l10n;
+        $this->urlGenerator = $urlGenerator;
+    }
+
+    private function isAdmin(): bool {
+        return $this->groupManager->isAdmin($this->userId);
+    }
+
+    private function notifyAdminsAboutNewVacationRequest(Vacation $vacation): void {
+        // Don't send email if the requester is an admin
+        if ($this->isAdmin()) {
+            return;
+        }
+
+        $adminGroup = $this->groupManager->get('admin');
+        if ($adminGroup === null) {
+            return;
+        }
+
+        $admins = $adminGroup->getUsers();
+        $requester = $this->userManager->get($this->userId);
+        $requesterName = $requester ? $requester->getDisplayName() : $this->userId;
+        $requesterEmail = $requester ? $requester->getEMailAddress() : null;
+
+        $startDate = $vacation->getStartDate()->format('d.m.Y');
+        $endDate = $vacation->getEndDate()->format('d.m.Y');
+        $days = $vacation->getDays();
+        
+        $appUrl = $this->urlGenerator->linkToRouteAbsolute('timetracking.page.index');
+
+        $subject = $this->l10n->t('Neuer Urlaubsantrag von %s', [$requesterName]);
+        
+        $body = $this->l10n->t('Hallo,') . "\n\n";
+        $body .= $this->l10n->t('%s hat einen neuen Urlaubsantrag eingereicht:', [$requesterName]) . "\n\n";
+        $body .= $this->l10n->t('Zeitraum: %s - %s', [$startDate, $endDate]) . "\n";
+        $body .= $this->l10n->t('Anzahl Tage: %s', [$days]) . "\n";
+        if ($vacation->getNotes()) {
+            $body .= $this->l10n->t('Notizen: %s', [$vacation->getNotes()]) . "\n";
+        }
+        $body .= "\n" . $this->l10n->t('Bitte genehmigen oder lehnen Sie den Antrag ab:') . "\n";
+        $body .= $appUrl . "\n\n";
+        $body .= $this->l10n->t('Mit freundlichen Grüßen,') . "\n";
+        $body .= $this->l10n->t('Ihr Zeiterfassungssystem');
+
+        foreach ($admins as $admin) {
+            $adminEmail = $admin->getEMailAddress();
+            if ($adminEmail === null || $adminEmail === '') {
+                continue;
+            }
+
+            try {
+                $message = $this->mailer->createMessage();
+                $message->setSubject($subject);
+                $message->setPlainBody($body);
+                $message->setTo([$adminEmail => $admin->getDisplayName()]);
+                
+                if ($requesterEmail) {
+                    $message->setReplyTo([$requesterEmail => $requesterName]);
+                }
+
+                $this->mailer->send($message);
+            } catch (\Exception $e) {
+                // Log error but don't fail the vacation request
+                \OC::$server->getLogger()->error(
+                    'Failed to send vacation notification email to ' . $adminEmail . ': ' . $e->getMessage(),
+                    ['app' => 'timetracking']
+                );
+            }
+        }
     }
 
     /**
@@ -78,6 +165,10 @@ class VacationController extends Controller {
             $vacation->setUpdatedAt(new DateTime());
 
             $result = $this->vacationMapper->insert($vacation);
+            
+            // Notify admins about the new vacation request
+            $this->notifyAdminsAboutNewVacationRequest($vacation);
+            
             return new DataResponse($result);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 400);
@@ -97,13 +188,16 @@ class VacationController extends Controller {
         try {
             $vacation = $this->vacationMapper->find($id);
             
-            // Only allow user to update their own vacations
-            if ($vacation->getUserId() !== $this->userId) {
+            // Admins can update any vacation, users only their own pending ones
+            $isOwner = $vacation->getUserId() === $this->userId;
+            $isAdmin = $this->isAdmin();
+            
+            if (!$isOwner && !$isAdmin) {
                 return new DataResponse(['error' => 'Unauthorized'], 403);
             }
             
-            // Only allow updates if status is pending
-            if ($vacation->getStatus() !== 'pending') {
+            // Non-admins can only update pending vacations
+            if (!$isAdmin && $vacation->getStatus() !== 'pending') {
                 return new DataResponse(['error' => 'Cannot update approved or rejected vacation'], 400);
             }
 
@@ -136,13 +230,16 @@ class VacationController extends Controller {
         try {
             $vacation = $this->vacationMapper->find($id);
             
-            // Only allow user to delete their own vacations
-            if ($vacation->getUserId() !== $this->userId) {
+            // Admins can delete any vacation, users only their own pending ones
+            $isOwner = $vacation->getUserId() === $this->userId;
+            $isAdmin = $this->isAdmin();
+            
+            if (!$isOwner && !$isAdmin) {
                 return new DataResponse(['error' => 'Unauthorized'], 403);
             }
             
-            // Only allow deletion if status is pending
-            if ($vacation->getStatus() !== 'pending') {
+            // Non-admins can only delete pending vacations
+            if (!$isAdmin && $vacation->getStatus() !== 'pending') {
                 return new DataResponse(['error' => 'Cannot delete approved or rejected vacation'], 400);
             }
 
@@ -202,6 +299,75 @@ class VacationController extends Controller {
             return new DataResponse($vacations);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Get all pending vacation requests (Admin only)
+     * @NoAdminRequired
+     */
+    public function pending(): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+        
+        try {
+            $vacations = $this->vacationMapper->findAllPending();
+            return new DataResponse($vacations);
+        } catch (\Exception $e) {
+            return new DataResponse(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Approve a vacation request (Admin only)
+     * @NoAdminRequired
+     */
+    public function approve(int $id): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+        
+        try {
+            $vacation = $this->vacationMapper->find($id);
+            
+            if ($vacation->getStatus() !== 'pending') {
+                return new DataResponse(['error' => 'Vacation request is not pending'], 400);
+            }
+            
+            $vacation->setStatus('approved');
+            $vacation->setUpdatedAt(new DateTime());
+            
+            $result = $this->vacationMapper->update($vacation);
+            return new DataResponse($result);
+        } catch (\Exception $e) {
+            return new DataResponse(['error' => $e->getMessage()], 404);
+        }
+    }
+
+    /**
+     * Reject a vacation request (Admin only)
+     * @NoAdminRequired
+     */
+    public function reject(int $id): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+        
+        try {
+            $vacation = $this->vacationMapper->find($id);
+            
+            if ($vacation->getStatus() !== 'pending') {
+                return new DataResponse(['error' => 'Vacation request is not pending'], 400);
+            }
+            
+            $vacation->setStatus('rejected');
+            $vacation->setUpdatedAt(new DateTime());
+            
+            $result = $this->vacationMapper->update($vacation);
+            return new DataResponse($result);
+        } catch (\Exception $e) {
+            return new DataResponse(['error' => $e->getMessage()], 404);
         }
     }
 }

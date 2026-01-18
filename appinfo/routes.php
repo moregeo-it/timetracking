@@ -46,6 +46,9 @@ return [
         ['name' => 'vacation#destroy', 'url' => '/api/vacations/{id}', 'verb' => 'DELETE'],
         ['name' => 'vacation#balance', 'url' => '/api/vacations/balance/{year}', 'verb' => 'GET'],
         ['name' => 'vacation#calendar', 'url' => '/api/vacations/calendar/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'vacation#pending', 'url' => '/api/vacations/pending', 'verb' => 'GET'],
+        ['name' => 'vacation#approve', 'url' => '/api/vacations/{id}/approve', 'verb' => 'POST'],
+        ['name' => 'vacation#reject', 'url' => '/api/vacations/{id}/reject', 'verb' => 'POST'],
         
         // Employee settings routes
         ['name' => 'employee_settings#get', 'url' => '/api/employee-settings', 'verb' => 'GET'],
