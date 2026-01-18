@@ -23,6 +23,7 @@
                     icon="icon-projects">
                 </NcAppNavigationItem>
                 <NcAppNavigationItem
+                    v-if="isAdmin"
                     :to="{ path: '/reports' }"
                     :name="t('timetracking', 'Berichte')"
                     icon="icon-category-monitoring">
@@ -54,6 +55,7 @@
 <script>
 import { NcContent, NcAppNavigation, NcAppNavigationList, NcAppNavigationItem, NcAppContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { getCurrentUser } from '@nextcloud/auth'
 
 export default {
     name: 'App',
@@ -63,6 +65,11 @@ export default {
         NcAppNavigationList,
         NcAppNavigationItem,
         NcAppContent,
+    },
+    data() {
+        return {
+            isAdmin: getCurrentUser()?.isAdmin || false,
+        }
     },
     methods: {
         t,

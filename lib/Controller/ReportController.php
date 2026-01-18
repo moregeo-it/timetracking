@@ -12,6 +12,8 @@ use OCA\TimeTracking\Service\ComplianceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
+use OCP\IGroupManager;
+use OCP\IUserManager;
 
 class ReportController extends Controller {
     private TimeEntryMapper $timeEntryMapper;
@@ -19,6 +21,9 @@ class ReportController extends Controller {
     private CustomerMapper $customerMapper;
     private EmployeeSettingsMapper $employeeSettingsMapper;
     private ComplianceService $complianceService;
+    private IGroupManager $groupManager;
+    private IUserManager $userManager;
+    private string $userId;
 
     public function __construct(
         string $appName,
@@ -27,7 +32,10 @@ class ReportController extends Controller {
         ProjectMapper $projectMapper,
         CustomerMapper $customerMapper,
         EmployeeSettingsMapper $employeeSettingsMapper,
-        ComplianceService $complianceService
+        ComplianceService $complianceService,
+        IGroupManager $groupManager,
+        IUserManager $userManager,
+        string $userId
     ) {
         parent::__construct($appName, $request);
         $this->timeEntryMapper = $timeEntryMapper;
@@ -35,27 +43,95 @@ class ReportController extends Controller {
         $this->customerMapper = $customerMapper;
         $this->employeeSettingsMapper = $employeeSettingsMapper;
         $this->complianceService = $complianceService;
+        $this->groupManager = $groupManager;
+        $this->userManager = $userManager;
+        $this->userId = $userId;
+    }
+
+    private function isAdmin(): bool {
+        return $this->groupManager->isAdmin($this->userId);
+    }
+
+    private function getDisplayName(string $userId): string {
+        $user = $this->userManager->get($userId);
+        return $user ? $user->getDisplayName() : $userId;
     }
 
     /**
-     * @NoAdminRequired
+     * Calculate date range based on period type
      */
-    public function customerMonthly(int $customerId, int $year, int $month): DataResponse {
+    private function getDateRange(string $periodType, int $year, ?int $month = null, ?int $quarter = null): array {
+        switch ($periodType) {
+            case 'month':
+                $startDate = new DateTime("$year-$month-01");
+                $endDate = clone $startDate;
+                $endDate->modify('last day of this month');
+                break;
+            case 'quarter':
+                $startMonth = ($quarter - 1) * 3 + 1;
+                $startDate = new DateTime("$year-$startMonth-01");
+                $endDate = clone $startDate;
+                $endDate->modify('+2 months');
+                $endDate->modify('last day of this month');
+                break;
+            case 'year':
+                $startDate = new DateTime("$year-01-01");
+                $endDate = new DateTime("$year-12-31");
+                break;
+            case 'total':
+            default:
+                $startDate = null;
+                $endDate = null;
+                break;
+        }
+        return [$startDate, $endDate];
+    }
+
+    /**
+     * Get period label for display
+     */
+    private function getPeriodLabel(string $periodType, int $year, ?int $month = null, ?int $quarter = null): string {
+        switch ($periodType) {
+            case 'month':
+                $months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 
+                           'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+                return $months[$month - 1] . ' ' . $year;
+            case 'quarter':
+                return "Q$quarter $year";
+            case 'year':
+                return (string)$year;
+            case 'total':
+                return 'Gesamt';
+            case 'project_period':
+                return 'Projektzeitraum';
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * Customer report - Admin only
+     */
+    public function customerReport(int $customerId, string $periodType, int $year, ?int $month = null, ?int $quarter = null): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
         try {
             $customer = $this->customerMapper->find($customerId);
             $projects = $this->projectMapper->findByCustomer($customerId);
             
-            $startDate = new DateTime("$year-$month-01");
-            $endDate = clone $startDate;
-            $endDate->modify('last day of this month');
+            [$startDate, $endDate] = $this->getDateRange($periodType, $year, $month, $quarter);
             
             $report = [
                 'customer' => $customer,
                 'period' => [
+                    'type' => $periodType,
+                    'label' => $this->getPeriodLabel($periodType, $year, $month, $quarter),
                     'year' => $year,
                     'month' => $month,
-                    'startDate' => $startDate->format('Y-m-d'),
-                    'endDate' => $endDate->format('Y-m-d'),
+                    'quarter' => $quarter,
+                    'startDate' => $startDate?->format('Y-m-d'),
+                    'endDate' => $endDate?->format('Y-m-d'),
                 ],
                 'projects' => [],
                 'totals' => [
@@ -81,14 +157,16 @@ class ReportController extends Controller {
                 
                 $amount = $billableHours * ($project->getHourlyRate() ?? 0);
                 
-                $report['projects'][] = [
-                    'project' => $project,
-                    'hours' => round($projectHours, 2),
-                    'billableHours' => round($billableHours, 2),
-                    'hourlyRate' => $project->getHourlyRate(),
-                    'amount' => round($amount, 2),
-                    'entryCount' => count($entries),
-                ];
+                if ($projectHours > 0) {
+                    $report['projects'][] = [
+                        'project' => $project,
+                        'hours' => round($projectHours, 2),
+                        'billableHours' => round($billableHours, 2),
+                        'hourlyRate' => $project->getHourlyRate(),
+                        'amount' => round($amount, 2),
+                        'entryCount' => count($entries),
+                    ];
+                }
                 
                 $report['totals']['hours'] += $projectHours;
                 $report['totals']['billableHours'] += $billableHours;
@@ -106,27 +184,48 @@ class ReportController extends Controller {
     }
 
     /**
-     * @NoAdminRequired
+     * Backwards compatibility for old route - Admin only
      */
-    public function projectMonthly(int $projectId, int $year, int $month): DataResponse {
+    public function customerMonthly(int $customerId, int $year, int $month): DataResponse {
+        return $this->customerReport($customerId, 'month', $year, $month);
+    }
+
+    /**
+     * Project report - Admin only
+     */
+    public function projectReport(int $projectId, string $periodType, int $year, ?int $month = null, ?int $quarter = null): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
         try {
             $project = $this->projectMapper->find($projectId);
             $customer = $this->customerMapper->find($project->getCustomerId());
             
-            $startDate = new DateTime("$year-$month-01");
-            $endDate = clone $startDate;
-            $endDate->modify('last day of this month');
+            // Special handling for project period
+            if ($periodType === 'project_period') {
+                $startDate = $project->getStartDate() ? new DateTime($project->getStartDate()) : null;
+                $endDate = $project->getEndDate() ? new DateTime($project->getEndDate()) : null;
+            } else {
+                [$startDate, $endDate] = $this->getDateRange($periodType, $year, $month, $quarter);
+            }
             
             $entries = $this->timeEntryMapper->findByProject($projectId, $startDate, $endDate);
+            
+            $periodLabel = $periodType === 'project_period' 
+                ? 'Projektzeitraum (' . ($project->getStartDate() ?? '?') . ' - ' . ($project->getEndDate() ?? '?') . ')'
+                : $this->getPeriodLabel($periodType, $year, $month, $quarter);
             
             $report = [
                 'project' => $project,
                 'customer' => $customer,
                 'period' => [
+                    'type' => $periodType,
+                    'label' => $periodLabel,
                     'year' => $year,
                     'month' => $month,
-                    'startDate' => $startDate->format('Y-m-d'),
-                    'endDate' => $endDate->format('Y-m-d'),
+                    'quarter' => $quarter,
+                    'startDate' => $startDate?->format('Y-m-d'),
+                    'endDate' => $endDate?->format('Y-m-d'),
                 ],
                 'entries' => [],
                 'totals' => [
@@ -166,6 +265,16 @@ class ReportController extends Controller {
             
             $report['totals']['amount'] = $report['totals']['billableHours'] * ($project->getHourlyRate() ?? 0);
             
+            // Add budget usage if available
+            if ($project->getBudgetHours()) {
+                $report['budget'] = [
+                    'budgetHours' => $project->getBudgetHours(),
+                    'usedHours' => $report['totals']['hours'],
+                    'remainingHours' => round($project->getBudgetHours() - $report['totals']['hours'], 2),
+                    'usagePercent' => round(($report['totals']['hours'] / $project->getBudgetHours()) * 100, 1),
+                ];
+            }
+            
             foreach ($userSummary as &$summary) {
                 $summary['hours'] = round($summary['hours'], 2);
                 $summary['billableHours'] = round($summary['billableHours'], 2);
@@ -183,12 +292,20 @@ class ReportController extends Controller {
     }
 
     /**
-     * @NoAdminRequired
+     * Backwards compatibility for old route - Admin only
      */
-    public function employeeMonthly(string $userId, int $year, int $month): DataResponse {
-        $startDate = new DateTime("$year-$month-01");
-        $endDate = clone $startDate;
-        $endDate->modify('last day of this month');
+    public function projectMonthly(int $projectId, int $year, int $month): DataResponse {
+        return $this->projectReport($projectId, 'month', $year, $month);
+    }
+
+    /**
+     * Employee report - Admin only
+     */
+    public function employeeReport(string $userId, string $periodType, int $year, ?int $month = null, ?int $quarter = null): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
+        [$startDate, $endDate] = $this->getDateRange($periodType, $year, $month, $quarter);
         
         $settings = $this->employeeSettingsMapper->findByUserId($userId);
         $entries = $this->timeEntryMapper->findByUser($userId, $startDate, $endDate);
@@ -197,10 +314,13 @@ class ReportController extends Controller {
             'userId' => $userId,
             'employeeSettings' => $settings,
             'period' => [
+                'type' => $periodType,
+                'label' => $this->getPeriodLabel($periodType, $year, $month, $quarter),
                 'year' => $year,
                 'month' => $month,
-                'startDate' => $startDate->format('Y-m-d'),
-                'endDate' => $endDate->format('Y-m-d'),
+                'quarter' => $quarter,
+                'startDate' => $startDate?->format('Y-m-d'),
+                'endDate' => $endDate?->format('Y-m-d'),
             ],
             'dailySummary' => [],
             'projectSummary' => [],
@@ -269,7 +389,19 @@ class ReportController extends Controller {
             } else {
                 // For contract employees
                 $report['totals']['weeklyHours'] = $settings->getWeeklyHours();
-                $report['totals']['expectedMonthlyHours'] = round($settings->getWeeklyHours() * 4.33, 2); // Average weeks per month
+                
+                // Calculate expected hours based on period
+                switch ($periodType) {
+                    case 'month':
+                        $report['totals']['expectedHours'] = round($settings->getWeeklyHours() * 4.33, 2);
+                        break;
+                    case 'quarter':
+                        $report['totals']['expectedHours'] = round($settings->getWeeklyHours() * 4.33 * 3, 2);
+                        break;
+                    case 'year':
+                        $report['totals']['expectedHours'] = round($settings->getWeeklyHours() * 52, 2);
+                        break;
+                }
             }
             
             // Add hourly rate and revenue calculation if available
@@ -285,16 +417,150 @@ class ReportController extends Controller {
     }
 
     /**
-     * @NoAdminRequired
+     * Backwards compatibility for old route - Admin only
+     */
+    public function employeeMonthly(string $userId, int $year, int $month): DataResponse {
+        return $this->employeeReport($userId, 'month', $year, $month);
+    }
+
+    /**
+     * Compliance report - Admin only
+     */
+    public function complianceReport(string $userId, string $periodType, int $year, ?int $month = null): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
+        if ($periodType === 'month') {
+            $startDate = new DateTime("$year-$month-01");
+            $endDate = clone $startDate;
+            $endDate->modify('last day of this month');
+        } else {
+            // year
+            $startDate = new DateTime("$year-01-01");
+            $endDate = new DateTime("$year-12-31");
+        }
+        
+        $result = $this->complianceService->checkCompliance($userId, $startDate, $endDate);
+        $result['period'] = [
+            'type' => $periodType,
+            'label' => $periodType === 'month' 
+                ? $this->getPeriodLabel('month', $year, $month) 
+                : (string)$year,
+            'year' => $year,
+            'month' => $month,
+        ];
+        
+        return new DataResponse($result);
+    }
+
+    /**
+     * Backwards compatibility for old route - Admin only
      */
     public function complianceCheck(string $userId, int $year, int $month): DataResponse {
+        return $this->complianceReport($userId, 'month', $year, $month);
+    }
+
+    /**
+     * Monthly overview of all customers with projects and employees - Admin only
+     */
+    public function monthlyOverview(int $year, int $month): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
         $startDate = new DateTime("$year-$month-01");
         $endDate = clone $startDate;
         $endDate->modify('last day of this month');
         
-        return new DataResponse(
-            $this->complianceService->checkCompliance($userId, $startDate, $endDate)
-        );
+        $customers = $this->customerMapper->findAll();
+        $allProjects = $this->projectMapper->findAll();
+        
+        $overview = [
+            'period' => [
+                'year' => $year,
+                'month' => $month,
+                'startDate' => $startDate->format('Y-m-d'),
+                'endDate' => $endDate->format('Y-m-d'),
+            ],
+            'customers' => [],
+            'totals' => [
+                'hours' => 0,
+            ],
+        ];
+        
+        foreach ($customers as $customer) {
+            $customerProjects = array_filter($allProjects, fn($p) => $p->getCustomerId() === $customer->getId());
+            
+            if (empty($customerProjects)) {
+                continue;
+            }
+            
+            $customerData = [
+                'customer' => $customer,
+                'projects' => [],
+                'totals' => [
+                    'hours' => 0,
+                ],
+            ];
+            
+            foreach ($customerProjects as $project) {
+                $entries = $this->timeEntryMapper->findByProject($project->getId(), $startDate, $endDate);
+                
+                if (empty($entries)) {
+                    continue;
+                }
+                
+                $projectData = [
+                    'project' => $project,
+                    'employees' => [],
+                    'totals' => [
+                        'hours' => 0,
+                    ],
+                ];
+                
+                $employeeHours = [];
+                
+                foreach ($entries as $entry) {
+                    $hours = ($entry->getDurationMinutes() ?? 0) / 60;
+                    $userId = $entry->getUserId();
+                    
+                    if (!isset($employeeHours[$userId])) {
+                        $employeeHours[$userId] = 0;
+                    }
+                    $employeeHours[$userId] += $hours;
+                    $projectData['totals']['hours'] += $hours;
+                }
+                
+                foreach ($employeeHours as $userId => $hours) {
+                    $projectData['employees'][] = [
+                        'userId' => $userId,
+                        'displayName' => $this->getDisplayName($userId),
+                        'hours' => round($hours, 2),
+                    ];
+                }
+                
+                // Sort employees by hours descending
+                usort($projectData['employees'], fn($a, $b) => $b['hours'] <=> $a['hours']);
+                
+                $projectData['totals']['hours'] = round($projectData['totals']['hours'], 2);
+                $customerData['projects'][] = $projectData;
+                $customerData['totals']['hours'] += $projectData['totals']['hours'];
+            }
+            
+            if (!empty($customerData['projects'])) {
+                // Sort projects by hours descending
+                usort($customerData['projects'], fn($a, $b) => $b['totals']['hours'] <=> $a['totals']['hours']);
+                
+                $customerData['totals']['hours'] = round($customerData['totals']['hours'], 2);
+                $overview['customers'][] = $customerData;
+                $overview['totals']['hours'] += $customerData['totals']['hours'];
+            }
+        }
+        
+        // Sort customers by hours descending
+        usort($overview['customers'], fn($a, $b) => $b['totals']['hours'] <=> $a['totals']['hours']);
+        $overview['totals']['hours'] = round($overview['totals']['hours'], 2);
+        
+        return new DataResponse($overview);
     }
 }
 

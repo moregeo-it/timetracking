@@ -29,9 +29,14 @@ return [
         
         // Report routes
         ['name' => 'report#customer_monthly', 'url' => '/api/reports/customer/{customerId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#customer_report', 'url' => '/api/reports/customer', 'verb' => 'GET'],
         ['name' => 'report#project_monthly', 'url' => '/api/reports/project/{projectId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#project_report', 'url' => '/api/reports/project', 'verb' => 'GET'],
         ['name' => 'report#employee_monthly', 'url' => '/api/reports/employee/{userId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#employee_report', 'url' => '/api/reports/employee', 'verb' => 'GET'],
         ['name' => 'report#compliance_check', 'url' => '/api/reports/compliance/{userId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#compliance_report', 'url' => '/api/reports/compliance', 'verb' => 'GET'],
+        ['name' => 'report#monthly_overview', 'url' => '/api/reports/monthly-overview/{year}/{month}', 'verb' => 'GET'],
         
         // Holiday routes
         ['name' => 'holiday#index', 'url' => '/api/holidays', 'verb' => 'GET'],
