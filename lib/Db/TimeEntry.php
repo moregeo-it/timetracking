@@ -54,13 +54,26 @@ class TimeEntry extends Entity implements JsonSerializable {
     }
 
     public function jsonSerialize(): array {
+        // Get the default timezone
+        $tz = new \DateTimeZone(date_default_timezone_get());
+        
+        // Format start/end time with timezone offset for correct client-side parsing
+        $startTime = $this->getStartTime();
+        if ($startTime) {
+            $startTime->setTimezone($tz);
+        }
+        $endTime = $this->getEndTime();
+        if ($endTime) {
+            $endTime->setTimezone($tz);
+        }
+        
         return [
             'id' => $this->getId(),
             'projectId' => $this->getProjectId(),
             'userId' => $this->getUserId(),
             'date' => $this->getDate()?->format('Y-m-d'),
-            'startTime' => $this->getStartTime()?->format('Y-m-d\TH:i:s'),
-            'endTime' => $this->getEndTime()?->format('Y-m-d\TH:i:s'),
+            'startTime' => $startTime?->format('c'), // ISO 8601 with timezone
+            'endTime' => $endTime?->format('c'), // ISO 8601 with timezone
             'durationMinutes' => $this->getDurationMinutes(),
             'description' => $this->getDescription(),
             'billable' => $this->getBillable(),

@@ -763,7 +763,7 @@ export default {
 
 .report-result {
     background: var(--color-background-dark);
-    padding: 20px;
+    padding: 1rem;
     border-radius: 8px;
     margin-top: 20px;
 }
@@ -779,7 +779,7 @@ export default {
     background: var(--color-main-background);
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    padding: 20px;
+    padding: 1rem;
     text-align: center;
 }
 
@@ -828,7 +828,7 @@ export default {
 }
 
 .compliance-status {
-    padding: 20px;
+    padding: 1rem;
     border-radius: 8px;
     margin-bottom: 20px;
     text-align: center;
@@ -938,6 +938,6 @@ export default {
 .no-data {
     color: var(--color-text-maxcontrast);
     text-align: center;
-    padding: 20px;
+    padding: 1rem;
 }
 </style>

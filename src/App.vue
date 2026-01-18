@@ -168,6 +168,12 @@ export default {
     background-color: var(--color-main-background);
 }
 
+.tt-app .form-group input[type="checkbox"],
+.tt-app input[type="checkbox"] {
+    min-height: auto;
+    height: auto;
+}
+
 .tt-app .form-group input:focus,
 .tt-app .form-group select:focus,
 .tt-app .form-group textarea:focus {

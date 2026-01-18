@@ -387,7 +387,7 @@ export default {
 
 .settings-form {
     background: var(--color-main-background);
-    padding: 20px;
+    padding: 1rem;
     border-radius: 8px;
     border: 1px solid var(--color-border);
 }
@@ -395,7 +395,7 @@ export default {
 .contract-settings,
 .freelance-settings {
     background: var(--color-background-hover);
-    padding: 20px;
+    padding: 1rem;
     border-radius: 8px;
     margin-bottom: 20px;
 }
@@ -406,14 +406,14 @@ export default {
 
 .current-status {
     margin-top: 40px;
-    padding: 20px;
+    padding: 1rem;
     background: var(--color-background-dark);
     border-radius: 8px;
 }
 
 .status-card {
     background: var(--color-main-background);
-    padding: 20px;
+    padding: 1rem;
     border-radius: 8px;
     margin-top: 15px;
 }

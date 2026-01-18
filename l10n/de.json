@@ -21,7 +21,6 @@
         "Projekt": "Projekt",
         "Dauer": "Dauer",
         "Beschreibung": "Beschreibung",
-        "Laufender Timer": "Laufender Timer",
         "Manueller Zeiteintrag": "Manueller Zeiteintrag",
         "Bitte wählen": "Bitte wählen",
         "Was machen Sie?": "Was machen Sie?",
@@ -203,6 +202,14 @@
         "Gesamtkontingent": "Gesamtkontingent",
         "Bereits erfasst": "Bereits erfasst",
         "Keine Daten vorhanden": "Keine Daten vorhanden",
-        "Mitarbeitereinstellungen": "Mitarbeitereinstellungen"
+        "Mitarbeitereinstellungen": "Mitarbeitereinstellungen",
+        "Timer gestartet": "Timer gestartet",
+        "Timer gestoppt": "Timer gestoppt",
+        "Fehler beim Starten des Timers": "Fehler beim Starten des Timers",
+        "Fehler beim Stoppen des Timers": "Fehler beim Stoppen des Timers",
+        "Erfasste Zeit": "Erfasste Zeit",
+        "Was haben Sie gemacht?": "Was haben Sie gemacht?",
+        "Bitte machen Sie eine Pause!": "Bitte machen Sie eine Pause!",
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!"
     }
 }

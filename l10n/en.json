@@ -21,7 +21,6 @@
         "Projekt": "Project",
         "Dauer": "Duration",
         "Beschreibung": "Description",
-        "Laufender Timer": "Running Timer",
         "Manueller Zeiteintrag": "Manual Time Entry",
         "Bitte wählen": "Please select",
         "Was machen Sie?": "What are you working on?",
@@ -203,6 +202,14 @@
         "Gesamtkontingent": "Total Contingent",
         "Bereits erfasst": "Already Tracked",
         "Keine Daten vorhanden": "No data available",
-        "Mitarbeitereinstellungen": "Employee Settings"
+        "Mitarbeitereinstellungen": "Employee Settings",
+        "Timer gestartet": "Timer started",
+        "Timer gestoppt": "Timer stopped",
+        "Fehler beim Starten des Timers": "Error starting timer",
+        "Fehler beim Stoppen des Timers": "Error stopping timer",
+        "Erfasste Zeit": "Recorded Time",
+        "Was haben Sie gemacht?": "What did you work on?",
+        "Bitte machen Sie eine Pause!": "Please take a break!",
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Work time over 6 hours - please take a break!"
     }
 }

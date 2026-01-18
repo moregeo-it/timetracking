@@ -133,7 +133,7 @@ class TimeEntryController extends Controller {
     /**
      * @NoAdminRequired
      */
-    public function startTimer(int $projectId, ?string $description = null): DataResponse {
+    public function startTimer(?int $projectId = null, ?string $description = null): DataResponse {
         // Check if there's already a running timer
         $running = $this->mapper->findRunningTimer($this->userId);
         if ($running) {
@@ -141,7 +141,9 @@ class TimeEntryController extends Controller {
         }
         
         $entry = new TimeEntry();
-        $entry->setProjectId($projectId);
+        if ($projectId) {
+            $entry->setProjectId($projectId);
+        }
         $entry->setUserId($this->userId);
         $entry->setDate(new DateTime());
         $entry->setStartTime(new DateTime());
@@ -156,10 +158,26 @@ class TimeEntryController extends Controller {
     /**
      * @NoAdminRequired
      */
-    public function stopTimer(): DataResponse {
+    public function stopTimer(?int $projectId = null, ?string $description = null, ?bool $billable = true): DataResponse {
         $running = $this->mapper->findRunningTimer($this->userId);
         if (!$running) {
             return new DataResponse(['error' => 'No running timer'], 400);
+        }
+        
+        // Update project/description if provided (required if not set at start)
+        if ($projectId !== null) {
+            $running->setProjectId($projectId);
+        }
+        if ($description !== null) {
+            $running->setDescription($description);
+        }
+        if ($billable !== null) {
+            $running->setBillable($billable);
+        }
+        
+        // Validate that project is set
+        if (!$running->getProjectId()) {
+            return new DataResponse(['error' => 'Project is required'], 400);
         }
         
         $now = new DateTime();
