@@ -1,5 +1,5 @@
 <template>
-    <NcContent app-name="timetracking">
+    <NcContent app-name="timetracking" class="tt-app">
         <NcAppNavigation>
             <NcAppNavigationList>
                 <NcAppNavigationItem
@@ -70,12 +70,12 @@ export default {
 }
 </script>
 
-<style>
-:deep(.app-content-wrapper) {
-    padding-top: 0;
+<style scoped>
+.tt-app :deep(.app-content) {
+    padding: 1rem !important;
 }
 
-:deep(.app-content > *) {
-    padding: 20px;
+.tt-app :deep(.header-row) {
+    padding-left: 3rem !important;
 }
 </style>
