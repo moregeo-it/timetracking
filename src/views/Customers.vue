@@ -75,12 +75,12 @@
                         </label>
                     </div>
                     <div class="modal-actions">
-                        <NcButton type="tertiary" native-type="button" @click="closeDialog">
+                        <button type="button" class="btn-secondary" @click="closeDialog">
                             {{ t('timetracking', 'Abbrechen') }}
-                        </NcButton>
-                        <NcButton type="primary" native-type="submit">
+                        </button>
+                        <button type="submit" class="btn-primary">
                             {{ t('timetracking', 'Speichern') }}
-                        </NcButton>
+                        </button>
                     </div>
                 </form>
             </div>

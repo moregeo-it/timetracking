@@ -4,21 +4,38 @@
             <h1>{{ t('timetracking', 'Mitarbeitereinstellungen') }}</h1>
         </div>
         
+        <!-- Admin: User Selection -->
+        <div v-if="isAdmin" class="user-selection">
+            <div class="form-group">
+                <label>{{ t('timetracking', 'Mitarbeiter auswählen') }}</label>
+                <select v-model="selectedUserId" @change="loadUserSettings">
+                    <option v-for="user in allUsers" :key="user.id" :value="user.id">
+                        {{ user.displayName || user.id }}
+                    </option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Info for non-admins -->
+        <div v-if="!isAdmin" class="info-box">
+            <p>{{ t('timetracking', 'Diese Einstellungen können nur von Administratoren geändert werden.') }}</p>
+        </div>
+        
         <div v-if="loading" class="loading">{{ t('timetracking', 'Laden...') }}</div>
         
         <div v-else class="settings-form">
             <form @submit.prevent="saveSettings">
                 <div class="form-group">
                     <label>{{ t('timetracking', 'Beschäftigungsart') }} *</label>
-                    <select v-model="form.employmentType" required @change="onEmploymentTypeChange">
+                    <select v-model="form.employmentType" required :disabled="!isAdmin" @change="onEmploymentTypeChange">
                         <option value="contract">{{ t('timetracking', 'Festanstellung / Teilzeit') }}</option>
-                        <option value="freelance">{{ t('timetracking', 'Freiberufler / Stundenkontingent') }}</option>
-                        <option value="mini_job">{{ t('timetracking', 'Minijob') }}</option>
+                        <option value="freelance">{{ t('timetracking', 'Praktikant / Stundenkontingent') }}</option>
+                        <option value="mini_job">{{ t('timetracking', 'Werkstudent') }}</option>
                     </select>
                     <p class="hint">
                         <strong>Festanstellung:</strong> Reguläre Arbeitsverträge mit Urlaubsanspruch und ArbZG-Prüfung<br>
-                        <strong>Freiberufler:</strong> Maximale Gesamtstundenzahl, keine Urlaubstage<br>
-                        <strong>Minijob:</strong> Geringfügige Beschäftigung, reduzierte Stundenzahl
+                        <strong>Praktikant:</strong> Maximale Gesamtstundenzahl, keine Urlaubstage<br>
+                        <strong>Werkstudent:</strong> Reduzierte Stundenzahl
                     </p>
                 </div>
                 
@@ -26,7 +43,7 @@
                 <div v-if="form.employmentType === 'contract' || form.employmentType === 'mini_job'" class="contract-settings">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Wochenstunden') }} *</label>
-                        <input v-model.number="form.weeklyHours" type="number" step="0.5" min="0" max="60" required>
+                        <input v-model.number="form.weeklyHours" type="number" step="0.5" min="0" max="60" required :disabled="!isAdmin">
                         <p class="hint">
                             Vertragliche Arbeitsstunden pro Woche (z.B. 40, 30, 20)
                         </p>
@@ -34,13 +51,13 @@
                     
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Urlaubstage pro Jahr') }}</label>
-                        <input v-model.number="form.vacationDaysPerYear" type="number" min="0" max="50">
+                        <input v-model.number="form.vacationDaysPerYear" type="number" min="0" max="50" :disabled="!isAdmin">
                         <p class="hint">
                             Gesetzliches Minimum: 20 Tage (bei 5-Tage-Woche)
                         </p>
                     </div>
                     
-                    <div class="form-group">
+                    <div v-if="isAdmin" class="form-group">
                         <label>{{ t('timetracking', 'Stundensatz (€)') }}</label>
                         <input v-model.number="form.hourlyRate" type="number" step="0.01" min="0">
                         <p class="hint">
@@ -50,7 +67,7 @@
                     
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Bundesland') }}</label>
-                        <select v-model="form.federalState">
+                        <select v-model="form.federalState" :disabled="!isAdmin">
                             <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
                             <option value="BW">Baden-Württemberg</option>
                             <option value="BY">Bayern</option>
@@ -79,22 +96,22 @@
                 <div v-if="form.employmentType === 'freelance'" class="freelance-settings">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Maximale Gesamtstunden') }} *</label>
-                        <input v-model.number="form.maxTotalHours" type="number" step="1" min="0" required>
+                        <input v-model.number="form.maxTotalHours" type="number" step="1" min="0" required :disabled="!isAdmin">
                         <p class="hint">
                             Gesamtes Stundenkontingent für diesen Auftrag/Vertrag.<br>
-                            Bei Freiberuflern werden keine Urlaubstage oder ArbZG-Prüfungen angewendet.
+                            Bei Praktikanten werden keine Urlaubstage oder ArbZG-Prüfungen angewendet.
                         </p>
                     </div>
                     
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Durchschnittliche Wochenstunden') }}</label>
-                        <input v-model.number="form.weeklyHours" type="number" step="0.5" min="0">
+                        <input v-model.number="form.weeklyHours" type="number" step="0.5" min="0" :disabled="!isAdmin">
                         <p class="hint">
                             Optional: Für persönliche Planung (nicht für Compliance)
                         </p>
                     </div>
                     
-                    <div class="form-group">
+                    <div v-if="isAdmin" class="form-group">
                         <label>{{ t('timetracking', 'Stundensatz (€)') }}</label>
                         <input v-model.number="form.hourlyRate" type="number" step="0.01" min="0">
                         <p class="hint">
@@ -104,9 +121,9 @@
                     
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Urlaubstage pro Jahr') }}</label>
-                        <input v-model.number="form.vacationDaysPerYear" type="number" min="0" max="50">
+                        <input v-model.number="form.vacationDaysPerYear" type="number" min="0" max="50" :disabled="!isAdmin">
                         <p class="hint">
-                            Falls gewünscht, können Sie auch als Freiberufler Urlaubstage tracken
+                            Falls gewünscht, können Sie auch als Praktikant Urlaubstage tracken
                         </p>
                     </div>
                 </div>
@@ -114,10 +131,10 @@
                 <!-- Common Settings -->
                 <div class="form-group">
                     <label>{{ t('timetracking', 'Beschäftigungsbeginn') }}</label>
-                    <input v-model="form.employmentStart" type="date">
+                    <input v-model="form.employmentStart" type="date" :disabled="!isAdmin">
                 </div>
                 
-                <div class="form-actions">
+                <div v-if="isAdmin" class="form-actions">
                     <NcButton type="primary" native-type="submit">
                         {{ t('timetracking', 'Einstellungen Speichern') }}
                     </NcButton>
@@ -159,7 +176,7 @@
                         <span class="label">{{ t('timetracking', 'Urlaubstage/Jahr:') }}</span>
                         <span class="value">{{ savedSettings.vacationDaysPerYear }}</span>
                     </div>
-                    <div v-if="savedSettings.hourlyRate" class="status-item">
+                    <div v-if="isAdmin && savedSettings.hourlyRate" class="status-item">
                         <span class="label">{{ t('timetracking', 'Stundensatz:') }}</span>
                         <span class="value">{{ savedSettings.hourlyRate }} €</span>
                     </div>
@@ -174,6 +191,7 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
+import { getCurrentUser } from '@nextcloud/auth'
 import { NcButton } from '@nextcloud/vue'
 
 export default {
@@ -186,6 +204,9 @@ export default {
             loading: true,
             savedSettings: null,
             usedHours: 0,
+            isAdmin: getCurrentUser()?.isAdmin || false,
+            allUsers: [],
+            selectedUserId: getCurrentUser()?.uid || '',
             form: {
                 employmentType: 'contract',
                 weeklyHours: 40,
@@ -211,14 +232,45 @@ export default {
         },
     },
     mounted() {
+        if (this.isAdmin) {
+            this.loadAllUsers()
+        }
         this.loadSettings()
         this.loadUsedHours()
     },
     methods: {
         t,
+        async loadAllUsers() {
+            try {
+                const response = await axios.get(generateUrl('/apps/timetracking/api/admin/users'))
+                console.log('Loaded users:', response.data)
+                this.allUsers = response.data
+                // Ensure selected user is set
+                if (this.allUsers.length > 0) {
+                    // If current user is in list, keep it selected, otherwise select first
+                    const currentUserInList = this.allUsers.find(u => u.id === this.selectedUserId)
+                    if (!currentUserInList) {
+                        this.selectedUserId = this.allUsers[0].id
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading users:', error)
+                console.error('Response:', error.response?.data)
+            }
+        },
+        async loadUserSettings() {
+            // Called when admin selects a different user
+            this.loading = true
+            await this.loadSettings()
+            await this.loadUsedHoursForUser()
+        },
         async loadSettings() {
             try {
-                const response = await axios.get(generateUrl('/apps/timetracking/api/employee-settings'))
+                let url = generateUrl('/apps/timetracking/api/employee-settings')
+                if (this.isAdmin && this.selectedUserId) {
+                    url = generateUrl(`/apps/timetracking/api/employee-settings/${this.selectedUserId}`)
+                }
+                const response = await axios.get(url)
                 this.savedSettings = response.data
                 
                 this.form.employmentType = response.data.employmentType
@@ -245,6 +297,21 @@ export default {
                 console.error(error)
             }
         },
+        async loadUsedHoursForUser() {
+            if (!this.isAdmin || !this.selectedUserId) {
+                return this.loadUsedHours()
+            }
+            try {
+                // For admin viewing another user - use admin time entries endpoint
+                const response = await axios.get(generateUrl(`/apps/timetracking/api/admin/time-entries?userId=${this.selectedUserId}`))
+                this.usedHours = response.data.reduce((sum, entry) => {
+                    return sum + ((entry.durationMinutes || 0) / 60)
+                }, 0).toFixed(2)
+            } catch (error) {
+                console.error(error)
+                this.usedHours = 0
+            }
+        },
         onEmploymentTypeChange() {
             if (this.form.employmentType === 'freelance') {
                 this.form.vacationDaysPerYear = 0
@@ -254,15 +321,27 @@ export default {
         },
         async saveSettings() {
             try {
+                const data = { ...this.form }
+                if (this.isAdmin && this.selectedUserId) {
+                    data.targetUserId = this.selectedUserId
+                }
                 await axios.put(
                     generateUrl('/apps/timetracking/api/employee-settings'),
-                    this.form
+                    data
                 )
                 showSuccess(t('timetracking', 'Einstellungen gespeichert'))
                 this.loadSettings()
-                this.loadUsedHours()
+                if (this.isAdmin) {
+                    this.loadUsedHoursForUser()
+                } else {
+                    this.loadUsedHours()
+                }
             } catch (error) {
-                showError(t('timetracking', 'Fehler beim Speichern'))
+                if (error.response?.status === 403) {
+                    showError(t('timetracking', 'Nur Administratoren können Einstellungen ändern'))
+                } else {
+                    showError(t('timetracking', 'Fehler beim Speichern'))
+                }
                 console.error(error)
             }
         },
@@ -274,6 +353,36 @@ export default {
 /* Component-specific styles only - common styles are in App.vue */
 .employee-settings {
     max-width: 800px;
+}
+
+.user-selection {
+    background: var(--color-background-hover);
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid var(--color-border);
+}
+
+.user-selection .form-group {
+    margin-bottom: 0;
+}
+
+.user-selection label {
+    color: var(--color-main-text);
+    font-weight: bold;
+}
+
+.info-box {
+    background: var(--color-background-hover);
+    border-left: 4px solid var(--color-primary);
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.info-box p {
+    margin: 0;
+    color: var(--color-text-maxcontrast);
 }
 
 .settings-form {

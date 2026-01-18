@@ -405,6 +405,35 @@ export default {
     color: var(--color-text-maxcontrast);
 }
 
+/* Native button styles */
+.tt-app .btn-primary,
+.tt-app .btn-secondary {
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.tt-app .btn-primary {
+    background-color: var(--color-primary);
+    color: var(--color-primary-text);
+}
+
+.tt-app .btn-primary:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.tt-app .btn-secondary {
+    background-color: var(--color-background-hover);
+    color: var(--color-main-text);
+}
+
+.tt-app .btn-secondary:hover {
+    background-color: var(--color-background-dark);
+}
+
 /* Toast Notifications - Position bottom-right */
 .toastify.dialogs {
     top: unset !important;

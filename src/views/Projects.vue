@@ -34,7 +34,7 @@
                 <tr>
                     <th>{{ t('timetracking', 'Name') }}</th>
                     <th>{{ t('timetracking', 'Kunde') }}</th>
-                    <th>{{ t('timetracking', 'Stundensatz') }}</th>
+                    <th v-if="isAdmin">{{ t('timetracking', 'Stundensatz') }}</th>
                     <th>{{ t('timetracking', 'Budget (Stunden)') }}</th>
                     <th>{{ t('timetracking', 'Status') }}</th>
                     <th v-if="isAdmin">{{ t('timetracking', 'Aktionen') }}</th>
@@ -44,7 +44,7 @@
                 <tr v-for="project in sortedProjects" :key="project.id">
                     <td>{{ project.name }}</td>
                     <td>{{ getCustomerName(project.customerId) }}</td>
-                    <td>{{ project.hourlyRate !== null && project.hourlyRate !== undefined ? project.hourlyRate + ' ' + getCustomerCurrency(project.customerId) : '-' }}</td>
+                    <td v-if="isAdmin">{{ project.hourlyRate !== null && project.hourlyRate !== undefined ? project.hourlyRate + ' ' + getCustomerCurrency(project.customerId) : '-' }}</td>
                     <td>{{ project.budgetHours !== null && project.budgetHours !== undefined ? project.budgetHours + ' h' : '-' }}</td>
                     <td>
                         <span :class="project.active ? 'status-active' : 'status-inactive'">
@@ -106,8 +106,8 @@
                         </label>
                     </div>
                     <div class="dialog-actions">
-                        <NcButton type="tertiary" native-type="button" @click="closeDialog">{{ t('timetracking', 'Abbrechen') }}</NcButton>
-                        <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Speichern') }}</NcButton>
+                        <button type="button" class="btn-secondary" @click="closeDialog">{{ t('timetracking', 'Abbrechen') }}</button>
+                        <button type="submit" class="btn-primary">{{ t('timetracking', 'Speichern') }}</button>
                     </div>
                 </form>
             </div>

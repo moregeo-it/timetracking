@@ -54,5 +54,9 @@ return [
         ['name' => 'employee_settings#get', 'url' => '/api/employee-settings', 'verb' => 'GET'],
         ['name' => 'employee_settings#update', 'url' => '/api/employee-settings', 'verb' => 'PUT'],
         ['name' => 'employee_settings#get_user', 'url' => '/api/employee-settings/{userId}', 'verb' => 'GET'],
+        
+        // Admin routes
+        ['name' => 'admin#users', 'url' => '/api/admin/users', 'verb' => 'GET'],
+        ['name' => 'admin#time_entries', 'url' => '/api/admin/time-entries', 'verb' => 'GET'],
     ]
 ];

@@ -111,8 +111,8 @@
         "Meine Arbeitszeit-Einstellungen": "Meine Arbeitszeit-Einstellungen",
         "Beschäftigungsart": "Beschäftigungsart",
         "Festanstellung / Teilzeit": "Festanstellung / Teilzeit",
-        "Freiberufler / Stundenkontingent": "Freiberufler / Stundenkontingent",
-        "Minijob": "Minijob",
+        "Praktikant / Stundenkontingent": "Praktikant / Stundenkontingent",
+        "Werkstudent": "Werkstudent",
         "Wochenstunden": "Wochenstunden",
         "Urlaubstage pro Jahr": "Urlaubstage pro Jahr",
         "Stundensatz (€)": "Stundensatz (€)",
@@ -169,6 +169,9 @@
         "Notizen: %s": "Notizen: %s",
         "Bitte genehmigen oder lehnen Sie den Antrag ab:": "Bitte genehmigen oder lehnen Sie den Antrag ab:",
         "Mit freundlichen Grüßen,": "Mit freundlichen Grüßen,",
-        "Ihr Zeiterfassungssystem": "Ihr Zeiterfassungssystem"
+        "Ihr Zeiterfassungssystem": "Ihr Zeiterfassungssystem",
+        "Mitarbeiter auswählen": "Mitarbeiter auswählen",
+        "Diese Einstellungen können nur von Administratoren geändert werden.": "Diese Einstellungen können nur von Administratoren geändert werden.",
+        "Nur Administratoren können Einstellungen ändern": "Nur Administratoren können Einstellungen ändern"
     }
 }

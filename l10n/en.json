@@ -111,8 +111,8 @@
         "Meine Arbeitszeit-Einstellungen": "My Working Time Settings",
         "Beschäftigungsart": "Employment Type",
         "Festanstellung / Teilzeit": "Permanent Employment / Part-time",
-        "Freiberufler / Stundenkontingent": "Freelancer / Hour Contingent",
-        "Minijob": "Mini Job",
+        "Praktikant / Stundenkontingent": "Intern / Hour Contingent",
+        "Werkstudent": "Working Student",
         "Wochenstunden": "Weekly Hours",
         "Urlaubstage pro Jahr": "Vacation Days per Year",
         "Stundensatz (€)": "Hourly Rate (€)",
@@ -169,6 +169,9 @@
         "Notizen: %s": "Notes: %s",
         "Bitte genehmigen oder lehnen Sie den Antrag ab:": "Please approve or reject the request:",
         "Mit freundlichen Grüßen,": "Best regards,",
-        "Ihr Zeiterfassungssystem": "Your Time Tracking System"
+        "Ihr Zeiterfassungssystem": "Your Time Tracking System",
+        "Mitarbeiter auswählen": "Select Employee",
+        "Diese Einstellungen können nur von Administratoren geändert werden.": "These settings can only be changed by administrators.",
+        "Nur Administratoren können Einstellungen ändern": "Only administrators can modify settings"
     }
 }

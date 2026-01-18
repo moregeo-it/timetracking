@@ -46,9 +46,18 @@ class EmployeeSettingsController extends Controller {
             $settings = $this->mapper->insert($settings);
         }
         
-        return new DataResponse($settings);
+        // Hide hourly rate for non-admins
+        $data = $settings->jsonSerialize();
+        if (!$this->groupManager->isAdmin($this->userId)) {
+            unset($data['hourlyRate']);
+        }
+        
+        return new DataResponse($data);
     }
 
+    /**
+     * @NoAdminRequired
+     */
     /**
      * @NoAdminRequired
      */
@@ -61,7 +70,17 @@ class EmployeeSettingsController extends Controller {
         $settings = $this->mapper->findByUserId($userId);
         
         if (!$settings) {
-            return new DataResponse(['error' => 'Settings not found'], 404);
+            // Return default settings
+            return new DataResponse([
+                'userId' => $userId,
+                'employmentType' => 'contract',
+                'weeklyHours' => 40,
+                'maxTotalHours' => null,
+                'vacationDaysPerYear' => 20,
+                'hourlyRate' => null,
+                'federalState' => '',
+                'employmentStart' => '',
+            ]);
         }
         
         return new DataResponse($settings);
@@ -77,13 +96,22 @@ class EmployeeSettingsController extends Controller {
         ?int $vacationDaysPerYear = null,
         ?float $hourlyRate = null,
         ?string $federalState = null,
-        ?string $employmentStart = null
+        ?string $employmentStart = null,
+        ?string $targetUserId = null
     ): DataResponse {
-        $settings = $this->mapper->findByUserId($this->userId);
+        // Only admins can update settings
+        if (!$this->groupManager->isAdmin($this->userId)) {
+            return new DataResponse(['error' => 'Only administrators can modify employee settings'], 403);
+        }
+        
+        // Admin can update any user's settings, default to their own
+        $userIdToUpdate = $targetUserId ?? $this->userId;
+        
+        $settings = $this->mapper->findByUserId($userIdToUpdate);
         
         if (!$settings) {
             $settings = new EmployeeSettings();
-            $settings->setUserId($this->userId);
+            $settings->setUserId($userIdToUpdate);
             $settings->setCreatedAt(new \DateTime());
         }
         

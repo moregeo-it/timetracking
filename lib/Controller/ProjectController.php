@@ -36,10 +36,16 @@ class ProjectController extends Controller {
      * @NoAdminRequired
      */
     public function index(?int $customerId = null): DataResponse {
-        if ($customerId) {
-            return new DataResponse($this->mapper->findByCustomer($customerId));
-        }
-        return new DataResponse($this->mapper->findAll());
+        $isAdmin = $this->isAdmin();
+        $projects = $customerId ? $this->mapper->findByCustomer($customerId) : $this->mapper->findAll();
+        $result = array_map(function ($project) use ($isAdmin) {
+            $data = $project->jsonSerialize();
+            if (!$isAdmin) {
+                unset($data['hourlyRate']);
+            }
+            return $data;
+        }, $projects);
+        return new DataResponse($result);
     }
 
     /**
@@ -47,7 +53,12 @@ class ProjectController extends Controller {
      */
     public function show(int $id): DataResponse {
         try {
-            return new DataResponse($this->mapper->find($id));
+            $project = $this->mapper->find($id);
+            $data = $project->jsonSerialize();
+            if (!$this->isAdmin()) {
+                unset($data['hourlyRate']);
+            }
+            return new DataResponse($data);
         } catch (\Exception $e) {
             return new DataResponse(['error' => 'Project not found'], 404);
         }
