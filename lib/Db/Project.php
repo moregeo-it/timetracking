@@ -19,6 +19,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setHourlyRate(?float $hourlyRate)
  * @method float|null getBudgetHours()
  * @method void setBudgetHours(?float $budgetHours)
+ * @method string|null getStartDate()
+ * @method void setStartDate(?string $startDate)
+ * @method string|null getEndDate()
+ * @method void setEndDate(?string $endDate)
  * @method bool getActive()
  * @method void setActive(bool $active)
  * @method \DateTime getCreatedAt()
@@ -32,6 +36,8 @@ class Project extends Entity implements JsonSerializable {
     protected $description;
     protected $hourlyRate;
     protected $budgetHours;
+    protected $startDate;
+    protected $endDate;
     protected $active;
     protected $createdAt;
     protected $updatedAt;
@@ -53,6 +59,8 @@ class Project extends Entity implements JsonSerializable {
             'description' => $this->getDescription(),
             'hourlyRate' => $this->getHourlyRate(),
             'budgetHours' => $this->getBudgetHours(),
+            'startDate' => $this->getStartDate(),
+            'endDate' => $this->getEndDate(),
             'active' => $this->getActive(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s'),

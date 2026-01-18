@@ -35,7 +35,10 @@
                     <th>{{ t('timetracking', 'Name') }}</th>
                     <th>{{ t('timetracking', 'Kunde') }}</th>
                     <th v-if="isAdmin">{{ t('timetracking', 'Stundensatz') }}</th>
+                    <th>{{ t('timetracking', 'Zeitraum') }}</th>
                     <th>{{ t('timetracking', 'Budget (Stunden)') }}</th>
+                    <th>{{ t('timetracking', 'Ø Woche') }}</th>
+                    <th>{{ t('timetracking', 'Ø Monat') }}</th>
                     <th>{{ t('timetracking', 'Status') }}</th>
                     <th v-if="isAdmin">{{ t('timetracking', 'Aktionen') }}</th>
                 </tr>
@@ -45,7 +48,10 @@
                     <td>{{ project.name }}</td>
                     <td>{{ getCustomerName(project.customerId) }}</td>
                     <td v-if="isAdmin">{{ project.hourlyRate !== null && project.hourlyRate !== undefined ? project.hourlyRate + ' ' + getCustomerCurrency(project.customerId) : '-' }}</td>
+                    <td>{{ formatDateRange(project.startDate, project.endDate) }}</td>
                     <td>{{ project.budgetHours !== null && project.budgetHours !== undefined ? project.budgetHours + ' h' : '-' }}</td>
+                    <td>{{ getWeeklyHours(project) }}</td>
+                    <td>{{ getMonthlyHours(project) }}</td>
                     <td>
                         <span :class="project.active ? 'status-active' : 'status-inactive'">
                             {{ project.active ? t('timetracking', 'Aktiv') : t('timetracking', 'Inaktiv') }}
@@ -94,6 +100,14 @@
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Stundensatz') }} ({{ getSelectedCustomerCurrency() }})</label>
                         <input v-model="form.hourlyRate" type="number" step="0.01" min="0" placeholder="-">
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Startdatum') }}</label>
+                        <input v-model="form.startDate" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Enddatum') }}</label>
+                        <input v-model="form.endDate" type="date">
                     </div>
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Budget (Stunden)') }}</label>
@@ -163,6 +177,8 @@ export default {
                 description: '',
                 hourlyRate: null,
                 budgetHours: null,
+                startDate: '',
+                endDate: '',
                 active: true,
             },
         }
@@ -241,6 +257,8 @@ export default {
                 description: project.description || '',
                 hourlyRate: project.hourlyRate,
                 budgetHours: project.budgetHours,
+                startDate: project.startDate || '',
+                endDate: project.endDate || '',
                 active: project.active,
             }
         },
@@ -296,8 +314,33 @@ export default {
                 description: '',
                 hourlyRate: null,
                 budgetHours: null,
+                startDate: '',
+                endDate: '',
                 active: true,
             }
+        },
+        formatDateRange(startDate, endDate) {
+            if (!startDate && !endDate) return '-'
+            const start = startDate ? new Date(startDate).toLocaleDateString('de-DE') : '?'
+            const end = endDate ? new Date(endDate).toLocaleDateString('de-DE') : '?'
+            return `${start} - ${end}`
+        },
+        getWeeklyHours(project) {
+            if (!project.budgetHours || !project.startDate || !project.endDate) return '-'
+            const start = new Date(project.startDate)
+            const end = new Date(project.endDate)
+            if (isNaN(start) || isNaN(end) || end <= start) return '-'
+            const msPerWeek = 1000 * 60 * 60 * 24 * 7
+            const weeks = Math.max(1, Math.round((end - start) / msPerWeek))
+            return (project.budgetHours / weeks).toFixed(1) + ' h'
+        },
+        getMonthlyHours(project) {
+            if (!project.budgetHours || !project.startDate || !project.endDate) return '-'
+            const start = new Date(project.startDate)
+            const end = new Date(project.endDate)
+            if (isNaN(start) || isNaN(end) || end <= start) return '-'
+            const months = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1)
+            return (project.budgetHours / months).toFixed(1) + ' h'
         },
     },
 }

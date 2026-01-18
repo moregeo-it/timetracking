@@ -33,12 +33,32 @@ class ProjectController extends Controller {
     }
 
     /**
+     * Checks if a project's end date has passed and deactivates it if necessary
+     */
+    private function checkAndDeactivateExpiredProject(Project $project): Project {
+        if ($project->getActive() && $project->getEndDate()) {
+            $endDate = new \DateTime($project->getEndDate());
+            $today = new \DateTime('today');
+            
+            if ($endDate < $today) {
+                $project->setActive(false);
+                $project->setUpdatedAt(new \DateTime());
+                $this->mapper->update($project);
+            }
+        }
+        return $project;
+    }
+
+    /**
      * @NoAdminRequired
      */
     public function index(?int $customerId = null): DataResponse {
         $isAdmin = $this->isAdmin();
         $projects = $customerId ? $this->mapper->findByCustomer($customerId) : $this->mapper->findAll();
         $result = array_map(function ($project) use ($isAdmin) {
+            // Check and deactivate if end date has passed
+            $project = $this->checkAndDeactivateExpiredProject($project);
+            
             $data = $project->jsonSerialize();
             if (!$isAdmin) {
                 unset($data['hourlyRate']);
@@ -54,6 +74,10 @@ class ProjectController extends Controller {
     public function show(int $id): DataResponse {
         try {
             $project = $this->mapper->find($id);
+            
+            // Check and deactivate if end date has passed
+            $project = $this->checkAndDeactivateExpiredProject($project);
+            
             $data = $project->jsonSerialize();
             if (!$this->isAdmin()) {
                 unset($data['hourlyRate']);
@@ -68,7 +92,8 @@ class ProjectController extends Controller {
      * @NoAdminRequired
      */
     public function create(int $customerId, string $name, ?string $description = null,
-                          ?float $hourlyRate = null, ?float $budgetHours = null): DataResponse {
+                          ?float $hourlyRate = null, ?float $budgetHours = null,
+                          ?string $startDate = null, ?string $endDate = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can create projects'], 403);
         }
@@ -78,6 +103,8 @@ class ProjectController extends Controller {
         $project->setDescription($description);
         $project->setHourlyRate($hourlyRate);
         $project->setBudgetHours($budgetHours);
+        $project->setStartDate($startDate);
+        $project->setEndDate($endDate);
         $project->setActive(true);
         $project->setCreatedAt(new \DateTime());
         $project->setUpdatedAt(new \DateTime());
@@ -89,7 +116,8 @@ class ProjectController extends Controller {
      * @NoAdminRequired
      */
     public function update(int $id, string $name, ?string $description = null,
-                          ?float $hourlyRate = null, ?float $budgetHours = null, ?bool $active = null): DataResponse {
+                          ?float $hourlyRate = null, ?float $budgetHours = null,
+                          ?string $startDate = null, ?string $endDate = null, ?bool $active = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can update projects'], 403);
         }
@@ -100,6 +128,8 @@ class ProjectController extends Controller {
             $project->setDescription($description);
             $project->setHourlyRate($hourlyRate);
             $project->setBudgetHours($budgetHours);
+            $project->setStartDate($startDate);
+            $project->setEndDate($endDate);
             if ($active !== null) {
                 $project->setActive($active);
             }
