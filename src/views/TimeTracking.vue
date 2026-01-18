@@ -1,10 +1,8 @@
 <template>
     <div class="time-tracking">
-        <NcAppContentDetails>
-            <template #title>
-                {{ t('timetracking', 'Zeiterfassung') }}
-            </template>
-        </NcAppContentDetails>
+        <div class="page-header">
+            <h1>{{ t('timetracking', 'Zeiterfassung') }}</h1>
+        </div>
         
         <div class="timer-section" v-if="runningTimer">
             <div class="timer-card running">
@@ -12,7 +10,7 @@
                 <div class="timer-display">{{ timerDisplay }}</div>
                 <p class="timer-project">{{ runningProjectName }}</p>
                 <p class="timer-description" v-if="runningTimer.description">{{ runningTimer.description }}</p>
-                <button @click="stopTimer" class="button primary">{{ t('timetracking', 'Timer Stoppen') }}</button>
+                <NcButton type="primary" @click="stopTimer">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
             </div>
         </div>
         
@@ -33,7 +31,7 @@
                         <label>{{ t('timetracking', 'Beschreibung') }}</label>
                         <input v-model="timerForm.description" type="text" :placeholder="t('timetracking', 'Was machen Sie?')">
                     </div>
-                    <button type="submit" class="button primary">{{ t('timetracking', 'Timer Starten') }}</button>
+                    <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Timer Starten') }}</NcButton>
                 </form>
             </div>
         </div>
@@ -76,7 +74,7 @@
                         {{ t('timetracking', 'Abrechenbar') }}
                     </label>
                 </div>
-                <button type="submit" class="button primary">{{ t('timetracking', 'Eintrag Hinzufügen') }}</button>
+                <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Eintrag Hinzufügen') }}</NcButton>
             </form>
         </div>
         
@@ -114,7 +112,11 @@
                         <td>{{ formatDuration(entry.durationMinutes) }}</td>
                         <td>{{ entry.description || '-' }}</td>
                         <td class="actions">
-                            <button @click="deleteEntry(entry.id)" class="icon-delete" :title="t('timetracking', 'Löschen')"></button>
+                            <NcButton type="tertiary" @click="deleteEntry(entry.id)" :title="t('timetracking', 'Löschen')">
+                                <template #icon>
+                                    <Delete :size="20" />
+                                </template>
+                            </NcButton>
                         </td>
                     </tr>
                 </tbody>
@@ -129,12 +131,14 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcAppContentDetails } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 
 export default {
     name: 'TimeTracking',
     components: {
-        NcAppContentDetails,
+        NcButton,
+        Delete,
     },
     data() {
         const today = new Date().toISOString().split('T')[0]
@@ -337,6 +341,11 @@ export default {
 </script>
 
 <style scoped>
+/* Component-specific styles only - common styles are in App.vue */
+.time-tracking {
+    max-width: 1200px;
+}
+
 .timer-section {
     margin-bottom: 40px;
 }
@@ -386,90 +395,7 @@ export default {
     max-width: 800px;
 }
 
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-}
-
-.date-filter {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.date-filter label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.date-filter input {
-    padding: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-}
-
-th {
-    font-weight: bold;
-    background-color: var(--color-background-dark);
-}
-
-.actions button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    opacity: 0.7;
-}
-
-.actions button:hover {
-    opacity: 1;
-}
-
-.button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background-color: var(--color-background-dark);
-}
-
-.button.primary {
-    background-color: var(--color-primary);
-    color: white;
-}
-
-.button:hover {
-    opacity: 0.8;
+.entries-section h2 {
+    margin-bottom: 16px;
 }
 </style>

@@ -1,17 +1,18 @@
 <template>
     <div class="projects">
-        <NcAppContentDetails>
-            <template #title>
-                {{ t('timetracking', 'Projekte') }}
-            </template>
-        </NcAppContentDetails>
-        <div class="header-row">
-            <button v-if="isAdmin" @click="showAddDialog = true" class="button primary">
-                <span class="icon-add"></span> {{ t('timetracking', 'Neues Projekt') }}
-            </button>
-            <div v-else class="info-message">
-                {{ t('timetracking', 'Nur Administratoren können Projekte verwalten') }}
+        <div class="page-header">
+            <h1>{{ t('timetracking', 'Projekte') }}</h1>
+            <div class="actions">
+                <NcButton v-if="isAdmin" type="primary" @click="showAddDialog = true">
+                    <template #icon>
+                        <Plus :size="20" />
+                    </template>
+                    {{ t('timetracking', 'Neues Projekt') }}
+                </NcButton>
             </div>
+        </div>
+        <div v-if="!isAdmin" class="info-message">
+            {{ t('timetracking', 'Nur Administratoren können Projekte verwalten') }}
         </div>
         
         <div class="filters">
@@ -51,8 +52,16 @@
                         </span>
                     </td>
                     <td v-if="isAdmin" class="actions">
-                        <button @click="editProject(project)" class="icon-rename" :title="t('timetracking', 'Bearbeiten')"></button>
-                        <button @click="deleteProject(project.id)" class="icon-delete" :title="t('timetracking', 'Löschen')"></button>
+                        <NcButton type="tertiary" @click="editProject(project)" :title="t('timetracking', 'Bearbeiten')">
+                            <template #icon>
+                                <Pencil :size="20" />
+                            </template>
+                        </NcButton>
+                        <NcButton type="tertiary" @click="deleteProject(project.id)" :title="t('timetracking', 'Löschen')">
+                            <template #icon>
+                                <Delete :size="20" />
+                            </template>
+                        </NcButton>
                     </td>
                 </tr>
             </tbody>
@@ -97,8 +106,8 @@
                         </label>
                     </div>
                     <div class="dialog-actions">
-                        <button type="button" @click="closeDialog" class="button">{{ t('timetracking', 'Abbrechen') }}</button>
-                        <button type="submit" class="button primary">{{ t('timetracking', 'Speichern') }}</button>
+                        <NcButton type="tertiary" native-type="button" @click="closeDialog">{{ t('timetracking', 'Abbrechen') }}</NcButton>
+                        <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Speichern') }}</NcButton>
                     </div>
                 </form>
             </div>
@@ -112,12 +121,18 @@ import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { NcAppContentDetails } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 
 export default {
     name: 'Projects',
     components: {
-        NcAppContentDetails,
+        NcButton,
+        Plus,
+        Pencil,
+        Delete,
     },
     data() {
         return {
@@ -236,133 +251,8 @@ export default {
 </script>
 
 <style scoped>
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.info-message {
-    padding: 8px 16px;
-    background-color: var(--color-info);
-    color: var(--color-info-text);
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-.filters {
-    margin-bottom: 20px;
-}
-
-.filters select {
-    margin-left: 10px;
-    padding: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-}
-
-th {
-    font-weight: bold;
-    background-color: var(--color-background-dark);
-}
-
-.actions button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    opacity: 0.7;
-}
-
-.actions button:hover {
-    opacity: 1;
-}
-
-.status-active {
-    color: var(--color-success);
-    font-weight: bold;
-}
-
-.status-inactive {
-    color: var(--color-error);
-}
-
-.dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-}
-
-.dialog {
-    background: var(--color-main-background);
-    border-radius: 8px;
-    padding: 20px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-}
-
-.dialog-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background-color: var(--color-background-dark);
-}
-
-.button.primary {
-    background-color: var(--color-primary);
-    color: white;
-}
-
-.button:hover {
-    opacity: 0.8;
+/* Component-specific styles only - common styles are in App.vue */
+.projects {
+    max-width: 1200px;
 }
 </style>

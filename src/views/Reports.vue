@@ -1,12 +1,10 @@
 <template>
     <div class="reports">
-        <NcAppContentDetails>
-            <template #title>
-                {{ t('timetracking', 'Berichte') }}
-            </template>
-        </NcAppContentDetails>
+        <div class="page-header">
+            <h1>{{ t('timetracking', 'Berichte') }}</h1>
+        </div>
         
-        <div class="report-tabs">
+        <div class="tabs">
             <button 
                 @click="activeTab = 'customer'" 
                 :class="{ active: activeTab === 'customer' }"
@@ -56,7 +54,7 @@
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
                     </select>
                 </div>
-                <button type="submit" class="button primary">{{ t('timetracking', 'Bericht Erstellen') }}</button>
+                <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
             </form>
             
             <div v-if="customerReport" class="report-result">
@@ -124,7 +122,7 @@
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
                     </select>
                 </div>
-                <button type="submit" class="button primary">{{ t('timetracking', 'Bericht Erstellen') }}</button>
+                <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
             </form>
             
             <div v-if="projectReport" class="report-result">
@@ -182,7 +180,7 @@
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
                     </select>
                 </div>
-                <button type="submit" class="button primary">{{ t('timetracking', 'Bericht Erstellen') }}</button>
+                <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
             </form>
             
             <div v-if="employeeReport" class="report-result">
@@ -278,7 +276,7 @@
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
                     </select>
                 </div>
-                <button type="submit" class="button primary">Prüfung Starten</button>
+                <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Prüfung Starten') }}</NcButton>
             </form>
             
             <div v-if="complianceReport" class="report-result">
@@ -337,12 +335,12 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcAppContentDetails } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
 
 export default {
     name: 'Reports',
     components: {
-        NcAppContentDetails,
+        NcButton,
     },
     data() {
         const now = new Date()
@@ -457,31 +455,9 @@ export default {
 </script>
 
 <style scoped>
-.report-tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-    border-bottom: 2px solid var(--color-border);
-}
-
-.tab-button {
-    padding: 12px 24px;
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
-    cursor: pointer;
-    font-size: 16px;
-    color: var(--color-main-text);
-    transition: all 0.2s;
-}
-
-.tab-button:hover {
-    background: var(--color-background-hover);
-}
-
-.tab-button.active {
-    border-bottom-color: var(--color-primary);
-    font-weight: bold;
+/* Component-specific styles only - common styles are in App.vue */
+.reports {
+    max-width: 1200px;
 }
 
 .report-section {
@@ -503,23 +479,9 @@ export default {
     flex-wrap: wrap;
 }
 
-.form-group {
+.report-form .form-group {
     flex: 1;
     min-width: 150px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
 }
 
 .report-result {
@@ -605,39 +567,5 @@ export default {
 .violation-item.medium {
     background: #fff3cd;
     border-left: 4px solid #ffc107;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-}
-
-th {
-    font-weight: bold;
-    background-color: var(--color-main-background);
-}
-
-.button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background-color: var(--color-background-dark);
-}
-
-.button.primary {
-    background-color: var(--color-primary);
-    color: white;
-}
-
-.button:hover {
-    opacity: 0.8;
 }
 </style>

@@ -1,10 +1,8 @@
 <template>
     <div class="employee-settings">
-        <NcAppContentDetails>
-            <template #title>
-                {{ t('timetracking', 'Mitarbeitereinstellungen') }}
-            </template>
-        </NcAppContentDetails>
+        <div class="page-header">
+            <h1>{{ t('timetracking', 'Mitarbeitereinstellungen') }}</h1>
+        </div>
         
         <div v-if="loading" class="loading">{{ t('timetracking', 'Laden...') }}</div>
         
@@ -176,13 +174,12 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcAppContentDetails } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
 
 export default {
     name: 'EmployeeSettings',
     components: {
         NcButton,
-        NcAppContentDetails,
     },
     data() {
         return {
@@ -274,6 +271,7 @@ export default {
 </script>
 
 <style scoped>
+/* Component-specific styles only - common styles are in App.vue */
 .employee-settings {
     max-width: 800px;
 }
@@ -291,32 +289,6 @@ export default {
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-.hint {
-    margin-top: 5px;
-    font-size: 12px;
-    color: var(--color-text-maxcontrast);
-    line-height: 1.4;
 }
 
 .form-actions {

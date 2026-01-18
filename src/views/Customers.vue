@@ -1,23 +1,21 @@
 <template>
     <div class="customers">
-        <NcAppContentDetails>
-            <template #title>
-                {{ t('timetracking', 'Kunden') }}
-            </template>
-        </NcAppContentDetails>
-        <div class="header-row">
-            <NcButton v-if="isAdmin" type="primary" @click="showAddDialog = true">
-                <template #icon>
-                    <Plus :size="20" />
-                </template>
-                {{ t('timetracking', 'Neuer Kunde') }}
-            </NcButton>
-            <div v-else class="info-message">
-                {{ t('timetracking', 'Nur Administratoren können Kunden verwalten') }}
+        <div class="page-header">
+            <h1>{{ t('timetracking', 'Kunden') }}</h1>
+            <div class="actions">
+                <NcButton v-if="isAdmin" type="primary" @click="showAddDialog = true">
+                    <template #icon>
+                        <Plus :size="20" />
+                    </template>
+                    {{ t('timetracking', 'Neuer Kunde') }}
+                </NcButton>
             </div>
         </div>
+        <div v-if="!isAdmin" class="info-message">
+            {{ t('timetracking', 'Nur Administratoren können Kunden verwalten') }}
+        </div>
         
-        <div v-if="loading" class="loading">Laden...</div>
+        <div v-if="loading" class="loading">{{ t('timetracking', 'Laden...') }}</div>
         
         <table v-else-if="customers.length > 0">
             <thead>
@@ -67,7 +65,7 @@
                         </label>
                     </div>
                     <div class="modal-actions">
-                        <NcButton type="tertiary" @click="closeDialog">
+                        <NcButton type="tertiary" native-type="button" @click="closeDialog">
                             {{ t('timetracking', 'Abbrechen') }}
                         </NcButton>
                         <NcButton type="primary" native-type="submit">
@@ -86,7 +84,7 @@ import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { getCurrentUser } from '@nextcloud/auth'
-import { NcButton, NcModal, NcAppContentDetails } from '@nextcloud/vue'
+import { NcButton, NcModal } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
 export default {
@@ -94,7 +92,6 @@ export default {
     components: {
         NcButton,
         NcModal,
-        NcAppContentDetails,
         Plus,
     },
     data() {
@@ -183,83 +180,8 @@ export default {
 </script>
 
 <style scoped>
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.info-message {
-    padding: 12px 16px;
-    background-color: var(--color-info);
-    border-radius: 4px;
-    color: var(--color-text-light);
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-}
-
-th {
-    font-weight: bold;
-    background-color: var(--color-background-dark);
-}
-
-.actions {
-    display: flex;
-    gap: 8px;
-}
-
-.status-active {
-    color: var(--color-success);
-    font-weight: bold;
-}
-
-.status-inactive {
-    color: var(--color-error);
-}
-
-.modal-content {
-    padding: 24px;
-}
-
-.modal-content h2 {
-    margin-bottom: 24px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.form-group input[type="text"],
-.form-group input[type="email"],
-.form-group input[type="tel"],
-.form-group textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-family: inherit;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
+/* Component-specific styles only - common styles are in App.vue */
+.customers {
+    max-width: 1200px;
 }
 </style>

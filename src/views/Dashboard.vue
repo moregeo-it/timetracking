@@ -1,10 +1,8 @@
 <template>
     <div class="dashboard">
-        <NcAppContentDetails>
-            <template #title>
-                {{ t('timetracking', 'Dashboard') }}
-            </template>
-        </NcAppContentDetails>
+        <div class="page-header">
+            <h1>{{ t('timetracking', 'Dashboard') }}</h1>
+        </div>
         
         <div class="dashboard-grid">
             <div class="dashboard-card">
@@ -29,12 +27,12 @@
                 <h2>{{ t('timetracking', 'Timer') }}</h2>
                 <div v-if="runningTimer" class="timer-running">
                     <div class="timer-display">{{ timerDisplay }}</div>
-                    <button @click="stopTimer" class="button primary">{{ t('timetracking', 'Timer Stoppen') }}</button>
+                    <NcButton type="primary" @click="stopTimer">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
                     <p>{{ runningProject?.name }}</p>
                 </div>
                 <div v-else>
                     <p>{{ t('timetracking', 'Kein aktiver Timer') }}</p>
-                    <router-link to="/tracking" class="button">{{ t('timetracking', 'Timer Starten') }}</router-link>
+                    <NcButton :to="'/tracking'">{{ t('timetracking', 'Timer Starten') }}</NcButton>
                 </div>
             </div>
         </div>
@@ -68,12 +66,12 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
-import { NcAppContentDetails } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
 
 export default {
     name: 'Dashboard',
     components: {
-        NcAppContentDetails,
+        NcButton,
     },
     data() {
         return {
@@ -207,12 +205,9 @@ export default {
 </script>
 
 <style scoped>
+/* Component-specific styles only - common styles are in App.vue */
 .dashboard {
     max-width: 1200px;
-}
-
-h1 {
-    margin-bottom: 30px;
 }
 
 .dashboard-grid {
@@ -256,42 +251,5 @@ h1 {
 
 .recent-entries {
     margin-top: 40px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-}
-
-th {
-    font-weight: bold;
-    background-color: var(--color-background-dark);
-}
-
-.button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: var(--color-primary);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background-color 0.2s;
-}
-
-.button:hover {
-    background-color: var(--color-primary-element-light);
-}
-
-.button.primary {
-    margin-top: 10px;
 }
 </style>

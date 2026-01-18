@@ -1,10 +1,8 @@
 <template>
     <div class="vacation-management">
-        <NcAppContentDetails>
-            <template #title>
-                {{ t('timetracking', 'Urlaubsverwaltung') }}
-            </template>
-        </NcAppContentDetails>
+        <div class="page-header">
+            <h1>{{ t('timetracking', 'Urlaubsverwaltung') }}</h1>
+        </div>
         
         <!-- Vacation Balance Card -->
         <div class="balance-card">
@@ -147,7 +145,7 @@
                     </div>
                     
                     <div class="modal-actions">
-                        <NcButton type="secondary" @click="closeModal">
+                        <NcButton type="secondary" native-type="button" @click="closeModal">
                             {{ t('timetracking', 'Abbrechen') }}
                         </NcButton>
                         <NcButton type="primary" native-type="submit">
@@ -165,7 +163,7 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcModal, NcAppContentDetails } from '@nextcloud/vue'
+import { NcButton, NcModal } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
 export default {
@@ -173,7 +171,6 @@ export default {
     components: {
         NcButton,
         NcModal,
-        NcAppContentDetails,
         Plus,
     },
     data() {
@@ -320,6 +317,7 @@ export default {
 </script>
 
 <style scoped>
+/* Component-specific styles only - common styles are in App.vue */
 .vacation-management {
     max-width: 1200px;
 }
@@ -453,7 +451,7 @@ export default {
     background: #e0e0e0;
 }
 
-.actions {
+.vacation-actions {
     margin-bottom: 24px;
 }
 
@@ -461,57 +459,9 @@ export default {
     margin-bottom: 16px;
 }
 
-.loading,
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    color: var(--color-text-maxcontrast);
-}
-
 .vacation-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--color-main-background);
     border-radius: 8px;
     overflow: hidden;
-}
-
-.vacation-table thead {
-    background: var(--color-background-dark);
-}
-
-.vacation-table th,
-.vacation-table td {
-    padding: 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-}
-
-.vacation-table tbody tr:hover {
-    background: var(--color-background-hover);
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.status-badge.status-pending {
-    background: #d4e8ff;
-    color: #0082c9;
-}
-
-.status-badge.status-approved {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status-badge.status-rejected {
-    background: #f8d7da;
-    color: #721c24;
 }
 
 .notes-cell {
@@ -524,46 +474,5 @@ export default {
 .actions-cell {
     display: flex;
     gap: 8px;
-}
-
-.modal-content {
-    padding: 24px;
-}
-
-.modal-content h2 {
-    margin-bottom: 24px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-size: 14px;
-    font-family: inherit;
-}
-
-.hint {
-    margin-top: 5px;
-    font-size: 12px;
-    color: var(--color-text-maxcontrast);
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 24px;
 }
 </style>
