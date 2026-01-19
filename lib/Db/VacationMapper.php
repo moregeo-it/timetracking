@@ -141,5 +141,44 @@ class VacationMapper extends QBMapper {
 
         return (float)($row['total_days'] ?? 0);
     }
+
+    /**
+     * Check if a vacation overlaps with existing vacations for the same user.
+     * Vacations can share the same end/start date (touching is allowed).
+     * 
+     * Overlap condition: new.startDate < existing.endDate AND new.endDate > existing.startDate
+     * Since vacations use dates (not times), touching means endDate = startDate is NOT overlap.
+     * 
+     * @param string $userId User ID
+     * @param DateTime $startDate Start date of the new vacation
+     * @param DateTime $endDate End date of the new vacation
+     * @param int|null $excludeId ID of vacation to exclude (for updates)
+     * @return bool True if there is an overlap
+     */
+    public function hasOverlappingVacation(string $userId, DateTime $startDate, DateTime $endDate, ?int $excludeId = null): bool {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->createFunction('COUNT(*) as cnt'))
+            ->from($this->getTableName())
+            // Overlap: new.start < existing.end AND new.end > existing.start
+            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+            ->andWhere($qb->expr()->lt(
+                $qb->createNamedParameter($startDate->format('Y-m-d')),
+                'end_date'
+            ))
+            ->andWhere($qb->expr()->gt(
+                $qb->createNamedParameter($endDate->format('Y-m-d')),
+                'start_date'
+            ));
+        
+        if ($excludeId !== null) {
+            $qb->andWhere($qb->expr()->neq('id', $qb->createNamedParameter($excludeId, IQueryBuilder::PARAM_INT)));
+        }
+        
+        $result = $qb->executeQuery();
+        $row = $result->fetch();
+        $result->closeCursor();
+        
+        return (int)($row['cnt'] ?? 0) > 0;
+    }
 }
 

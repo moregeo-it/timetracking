@@ -154,10 +154,20 @@ class VacationController extends Controller {
         ?string $notes = null
     ): DataResponse {
         try {
+            $start = new DateTime($startDate);
+            $end = new DateTime($endDate);
+            
+            // Check for overlapping vacations
+            if ($this->vacationMapper->hasOverlappingVacation($this->userId, $start, $end)) {
+                return new DataResponse([
+                    'error' => 'Vacation request overlaps with an existing vacation'
+                ], 409);
+            }
+            
             $vacation = new Vacation();
             $vacation->setUserId($this->userId);
-            $vacation->setStartDate(new DateTime($startDate));
-            $vacation->setEndDate(new DateTime($endDate));
+            $vacation->setStartDate($start);
+            $vacation->setEndDate($end);
             $vacation->setDays($days);
             $vacation->setStatus('pending');
             $vacation->setNotes($notes);
@@ -201,11 +211,22 @@ class VacationController extends Controller {
                 return new DataResponse(['error' => 'Cannot update approved or rejected vacation'], 400);
             }
 
+            // Determine the effective start and end dates for overlap check
+            $effectiveStart = $startDate !== null ? new DateTime($startDate) : $vacation->getStartDate();
+            $effectiveEnd = $endDate !== null ? new DateTime($endDate) : $vacation->getEndDate();
+            
+            // Check for overlapping vacations (exclude current vacation)
+            if ($this->vacationMapper->hasOverlappingVacation($vacation->getUserId(), $effectiveStart, $effectiveEnd, $id)) {
+                return new DataResponse([
+                    'error' => 'Vacation request overlaps with an existing vacation'
+                ], 409);
+            }
+
             if ($startDate !== null) {
-                $vacation->setStartDate(new DateTime($startDate));
+                $vacation->setStartDate($effectiveStart);
             }
             if ($endDate !== null) {
-                $vacation->setEndDate(new DateTime($endDate));
+                $vacation->setEndDate($effectiveEnd);
             }
             if ($days !== null) {
                 $vacation->setDays($days);

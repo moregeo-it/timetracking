@@ -95,18 +95,31 @@ class TimeEntryController extends Controller {
      */
     public function create(int $projectId, string $startTime, ?string $endTime = null,
                           ?string $description = null, ?bool $billable = true): DataResponse {
-        $entry = new TimeEntry();
-        $entry->setProjectId($projectId);
-        $entry->setUserId($this->userId);
-        
         $startTs = $this->parseIsoToTimestamp($startTime);
-        $entry->setStartTimestamp($startTs);
         
         if ($endTime) {
             $endTs = $this->parseIsoToTimestamp($endTime);
-            $entry->setEndTimestamp($endTs);
+            
+            // Check for overlapping entries (only for completed entries with end time)
+            if ($this->mapper->hasOverlappingEntry($this->userId, $startTs, $endTs)) {
+                return new DataResponse([
+                    'error' => 'Time entry overlaps with an existing entry'
+                ], 409);
+            }
             
             $duration = ($endTs - $startTs) / 60;
+        } else {
+            $endTs = null;
+            $duration = null;
+        }
+        
+        $entry = new TimeEntry();
+        $entry->setProjectId($projectId);
+        $entry->setUserId($this->userId);
+        $entry->setStartTimestamp($startTs);
+        
+        if ($endTs !== null) {
+            $entry->setEndTimestamp($endTs);
             $entry->setDurationMinutes((int)$duration);
         }
         
@@ -140,15 +153,23 @@ class TimeEntryController extends Controller {
             }
             
             $startTs = $this->parseIsoToTimestamp($startTime);
-            $entry->setStartTimestamp($startTs);
             
             if ($endTime) {
                 $endTs = $this->parseIsoToTimestamp($endTime);
-                $entry->setEndTimestamp($endTs);
                 
+                // Check for overlapping entries (exclude current entry)
+                if ($this->mapper->hasOverlappingEntry($this->userId, $startTs, $endTs, $id)) {
+                    return new DataResponse([
+                        'error' => 'Time entry overlaps with an existing entry'
+                    ], 409);
+                }
+                
+                $entry->setEndTimestamp($endTs);
                 $duration = ($endTs - $startTs) / 60;
                 $entry->setDurationMinutes((int)$duration);
             }
+            
+            $entry->setStartTimestamp($startTs);
             
             if ($description !== null) {
                 $entry->setDescription($description);
@@ -237,9 +258,18 @@ class TimeEntryController extends Controller {
         }
         
         $nowTs = time(); // Current Unix timestamp (timezone-independent)
+        $startTs = $running->getStartTimestamp();
+        
+        // Check for overlapping entries (exclude current entry)
+        if ($this->mapper->hasOverlappingEntry($this->userId, $startTs, $nowTs, $running->getId())) {
+            return new DataResponse([
+                'error' => 'Time entry overlaps with an existing entry'
+            ], 409);
+        }
+        
         $running->setEndTimestamp($nowTs);
         
-        $duration = ($nowTs - $running->getStartTimestamp()) / 60;
+        $duration = ($nowTs - $startTs) / 60;
         $running->setDurationMinutes((int)$duration);
         $running->setUpdatedAt(new \DateTime());
         

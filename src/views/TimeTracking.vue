@@ -279,7 +279,11 @@ export default {
                 }
                 this.loadEntries()
             } catch (error) {
-                showError(this.t('timetracking', 'Fehler beim Stoppen des Timers'))
+                if (error.response?.status === 409) {
+                    showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
+                } else {
+                    showError(this.t('timetracking', 'Fehler beim Stoppen des Timers'))
+                }
                 console.error(error)
             }
         },
@@ -333,11 +337,15 @@ export default {
                     billable: this.manualForm.billable,
                 })
                 
-                showSuccess('Eintrag hinzugefügt')
+                showSuccess(this.t('timetracking', 'Eintrag hinzugefügt'))
                 this.manualForm.description = ''
                 this.loadEntries()
             } catch (error) {
-                showError('Fehler beim Hinzufügen')
+                if (error.response?.status === 409) {
+                    showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
+                } else {
+                    showError(this.t('timetracking', 'Fehler beim Hinzufügen'))
+                }
                 console.error(error)
             }
         },

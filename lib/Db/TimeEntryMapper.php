@@ -87,5 +87,44 @@ class TimeEntryMapper extends QBMapper {
             return null;
         }
     }
+
+    /**
+     * Check if a time entry overlaps with existing entries for the same user.
+     * Entries can share the same end/start time (touching is allowed).
+     * 
+     * Overlap condition: entry1.start < entry2.end AND entry1.end > entry2.start
+     * 
+     * @param string $userId User ID
+     * @param int $startTimestamp Start timestamp of the new entry
+     * @param int $endTimestamp End timestamp of the new entry
+     * @param int|null $excludeId ID of entry to exclude (for updates)
+     * @return bool True if there is an overlap
+     */
+    public function hasOverlappingEntry(string $userId, int $startTimestamp, int $endTimestamp, ?int $excludeId = null): bool {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->createFunction('COUNT(*) as cnt'))
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+            ->andWhere($qb->expr()->isNotNull('end_timestamp')) // Only check completed entries
+            // Overlap: new.start < existing.end AND new.end > existing.start
+            ->andWhere($qb->expr()->lt(
+                $qb->createNamedParameter($startTimestamp, IQueryBuilder::PARAM_INT),
+                'end_timestamp'
+            ))
+            ->andWhere($qb->expr()->gt(
+                $qb->createNamedParameter($endTimestamp, IQueryBuilder::PARAM_INT),
+                'start_timestamp'
+            ));
+        
+        if ($excludeId !== null) {
+            $qb->andWhere($qb->expr()->neq('id', $qb->createNamedParameter($excludeId, IQueryBuilder::PARAM_INT)));
+        }
+        
+        $result = $qb->executeQuery();
+        $row = $result->fetch();
+        $result->closeCursor();
+        
+        return (int)($row['cnt'] ?? 0) > 0;
+    }
 }
 

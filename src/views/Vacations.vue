@@ -347,7 +347,11 @@ export default {
                 this.loadVacations()
                 this.loadBalance()
             } catch (error) {
-                showError(t('timetracking', 'Fehler beim Speichern'))
+                if (error.response?.status === 409) {
+                    showError(t('timetracking', 'Urlaubsantrag überschneidet sich mit einem bestehenden Urlaub'))
+                } else {
+                    showError(t('timetracking', 'Fehler beim Speichern'))
+                }
                 console.error(error)
             }
         },
