@@ -38,11 +38,6 @@ return [
         ['name' => 'report#compliance_report', 'url' => '/api/reports/compliance', 'verb' => 'GET'],
         ['name' => 'report#monthly_overview', 'url' => '/api/reports/monthly-overview/{year}/{month}', 'verb' => 'GET'],
         
-        // Holiday routes
-        ['name' => 'holiday#index', 'url' => '/api/holidays', 'verb' => 'GET'],
-        ['name' => 'holiday#create', 'url' => '/api/holidays', 'verb' => 'POST'],
-        ['name' => 'holiday#delete', 'url' => '/api/holidays/{id}', 'verb' => 'DELETE'],
-        
         // Vacation routes
         ['name' => 'vacation#index', 'url' => '/api/vacations', 'verb' => 'GET'],
         ['name' => 'vacation#show', 'url' => '/api/vacations/{id}', 'verb' => 'GET'],

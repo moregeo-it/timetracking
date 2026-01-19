@@ -101,7 +101,7 @@
         "Startdatum": "Start Date",
         "Enddatum": "End Date",
         "Anzahl Tage": "Number of Days",
-        "Bitte Wochenenden und Feiertage nicht mitzählen. Halbe Tage sind möglich (z.B. 0.5).": "Please do not count weekends and holidays. Half days are possible (e.g., 0.5).",
+        "Bitte Wochenenden und Feiertage nicht mitzählen. Halbe Tage sind möglich (z.B. 0.5).": "Please do not count weekends and public holidays. Half days are possible (e.g., 0.5).",
         "Anzahl der Urlaubstage eingeben": "Enter number of vacation days",
         "Optional: Grund, besondere Hinweise...": "Optional: Reason, special notes...",
         "Meine Arbeitszeit-Einstellungen": "My Working Time Settings",

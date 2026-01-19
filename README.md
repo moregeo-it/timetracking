@@ -118,7 +118,6 @@ npm run lint:fix  # Automatische Fehlerbehebung
 - `tt_customers` - Kundendaten
 - `tt_projects` - Projekte
 - `tt_entries` - Zeiteinträge
-- `tt_holidays` - Feiertage (für Compliance)
 - `tt_vacations` - Urlaubsverwaltung
 - `tt_emp_settings` - Mitarbeitereinstellungen
 

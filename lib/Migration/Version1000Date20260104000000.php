@@ -132,34 +132,6 @@ class Version1000Date20260104000000 extends SimpleMigrationStep {
             $table->addIndex(['date'], 'idx_entry_date');
         }
 
-        // Holidays table (German public holidays)
-        if (!$schema->hasTable('tt_holidays')) {
-            $table = $schema->createTable('tt_holidays');
-            $table->addColumn('id', Types::BIGINT, [
-                'autoincrement' => true,
-                'notnull' => true,
-                'unsigned' => true,
-            ]);
-            $table->addColumn('name', Types::STRING, [
-                'notnull' => true,
-                'length' => 255,
-            ]);
-            $table->addColumn('date', Types::DATE, [
-                'notnull' => true,
-            ]);
-            $table->addColumn('state', Types::STRING, [
-                'notnull' => false,
-                'length' => 50,
-                'comment' => 'German federal state (e.g., BY, BW, NW) or null for nationwide',
-            ]);
-            $table->addColumn('year', Types::INTEGER, [
-                'notnull' => true,
-            ]);
-            $table->setPrimaryKey(['id']);
-            $table->addIndex(['date'], 'idx_holiday_date');
-            $table->addIndex(['year'], 'idx_holiday_year');
-        }
-
         // Vacations table
         if (!$schema->hasTable('tt_vacations')) {
             $table = $schema->createTable('tt_vacations');
