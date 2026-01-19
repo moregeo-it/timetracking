@@ -220,6 +220,8 @@
         "Alle Mitarbeiter": "All Employees",
         "Benutzerdefiniert": "Custom",
         "Keine Mitarbeiter mit Einträgen in diesem Zeitraum": "No employees with entries in this period",
-        "Übersicht": "Overview"
+        "Übersicht": "Overview",
+        "Geschäftsführer": "Executive",
+        "Vom ArbZG befreit": "Exempt from Working Time Act"
     }
 }

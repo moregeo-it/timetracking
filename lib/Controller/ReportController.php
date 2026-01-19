@@ -555,6 +555,39 @@ class ReportController extends Controller {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Forbidden'], 403);
         }
+        
+        // Check if user is executive (exempt from labor law compliance)
+        try {
+            $settings = $this->employeeSettingsMapper->findByUserId($userId);
+            if ($settings && $settings->getEmploymentType() === 'executive') {
+                return new DataResponse([
+                    'compliant' => true,
+                    'exempt' => true,
+                    'exemptReason' => 'Geschäftsführer sind vom Arbeitszeitgesetz ausgenommen (§18 Abs. 1 Nr. 1 ArbZG)',
+                    'violationCount' => 0,
+                    'warningCount' => 0,
+                    'violations' => [],
+                    'warnings' => [],
+                    'period' => [
+                        'type' => $periodType,
+                        'label' => $periodType === 'month' 
+                            ? $this->getPeriodLabel('month', $year, $month) 
+                            : (string)$year,
+                        'year' => $year,
+                        'month' => $month,
+                    ],
+                    'statistics' => [
+                        'totalDays' => 0,
+                        'averageDailyHours' => 0,
+                        'maxDailyHours' => 0,
+                        'totalHours' => 0,
+                    ],
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Settings not found, continue with normal compliance check
+        }
+        
         if ($periodType === 'month') {
             $startDate = new DateTime("$year-$month-01");
             $endDate = clone $startDate;

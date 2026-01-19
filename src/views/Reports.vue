@@ -492,7 +492,18 @@
             </form>
             
             <div v-if="complianceReport" class="report-result">
-                <div :class="['compliance-status', complianceReport.compliant ? 'compliant' : 'non-compliant']">
+                <!-- Exempt from compliance check (e.g., executives) -->
+                <div v-if="complianceReport.exempt" class="compliance-status exempt">
+                    <h3>
+                        <span class="icon-checkmark"></span>
+                        {{ t('timetracking', 'Vom ArbZG befreit') }}
+                    </h3>
+                    <p>{{ complianceReport.exemptReason }}</p>
+                    <p>{{ complianceReport.period.label }}</p>
+                </div>
+                
+                <!-- Normal compliance status -->
+                <div v-else :class="['compliance-status', complianceReport.compliant ? 'compliant' : 'non-compliant']">
                     <h3>
                         <span v-if="complianceReport.compliant" class="icon-checkmark"></span>
                         <span v-else class="icon-close"></span>
@@ -501,7 +512,7 @@
                     <p>{{ complianceReport.period.label }}</p>
                 </div>
                 
-                <div class="summary-cards">
+                <div v-if="!complianceReport.exempt" class="summary-cards">
                     <div class="summary-card">
                         <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
                         <div class="summary-value">{{ complianceReport.statistics.totalHours }} h</div>
@@ -1065,6 +1076,12 @@ export default {
 .compliance-status.compliant {
     background: #d4edda;
     color: #155724;
+}
+
+.compliance-status.exempt {
+    background: #e2e3e5;
+    color: #383d41;
+    border: 2px solid #6c757d;
 }
 
 .compliance-status.non-compliant {

@@ -29,18 +29,20 @@
                     <label>{{ t('timetracking', 'Beschäftigungsart') }} *</label>
                     <select v-model="form.employmentType" required :disabled="!isAdmin" @change="onEmploymentTypeChange">
                         <option value="contract">{{ t('timetracking', 'Festanstellung / Teilzeit') }}</option>
+                        <option value="executive">{{ t('timetracking', 'Geschäftsführer') }}</option>
                         <option value="freelance">{{ t('timetracking', 'Praktikant / Stundenkontingent') }}</option>
                         <option value="mini_job">{{ t('timetracking', 'Werkstudent') }}</option>
                     </select>
                     <p class="hint">
                         <strong>Festanstellung:</strong> Reguläre Arbeitsverträge mit Urlaubsanspruch und ArbZG-Prüfung<br>
+                        <strong>Geschäftsführer:</strong> Wie Festanstellung, aber keine ArbZG-Prüfung<br>
                         <strong>Praktikant:</strong> Maximale Gesamtstundenzahl, keine Urlaubstage<br>
                         <strong>Werkstudent:</strong> Reduzierte Stundenzahl
                     </p>
                 </div>
                 
-                <!-- Contract/Minijob Settings -->
-                <div v-if="form.employmentType === 'contract' || form.employmentType === 'mini_job'" class="contract-settings">
+                <!-- Contract/Minijob/Executive Settings -->
+                <div v-if="form.employmentType === 'contract' || form.employmentType === 'executive' || form.employmentType === 'mini_job'" class="contract-settings">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Wochenstunden') }} *</label>
                         <input v-model.number="form.weeklyHours" type="number" step="0.5" min="0" max="60" required :disabled="!isAdmin">
