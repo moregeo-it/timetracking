@@ -139,11 +139,12 @@ class TimeEntryController extends Controller {
      * @param int $id Entry ID
      * @param string $startTime ISO 8601 datetime with timezone
      * @param string|null $endTime ISO 8601 datetime with timezone (optional)
+     * @param int|null $projectId Optional project ID
      * @param string|null $description Optional description
      * @param bool|null $billable Whether the entry is billable
      */
     public function update(int $id, string $startTime, ?string $endTime = null,
-                          ?string $description = null, ?bool $billable = null): DataResponse {
+                          ?int $projectId = null, ?string $description = null, ?bool $billable = null): DataResponse {
         try {
             $entry = $this->mapper->find($id);
             
@@ -171,6 +172,9 @@ class TimeEntryController extends Controller {
             
             $entry->setStartTimestamp($startTs);
             
+            if ($projectId !== null) {
+                $entry->setProjectId($projectId);
+            }
             if ($description !== null) {
                 $entry->setDescription($description);
             }

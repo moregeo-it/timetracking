@@ -113,6 +113,11 @@
                         <td>{{ formatDuration(entry.durationMinutes) }}</td>
                         <td>{{ entry.description || '-' }}</td>
                         <td class="actions">
+                            <NcButton type="button" @click="openEditModal(entry)" :title="t('timetracking', 'Bearbeiten')">
+                                <template #icon>
+                                    <Pencil :size="20" />
+                                </template>
+                            </NcButton>
                             <NcButton type="button" @click="deleteEntry(entry.id)" :title="t('timetracking', 'Löschen')">
                                 <template #icon>
                                     <Delete :size="20" />
@@ -124,6 +129,62 @@
             </table>
             <p v-else>{{ t('timetracking', 'Keine Einträge vorhanden') }}</p>
         </div>
+        
+        <!-- Edit Entry Modal -->
+        <NcModal v-if="showEditModal" @close="closeEditModal" size="normal">
+            <div class="modal-content">
+                <h2>{{ t('timetracking', 'Eintrag bearbeiten') }}</h2>
+                
+                <form @submit.prevent="saveEditedEntry">
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Projekt') }} *</label>
+                        <select v-model="editForm.projectId" required>
+                            <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
+                            <option v-for="project in projects" :key="project.id" :value="project.id">
+                                {{ project.name }} ({{ getCustomerName(project.customerId) }})
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Datum') }} *</label>
+                        <input v-model="editForm.date" type="date" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>{{ t('timetracking', 'Start') }} *</label>
+                            <input v-model="editForm.startTime" type="time" required>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ t('timetracking', 'Ende') }} *</label>
+                            <input v-model="editForm.endTime" type="time" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Beschreibung') }}</label>
+                        <input v-model="editForm.description" type="text">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input v-model="editForm.billable" type="checkbox" style="margin: 0 0.5rem 0 0">
+                            {{ t('timetracking', 'Abrechenbar') }}
+                        </label>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <NcButton type="button" @click="closeEditModal">
+                            {{ t('timetracking', 'Abbrechen') }}
+                        </NcButton>
+                        <NcButton type="submit">
+                            {{ t('timetracking', 'Speichern') }}
+                        </NcButton>
+                    </div>
+                </form>
+            </div>
+        </NcModal>
     </div>
 </template>
 
@@ -132,15 +193,18 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
+import { NcButton, NcModal } from '@nextcloud/vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 import StopTimerDialog from '../components/StopTimerDialog.vue'
 
 export default {
     name: 'TimeTracking',
     components: {
         NcButton,
+        NcModal,
         Delete,
+        Pencil,
         StopTimerDialog,
     },
     data() {
@@ -164,6 +228,16 @@ export default {
                 projectId: '',
                 date: today,
                 startTime: '09:00',
+                endTime: '',
+                description: '',
+                billable: true,
+            },
+            showEditModal: false,
+            editingEntry: null,
+            editForm: {
+                projectId: '',
+                date: '',
+                startTime: '',
                 endTime: '',
                 description: '',
                 billable: true,
@@ -363,6 +437,54 @@ export default {
                 console.error(error)
             }
         },
+        openEditModal(entry) {
+            this.editingEntry = entry
+            // Parse the ISO datetime strings to local date/time
+            const startDate = new Date(entry.startTime)
+            const endDate = entry.endTime ? new Date(entry.endTime) : null
+            
+            this.editForm.projectId = entry.projectId || ''
+            this.editForm.date = startDate.toISOString().split('T')[0]
+            this.editForm.startTime = startDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false })
+            this.editForm.endTime = endDate ? endDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''
+            this.editForm.description = entry.description || ''
+            this.editForm.billable = entry.billable ?? true
+            
+            this.showEditModal = true
+        },
+        closeEditModal() {
+            this.showEditModal = false
+            this.editingEntry = null
+        },
+        async saveEditedEntry() {
+            try {
+                const [year, month, day] = this.editForm.date.split('-').map(Number)
+                const [startHours, startMinutes] = this.editForm.startTime.split(':').map(Number)
+                const [endHours, endMinutes] = this.editForm.endTime.split(':').map(Number)
+                
+                const startDateTime = new Date(year, month - 1, day, startHours, startMinutes, 0)
+                const endDateTime = new Date(year, month - 1, day, endHours, endMinutes, 0)
+                
+                await axios.put(generateUrl(`/apps/timetracking/api/time-entries/${this.editingEntry.id}`), {
+                    projectId: this.editForm.projectId,
+                    startTime: startDateTime.toISOString(),
+                    endTime: endDateTime.toISOString(),
+                    description: this.editForm.description,
+                    billable: this.editForm.billable,
+                })
+                
+                showSuccess(this.t('timetracking', 'Eintrag aktualisiert'))
+                this.closeEditModal()
+                this.loadEntries()
+            } catch (error) {
+                if (error.response?.status === 409) {
+                    showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
+                } else {
+                    showError(this.t('timetracking', 'Fehler beim Speichern'))
+                }
+                console.error(error)
+            }
+        },
         getProjectName(projectId) {
             const project = this.projects.find(p => p.id === projectId)
             return project ? project.name : 'Unbekannt'
@@ -472,5 +594,34 @@ export default {
 
 .entries-section h2 {
     margin-bottom: 16px;
+}
+
+.actions {
+    white-space: nowrap;
+}
+
+.actions :deep(button) {
+    display: inline-block;
+    margin-right: 4px;
+}
+
+.actions :deep(button:last-child) {
+    margin-right: 0;
+}
+
+.modal-content {
+    padding: 20px;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
 }
 </style>
