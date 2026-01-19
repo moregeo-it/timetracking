@@ -38,7 +38,7 @@
                 @click="activeTab = 'overview'" 
                 :class="{ active: activeTab === 'overview' }"
                 class="tab-button">
-                {{ t('timetracking', 'Monatsübersicht') }}
+                {{ t('timetracking', 'Übersicht') }}
             </button>
         </div>
         
@@ -496,15 +496,23 @@
             </div>
         </div>
 
-        <!-- Monthly Overview -->
+        <!-- Overview -->
         <div v-if="activeTab === 'overview'" class="report-section">
-            <h2>{{ t('timetracking', 'Monatsübersicht') }}</h2>
-            <form @submit.prevent="loadMonthlyOverview" class="report-form">
+            <h2>{{ t('timetracking', 'Übersicht') }}</h2>
+            <form @submit.prevent="loadOverview" class="report-form">
                 <div class="form-group">
+                    <label>{{ t('timetracking', 'Zeitraum') }}</label>
+                    <select v-model="overviewForm.periodType" @change="overview = null">
+                        <option value="month">{{ t('timetracking', 'Monat') }}</option>
+                        <option value="year">{{ t('timetracking', 'Jahr') }}</option>
+                        <option value="total">{{ t('timetracking', 'Gesamt') }}</option>
+                    </select>
+                </div>
+                <div class="form-group" v-if="overviewForm.periodType !== 'total'">
                     <label>{{ t('timetracking', 'Jahr') }}</label>
                     <input v-model.number="overviewForm.year" type="number" :min="2020" :max="2030" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group" v-if="overviewForm.periodType === 'month'">
                     <label>{{ t('timetracking', 'Monat') }}</label>
                     <select v-model.number="overviewForm.month" required>
                         <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
@@ -516,21 +524,21 @@
                 </div>
             </form>
             
-            <div v-if="monthlyOverview" class="report-result">
-                <h3>{{ getMonthName(monthlyOverview.period.month) }} {{ monthlyOverview.period.year }}</h3>
+            <div v-if="overview" class="report-result">
+                <h3>{{ overview.period.label }}</h3>
                 
                 <div class="summary-cards">
                     <div class="summary-card">
                         <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
-                        <div class="summary-value">{{ formatHoursDecimal(monthlyOverview.totals.hours) }} h</div>
+                        <div class="summary-value">{{ formatHoursDecimal(overview.totals.hours) }} h</div>
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">{{ t('timetracking', 'Kunden') }}</div>
-                        <div class="summary-value">{{ monthlyOverview.customers.length }}</div>
+                        <div class="summary-value">{{ overview.customers.length }}</div>
                     </div>
                 </div>
                 
-                <div v-for="customerData in monthlyOverview.customers" :key="customerData.customer.id" class="overview-customer">
+                <div v-for="customerData in overview.customers" :key="customerData.customer.id" class="overview-customer">
                     <div class="overview-customer-header" @click="toggleOverviewCustomer(customerData.customer.id)">
                         <span class="toggle-icon">{{ expandedOverviewCustomers[customerData.customer.id] ? '⮟' : '⮞' }}</span>
                         <strong>{{ customerData.customer.name }}</strong>
@@ -555,7 +563,7 @@
                     </div>
                 </div>
                 
-                <p v-if="monthlyOverview.customers.length === 0" class="no-data">
+                <p v-if="overview.customers.length === 0" class="no-data">
                     {{ t('timetracking', 'Keine Daten für diesen Zeitraum') }}
                 </p>
             </div>
@@ -633,12 +641,13 @@ export default {
                 year: now.getFullYear(),
                 month: now.getMonth() + 1,
             },
-            // Monthly overview
+            // Overview
             overviewForm: {
+                periodType: 'month',
                 year: now.getFullYear(),
                 month: now.getMonth() + 1,
             },
-            monthlyOverview: null,
+            overview: null,
             expandedOverviewCustomers: {},
             expandedOverviewProjects: {},
         }
@@ -794,13 +803,22 @@ export default {
             const currency = this.currencies.find(c => c.code === code)
             return currency ? currency.symbol : (code || '€')
         },
-        async loadMonthlyOverview() {
+        async loadOverview() {
             try {
-                const { year, month } = this.overviewForm
+                const { periodType, year, month } = this.overviewForm
+                const params = new URLSearchParams({ periodType })
+                
+                if (periodType !== 'total') {
+                    params.append('year', year)
+                }
+                if (periodType === 'month') {
+                    params.append('month', month)
+                }
+                
                 const response = await axios.get(
-                    generateUrl(`/apps/timetracking/api/reports/monthly-overview/${year}/${month}`)
+                    generateUrl(`/apps/timetracking/api/reports/overview?${params.toString()}`)
                 )
-                this.monthlyOverview = response.data
+                this.overview = response.data
                 // Expand all customers by default
                 this.expandedOverviewCustomers = {}
                 this.expandedOverviewProjects = {}

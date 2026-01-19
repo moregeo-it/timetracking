@@ -38,6 +38,7 @@ return [
         ['name' => 'report#compliance_check', 'url' => '/api/reports/compliance/{userId}/{year}/{month}', 'verb' => 'GET'],
         ['name' => 'report#compliance_report', 'url' => '/api/reports/compliance', 'verb' => 'GET'],
         ['name' => 'report#monthly_overview', 'url' => '/api/reports/monthly-overview/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'report#overview', 'url' => '/api/reports/overview', 'verb' => 'GET'],
         
         // Vacation routes
         ['name' => 'vacation#index', 'url' => '/api/vacations', 'verb' => 'GET'],

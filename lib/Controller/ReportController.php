@@ -691,5 +691,140 @@ class ReportController extends Controller {
         
         return new DataResponse($overview);
     }
+
+    /**
+     * Overview of all customers with projects and employees - supports different period types
+     */
+    public function overview(string $periodType = 'month', ?int $year = null, ?int $month = null): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
+        
+        $now = new DateTime();
+        
+        switch ($periodType) {
+            case 'month':
+                $year = $year ?? (int)$now->format('Y');
+                $month = $month ?? (int)$now->format('n');
+                $startDate = new DateTime("$year-$month-01");
+                $endDate = clone $startDate;
+                $endDate->modify('last day of this month');
+                $periodLabel = $this->getMonthName($month) . ' ' . $year;
+                break;
+                
+            case 'year':
+                $year = $year ?? (int)$now->format('Y');
+                $startDate = new DateTime("$year-01-01");
+                $endDate = new DateTime("$year-12-31");
+                $periodLabel = (string)$year;
+                break;
+                
+            case 'total':
+                // All time - use a very early start date
+                $startDate = new DateTime('2000-01-01');
+                $endDate = new DateTime('2099-12-31');
+                $periodLabel = 'Gesamt';
+                $year = null;
+                $month = null;
+                break;
+                
+            default:
+                return new DataResponse(['error' => 'Invalid period type'], 400);
+        }
+        
+        $customers = $this->customerMapper->findAll();
+        $allProjects = $this->projectMapper->findAll();
+        
+        $overview = [
+            'period' => [
+                'type' => $periodType,
+                'year' => $year,
+                'month' => $month,
+                'label' => $periodLabel,
+                'startDate' => $startDate->format('Y-m-d'),
+                'endDate' => $endDate->format('Y-m-d'),
+            ],
+            'customers' => [],
+            'totals' => [
+                'hours' => 0,
+            ],
+        ];
+        
+        foreach ($customers as $customer) {
+            $customerProjects = array_filter($allProjects, fn($p) => $p->getCustomerId() === $customer->getId());
+            
+            if (empty($customerProjects)) {
+                continue;
+            }
+            
+            $customerData = [
+                'customer' => $customer,
+                'projects' => [],
+                'totals' => [
+                    'hours' => 0,
+                ],
+            ];
+            
+            foreach ($customerProjects as $project) {
+                $entries = $this->timeEntryMapper->findByProject(
+                    $project->getId(),
+                    $this->dateTimeToTimestamp($startDate),
+                    $this->dateTimeToTimestamp($endDate)
+                );
+                
+                if (empty($entries)) {
+                    continue;
+                }
+                
+                $projectData = [
+                    'project' => $project,
+                    'employees' => [],
+                    'totals' => [
+                        'hours' => 0,
+                    ],
+                ];
+                
+                $employeeHours = [];
+                
+                foreach ($entries as $entry) {
+                    $hours = ($entry->getDurationMinutes() ?? 0) / 60;
+                    $userId = $entry->getUserId();
+                    
+                    if (!isset($employeeHours[$userId])) {
+                        $employeeHours[$userId] = 0;
+                    }
+                    $employeeHours[$userId] += $hours;
+                    $projectData['totals']['hours'] += $hours;
+                }
+                
+                foreach ($employeeHours as $userId => $hours) {
+                    $projectData['employees'][] = [
+                        'userId' => $userId,
+                        'displayName' => $this->getDisplayName($userId),
+                        'hours' => round($hours, 2),
+                    ];
+                }
+                
+                usort($projectData['employees'], fn($a, $b) => $b['hours'] <=> $a['hours']);
+                
+                $projectData['totals']['hours'] = round($projectData['totals']['hours'], 2);
+                $customerData['projects'][] = $projectData;
+                $customerData['totals']['hours'] += $projectData['totals']['hours'];
+            }
+            
+            if (!empty($customerData['projects'])) {
+                usort($customerData['projects'], fn($a, $b) => $b['totals']['hours'] <=> $a['totals']['hours']);
+                
+                $customerData['totals']['hours'] = round($customerData['totals']['hours'], 2);
+                $overview['customers'][] = $customerData;
+                $overview['totals']['hours'] += $customerData['totals']['hours'];
+            }
+        }
+        
+        usort($overview['customers'], fn($a, $b) => $b['totals']['hours'] <=> $a['totals']['hours']);
+        $overview['totals']['hours'] = round($overview['totals']['hours'], 2);
+        
+        return new DataResponse($overview);
+    }
 }
 
