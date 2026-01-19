@@ -74,9 +74,9 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
-import { showSuccess, showError } from '@nextcloud/dialogs'
 import { NcButton } from '@nextcloud/vue'
 import StopTimerDialog from '../components/StopTimerDialog.vue'
+import timerMixin from '../mixins/timerMixin.js'
 
 export default {
     name: 'Dashboard',
@@ -84,36 +84,22 @@ export default {
         NcButton,
         StopTimerDialog,
     },
+    mixins: [timerMixin],
     data() {
         return {
             todayHours: 0,
             weekHours: 0,
             monthHours: 0,
-            runningTimer: null,
             runningProject: null,
             recentEntries: [],
             projects: [],
             customers: [],
-            timerInterval: null,
-            timerDisplay: '00:00:00',
-            timerSeconds: 0,
-            showStopDialog: false,
         }
-    },
-    computed: {
-        isOvertime() {
-            return this.timerSeconds >= 6 * 3600 // 6 hours in seconds
-        },
     },
     mounted() {
         this.loadData()
         this.loadProjects()
         this.loadCustomers()
-    },
-    beforeUnmount() {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval)
-        }
     },
     methods: {
         async loadData() {
@@ -200,75 +186,12 @@ export default {
             return project ? project.name : this.t('timetracking', 'Unbekannt')
         },
         t,
-        startTimerDisplay() {
-            if (this.timerInterval) {
-                clearInterval(this.timerInterval)
-            }
-            
-            // Update immediately
-            this.updateTimerDisplay()
-            
-            // Then update every second
-            this.timerInterval = setInterval(() => {
-                this.updateTimerDisplay()
-            }, 1000)
+        onTimerStarted() {
+            this.runningProject = null
         },
-        updateTimerDisplay() {
-            const startTimeStr = this.runningTimer.startTime
-            // Parse ISO 8601 string - the Date constructor handles timezone correctly
-            const start = new Date(startTimeStr)
-            const now = new Date()
-            const diff = Math.floor((now - start) / 1000)
-            
-            this.timerSeconds = diff
-            
-            const hours = Math.floor(diff / 3600)
-            const minutes = Math.floor((diff % 3600) / 60)
-            const seconds = diff % 60
-            
-            this.timerDisplay = 
-                hours.toString().padStart(2, '0') + ':' +
-                minutes.toString().padStart(2, '0') + ':' +
-                seconds.toString().padStart(2, '0')
-        },
-        async startTimer() {
-            try {
-                const response = await axios.post(
-                    generateUrl('/apps/timetracking/api/time-entries/start'),
-                    {}
-                )
-                this.runningTimer = response.data
-                this.runningProject = null
-                this.startTimerDisplay()
-                showSuccess(this.t('timetracking', 'Timer gestartet'))
-            } catch (error) {
-                showError(this.t('timetracking', 'Fehler beim Starten des Timers'))
-                console.error(error)
-            }
-        },
-        openStopDialog() {
-            this.showStopDialog = true
-        },
-        async stopTimerWithDetails(details) {
-            try {
-                await axios.post(generateUrl('/apps/timetracking/api/time-entries/stop'), {
-                    projectId: details.projectId,
-                    description: details.description,
-                    billable: details.billable,
-                })
-                showSuccess(this.t('timetracking', 'Timer gestoppt'))
-                this.showStopDialog = false
-                this.runningTimer = null
-                this.runningProject = null
-                if (this.timerInterval) {
-                    clearInterval(this.timerInterval)
-                    this.timerInterval = null
-                }
-                this.loadData()
-            } catch (error) {
-                showError(this.t('timetracking', 'Fehler beim Stoppen des Timers'))
-                console.error(error)
-            }
+        onTimerStopped() {
+            this.runningProject = null
+            this.loadData()
         },
     },
 }

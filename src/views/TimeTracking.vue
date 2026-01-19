@@ -9,8 +9,6 @@
                 <h3>{{ t('timetracking', 'Zeiterfassung') }}</h3>
                 <div :class="['timer-display', { overtime: isOvertime }]">{{ timerDisplay }}</div>
                 <p v-if="isOvertime" class="overtime-warning">⚠️ {{ t('timetracking', 'Bitte machen Sie eine Pause!') }}</p>
-                <p class="timer-project" v-if="runningProjectName">{{ runningProjectName }}</p>
-                <p class="timer-description" v-if="runningTimer.description">{{ runningTimer.description }}</p>
                 <NcButton type="button" @click="openStopDialog" style="width: 100%">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
             </div>
         </div>
@@ -197,6 +195,7 @@ import { NcButton, NcModal } from '@nextcloud/vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import StopTimerDialog from '../components/StopTimerDialog.vue'
+import timerMixin from '../mixins/timerMixin.js'
 
 export default {
     name: 'TimeTracking',
@@ -207,23 +206,19 @@ export default {
         Pencil,
         StopTimerDialog,
     },
+    mixins: [timerMixin],
     data() {
         const today = new Date().toISOString().split('T')[0]
         const weekAgo = new Date()
         weekAgo.setDate(weekAgo.getDate() - 7)
         
         return {
-            runningTimer: null,
             runningProjectName: '',
-            timerDisplay: '00:00:00',
-            timerSeconds: 0,
-            timerInterval: null,
             projects: [],
             customers: [],
             entries: [],
             filterStartDate: weekAgo.toISOString().split('T')[0],
             filterEndDate: today,
-            showStopDialog: false,
             manualForm: {
                 projectId: '',
                 date: today,
@@ -248,9 +243,6 @@ export default {
         activeProjects() {
             return this.projects.filter(p => p.active)
         },
-        isOvertime() {
-            return this.timerSeconds >= 6 * 3600 // 6 hours in seconds
-        },
         manualEntryDuration() {
             if (!this.manualForm.startTime || !this.manualForm.endTime) return 0
             const [startH, startM] = this.manualForm.startTime.split(':').map(Number)
@@ -268,11 +260,6 @@ export default {
         this.loadCustomers()
         this.loadEntries()
         this.checkRunningTimer()
-    },
-    beforeUnmount() {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval)
-        }
     },
     methods: {
         async loadProjects() {
@@ -318,79 +305,12 @@ export default {
                 console.error(error)
             }
         },
-        async startTimer() {
-            try {
-                const response = await axios.post(
-                    generateUrl('/apps/timetracking/api/time-entries/start'),
-                    {}
-                )
-                this.runningTimer = response.data
-                this.runningProjectName = ''
-                this.startTimerDisplay()
-                showSuccess(this.t('timetracking', 'Timer gestartet'))
-            } catch (error) {
-                showError(this.t('timetracking', 'Fehler beim Starten des Timers'))
-                console.error(error)
-            }
+        onTimerStarted() {
+            this.runningProjectName = ''
         },
-        openStopDialog() {
-            this.showStopDialog = true
-        },
-        async stopTimerWithDetails(details) {
-            try {
-                await axios.post(generateUrl('/apps/timetracking/api/time-entries/stop'), {
-                    projectId: details.projectId,
-                    description: details.description,
-                    billable: details.billable,
-                })
-                showSuccess(this.t('timetracking', 'Timer gestoppt'))
-                this.showStopDialog = false
-                this.runningTimer = null
-                this.runningProjectName = ''
-                if (this.timerInterval) {
-                    clearInterval(this.timerInterval)
-                    this.timerInterval = null
-                }
-                this.loadEntries()
-            } catch (error) {
-                if (error.response?.status === 409) {
-                    showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
-                } else {
-                    showError(this.t('timetracking', 'Fehler beim Stoppen des Timers'))
-                }
-                console.error(error)
-            }
-        },
-        startTimerDisplay() {
-            if (this.timerInterval) {
-                clearInterval(this.timerInterval)
-            }
-            
-            // Update display immediately
-            this.updateTimerDisplay()
-            
-            // Then update every second
-            this.timerInterval = setInterval(() => {
-                this.updateTimerDisplay()
-            }, 1000)
-        },
-        updateTimerDisplay() {
-            const startTimeStr = this.runningTimer.startTime
-            // Parse ISO 8601 string - the Date constructor handles timezone correctly
-            const start = new Date(startTimeStr)
-            const now = new Date()
-            const diff = Math.floor((now - start) / 1000)
-            
-            this.timerSeconds = diff
-            
-            const hours = Math.floor(diff / 3600)
-            const minutes = Math.floor((diff % 3600) / 60)
-            const seconds = diff % 60
-            
-            this.timerDisplay = 
-                hours.toString().padStart(2, '0') + ':' +
-                minutes.toString().padStart(2, '0') + ':' +
-                seconds.toString().padStart(2, '0')
+        onTimerStopped() {
+            this.runningProjectName = ''
+            this.loadEntries()
         },
         async addManualEntry() {
             try {
@@ -565,13 +485,6 @@ export default {
     color: #c62828;
     font-weight: bold;
     text-align: center;
-    margin: 10px 0;
-}
-
-.timer-project {
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
     margin: 10px 0;
 }
 
