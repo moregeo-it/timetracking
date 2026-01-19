@@ -20,7 +20,7 @@
                 {{ t('timetracking', 'Kunde filtern') }}:
                 <select v-model="filterCustomerId" @change="loadProjects">
                     <option value="">{{ t('timetracking', 'Alle Kunden') }}</option>
-                    <option v-for="customer in customers" :key="customer.id" :value="customer.id">
+                    <option v-for="customer in sortedCustomers" :key="customer.id" :value="customer.id">
                         {{ customer.name }}
                     </option>
                 </select>
@@ -84,7 +84,7 @@
                         <label>{{ t('timetracking', 'Kunde') }} *</label>
                         <select v-model="form.customerId" required>
                             <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
-                            <option v-for="customer in customers" :key="customer.id" :value="customer.id">
+                            <option v-for="customer in sortedCustomers" :key="customer.id" :value="customer.id">
                                 {{ customer.name }}
                             </option>
                         </select>
@@ -184,6 +184,11 @@ export default {
         }
     },
     computed: {
+        sortedCustomers() {
+            return [...this.customers].sort((a, b) => 
+                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            )
+        },
         sortedProjects() {
             return [...this.projects].sort((a, b) => {
                 // 1. Sort by active status (active first)
@@ -194,10 +199,10 @@ export default {
                 const customerA = this.getCustomerName(a.customerId).toLowerCase()
                 const customerB = this.getCustomerName(b.customerId).toLowerCase()
                 if (customerA !== customerB) {
-                    return customerA.localeCompare(customerB, 'de')
+                    return customerA.localeCompare(customerB)
                 }
                 // 3. Sort by project name alphabetically
-                return a.name.toLowerCase().localeCompare(b.name.toLowerCase(), 'de')
+                return a.name.toLowerCase().localeCompare(b.name.toLowerCase())
             })
         },
     },

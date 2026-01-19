@@ -50,7 +50,7 @@
                     <label>{{ t('timetracking', 'Kunde') }}</label>
                     <select v-model="customerReportForm.customerId" required>
                         <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
-                        <option v-for="customer in customers" :key="customer.id" :value="customer.id">
+                        <option v-for="customer in sortedCustomers" :key="customer.id" :value="customer.id">
                             {{ customer.name }}
                         </option>
                     </select>
@@ -140,7 +140,7 @@
                     <label>{{ t('timetracking', 'Projekt') }}</label>
                     <select v-model="projectReportForm.projectId" required @change="onProjectChange">
                         <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
-                        <option v-for="project in projects" :key="project.id" :value="project.id">
+                        <option v-for="project in sortedProjects" :key="project.id" :value="project.id">
                             {{ project.name }}
                         </option>
                     </select>
@@ -241,7 +241,7 @@
                     <label>{{ t('timetracking', 'Mitarbeiter') }}</label>
                     <select v-model="employeeReportForm.userId" @change="employeeReport = null">
                         <option value="">{{ t('timetracking', 'Alle Mitarbeiter') }}</option>
-                        <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+                        <option v-for="employee in sortedEmployees" :key="employee.id" :value="employee.id">
                             {{ employee.displayName }}
                         </option>
                     </select>
@@ -421,7 +421,7 @@
                         <label>{{ t('timetracking', 'Mitarbeiter') }}</label>
                         <select v-model="exportForm.userId" required>
                             <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
-                            <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+                            <option v-for="employee in sortedEmployees" :key="employee.id" :value="employee.id">
                                 {{ employee.displayName }}
                             </option>
                         </select>
@@ -707,6 +707,21 @@ export default {
         }
     },
     computed: {
+        sortedCustomers() {
+            return [...this.customers].sort((a, b) =>
+                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            )
+        },
+        sortedProjects() {
+            return [...this.projects].sort((a, b) =>
+                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            )
+        },
+        sortedEmployees() {
+            return [...this.employees].sort((a, b) =>
+                a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' })
+            )
+        },
         hasProjectDates() {
             if (!this.projectReportForm.projectId) return false
             const project = this.projects.find(p => p.id === this.projectReportForm.projectId)

@@ -138,7 +138,7 @@
                         <label>{{ t('timetracking', 'Projekt') }} *</label>
                         <select v-model="editForm.projectId" required>
                             <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
-                            <option v-for="project in projects" :key="project.id" :value="project.id">
+                            <option v-for="project in sortedProjects" :key="project.id" :value="project.id">
                                 {{ project.name }} ({{ getCustomerName(project.customerId) }})
                             </option>
                         </select>
@@ -241,7 +241,30 @@ export default {
     },
     computed: {
         activeProjects() {
-            return this.projects.filter(p => p.active)
+            return this.projects
+                .filter(p => p.active)
+                .sort((a, b) => {
+                    // Sort by customer name first
+                    const customerA = this.getCustomerName(a.customerId)
+                    const customerB = this.getCustomerName(b.customerId)
+                    if (customerA !== customerB) {
+                        return customerA.localeCompare(customerB, undefined, { sensitivity: 'base' })
+                    }
+                    // Then by project name
+                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+                })
+        },
+        sortedProjects() {
+            return [...this.projects].sort((a, b) => {
+                // Sort by customer name first
+                const customerA = this.getCustomerName(a.customerId)
+                const customerB = this.getCustomerName(b.customerId)
+                if (customerA !== customerB) {
+                    return customerA.localeCompare(customerB, undefined, { sensitivity: 'base' })
+                }
+                // Then by project name
+                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            })
         },
         manualEntryDuration() {
             if (!this.manualForm.startTime || !this.manualForm.endTime) return 0

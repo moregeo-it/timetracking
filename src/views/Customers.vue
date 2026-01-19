@@ -27,7 +27,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="customer in customers" :key="customer.id">
+                <tr v-for="customer in sortedCustomers" :key="customer.id">
                     <td>{{ customer.name }}</td>
                     <td>{{ getCurrencySymbol(customer.currency) }}</td>
                     <td>
@@ -131,6 +131,18 @@ export default {
             ],
             isAdmin: getCurrentUser()?.isAdmin || false,
         }
+    },
+    computed: {
+        sortedCustomers() {
+            return [...this.customers].sort((a, b) => {
+                // Active customers first
+                if (a.active !== b.active) {
+                    return a.active ? -1 : 1
+                }
+                // Then sort alphabetically (case-insensitive)
+                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            })
+        },
     },
     mounted() {
         this.loadCustomers()
