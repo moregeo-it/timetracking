@@ -106,7 +106,7 @@
                 </thead>
                 <tbody>
                     <tr v-for="entry in entries" :key="entry.id">
-                        <td>{{ formatDate(entry.date) }}</td>
+                        <td>{{ formatDate(entry.startTime) }}</td>
                         <td>{{ getProjectName(entry.projectId) }}</td>
                         <td>{{ formatTime(entry.startTime) }}</td>
                         <td>{{ formatTime(entry.endTime) }}</td>
@@ -219,7 +219,10 @@ export default {
         },
         async loadEntries() {
             try {
-                const url = `/apps/timetracking/api/time-entries?startDate=${this.filterStartDate}&endDate=${this.filterEndDate}`
+                // Send dates with timezone info - convert local date boundaries to ISO 8601
+                const startOfDay = new Date(this.filterStartDate + 'T00:00:00')
+                const endOfDay = new Date(this.filterEndDate + 'T23:59:59')
+                const url = `/apps/timetracking/api/time-entries?startDate=${startOfDay.toISOString()}&endDate=${endOfDay.toISOString()}`
                 const response = await axios.get(generateUrl(url))
                 this.entries = response.data
             } catch (error) {
@@ -295,17 +298,8 @@ export default {
         },
         updateTimerDisplay() {
             const startTimeStr = this.runningTimer.startTime
-            // Parse as local time - add local timezone offset to prevent UTC interpretation
-            let start
-            if (startTimeStr.includes('Z') || startTimeStr.includes('+')) {
-                start = new Date(startTimeStr)
-            } else {
-                // Parse without timezone indicator - treat as local time
-                const [datePart, timePart] = startTimeStr.replace(' ', 'T').split('T')
-                const [year, month, day] = datePart.split('-').map(Number)
-                const [hours, minutes, seconds] = timePart.split(':').map(Number)
-                start = new Date(year, month - 1, day, hours, minutes, seconds || 0)
-            }
+            // Parse ISO 8601 string - the Date constructor handles timezone correctly
+            const start = new Date(startTimeStr)
             const now = new Date()
             const diff = Math.floor((now - start) / 1000)
             
@@ -322,14 +316,19 @@ export default {
         },
         async addManualEntry() {
             try {
-                const startDateTime = `${this.manualForm.date}T${this.manualForm.startTime}:00`
-                const endDateTime = `${this.manualForm.date}T${this.manualForm.endTime}:00`
+                // Parse date and time components explicitly to ensure local time interpretation
+                const [year, month, day] = this.manualForm.date.split('-').map(Number)
+                const [startHours, startMinutes] = this.manualForm.startTime.split(':').map(Number)
+                const [endHours, endMinutes] = this.manualForm.endTime.split(':').map(Number)
+                
+                // Create Date objects using local time components (month is 0-indexed)
+                const startDateTime = new Date(year, month - 1, day, startHours, startMinutes, 0)
+                const endDateTime = new Date(year, month - 1, day, endHours, endMinutes, 0)
                 
                 await axios.post(generateUrl('/apps/timetracking/api/time-entries'), {
                     projectId: this.manualForm.projectId,
-                    date: this.manualForm.date,
-                    startTime: startDateTime,
-                    endTime: endDateTime,
+                    startTime: startDateTime.toISOString(), // Converts local time to UTC
+                    endTime: endDateTime.toISOString(), // Converts local time to UTC
                     description: this.manualForm.description,
                     billable: this.manualForm.billable,
                 })
@@ -364,12 +363,15 @@ export default {
             const customer = this.customers.find(c => c.id === customerId)
             return customer ? customer.name : 'Unbekannt'
         },
-        formatDate(dateStr) {
-            return new Date(dateStr).toLocaleDateString('de-DE')
+        formatDate(isoDateTimeStr) {
+            // Parse ISO 8601 string and display as local date
+            if (!isoDateTimeStr) return '-'
+            return new Date(isoDateTimeStr).toLocaleDateString('de-DE')
         },
-        formatTime(dateTimeStr) {
-            if (!dateTimeStr) return '-'
-            return new Date(dateTimeStr).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+        formatTime(isoDateTimeStr) {
+            // Parse ISO 8601 string and display as local time
+            if (!isoDateTimeStr) return '-'
+            return new Date(isoDateTimeStr).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
         },
         formatDuration(minutes) {
             if (!minutes) return '-'

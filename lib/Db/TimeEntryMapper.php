@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\TimeTracking\Db;
 
 use DateTime;
+use DateTimeZone;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -21,37 +22,51 @@ class TimeEntryMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
-    public function findByUser(string $userId, ?DateTime $startDate = null, ?DateTime $endDate = null): array {
+    /**
+     * Find entries by user within a date range
+     * 
+     * @param string $userId User ID
+     * @param int|null $startTimestamp Unix timestamp for start of range (inclusive)
+     * @param int|null $endTimestamp Unix timestamp for end of range (inclusive)
+     * @return TimeEntry[]
+     */
+    public function findByUser(string $userId, ?int $startTimestamp = null, ?int $endTimestamp = null): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
             ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-            ->orderBy('date', 'DESC')
-            ->addOrderBy('start_time', 'DESC');
+            ->orderBy('start_timestamp', 'DESC');
         
-        if ($startDate) {
-            $qb->andWhere($qb->expr()->gte('date', $qb->createNamedParameter($startDate->format('Y-m-d'), IQueryBuilder::PARAM_STR)));
+        if ($startTimestamp !== null) {
+            $qb->andWhere($qb->expr()->gte('start_timestamp', $qb->createNamedParameter($startTimestamp, IQueryBuilder::PARAM_INT)));
         }
-        if ($endDate) {
-            $qb->andWhere($qb->expr()->lte('date', $qb->createNamedParameter($endDate->format('Y-m-d'), IQueryBuilder::PARAM_STR)));
+        if ($endTimestamp !== null) {
+            $qb->andWhere($qb->expr()->lte('start_timestamp', $qb->createNamedParameter($endTimestamp, IQueryBuilder::PARAM_INT)));
         }
         
         return $this->findEntities($qb);
     }
 
-    public function findByProject(int $projectId, ?DateTime $startDate = null, ?DateTime $endDate = null): array {
+    /**
+     * Find entries by project within a date range
+     * 
+     * @param int $projectId Project ID
+     * @param int|null $startTimestamp Unix timestamp for start of range (inclusive)
+     * @param int|null $endTimestamp Unix timestamp for end of range (inclusive)
+     * @return TimeEntry[]
+     */
+    public function findByProject(int $projectId, ?int $startTimestamp = null, ?int $endTimestamp = null): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
             ->where($qb->expr()->eq('project_id', $qb->createNamedParameter($projectId, IQueryBuilder::PARAM_INT)))
-            ->orderBy('date', 'DESC')
-            ->addOrderBy('start_time', 'DESC');
+            ->orderBy('start_timestamp', 'DESC');
         
-        if ($startDate) {
-            $qb->andWhere($qb->expr()->gte('date', $qb->createNamedParameter($startDate->format('Y-m-d'), IQueryBuilder::PARAM_STR)));
+        if ($startTimestamp !== null) {
+            $qb->andWhere($qb->expr()->gte('start_timestamp', $qb->createNamedParameter($startTimestamp, IQueryBuilder::PARAM_INT)));
         }
-        if ($endDate) {
-            $qb->andWhere($qb->expr()->lte('date', $qb->createNamedParameter($endDate->format('Y-m-d'), IQueryBuilder::PARAM_STR)));
+        if ($endTimestamp !== null) {
+            $qb->andWhere($qb->expr()->lte('start_timestamp', $qb->createNamedParameter($endTimestamp, IQueryBuilder::PARAM_INT)));
         }
         
         return $this->findEntities($qb);
@@ -62,8 +77,8 @@ class TimeEntryMapper extends QBMapper {
         $qb->select('*')
             ->from($this->getTableName())
             ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-            ->andWhere($qb->expr()->isNull('end_time'))
-            ->orderBy('start_time', 'DESC')
+            ->andWhere($qb->expr()->isNull('end_timestamp'))
+            ->orderBy('start_timestamp', 'DESC')
             ->setMaxResults(1);
         
         try {

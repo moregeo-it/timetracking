@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\TimeTracking\Controller;
 
 use DateTime;
+use DateTimeZone;
 use OCA\TimeTracking\Db\TimeEntry;
 use OCA\TimeTracking\Db\TimeEntryMapper;
 use OCP\AppFramework\Controller;
@@ -21,17 +22,53 @@ class TimeEntryController extends Controller {
     }
 
     /**
+     * Parse an ISO 8601 datetime string to a Unix timestamp
+     * The input must include timezone information to be unambiguous
+     * 
+     * @param string $isoDateTime ISO 8601 datetime (e.g., "2026-01-19T10:45:00+01:00" or "2026-01-19T09:45:00Z")
+     * @return int Unix timestamp
+     */
+    private function parseIsoToTimestamp(string $isoDateTime): int {
+        $dt = new DateTime($isoDateTime);
+        return $dt->getTimestamp();
+    }
+
+    /**
      * @NoAdminRequired
+     * 
+     * @param string|null $startDate ISO 8601 date/datetime with timezone for range start
+     * @param string|null $endDate ISO 8601 date/datetime with timezone for range end
+     * @param int|null $projectId Optional project filter
      */
     public function index(?string $startDate = null, ?string $endDate = null, ?int $projectId = null): DataResponse {
-        $start = $startDate ? new DateTime($startDate) : null;
-        $end = $endDate ? new DateTime($endDate) : null;
+        // Parse date strings to timestamps
+        // For date-only strings, we use the client's intended local start/end of day
+        $startTs = null;
+        $endTs = null;
         
-        if ($projectId) {
-            return new DataResponse($this->mapper->findByProject($projectId, $start, $end));
+        if ($startDate) {
+            // If only date provided (YYYY-MM-DD), assume start of day in UTC
+            if (strlen($startDate) === 10) {
+                $startTs = (new DateTime($startDate . 'T00:00:00Z'))->getTimestamp();
+            } else {
+                $startTs = $this->parseIsoToTimestamp($startDate);
+            }
         }
         
-        return new DataResponse($this->mapper->findByUser($this->userId, $start, $end));
+        if ($endDate) {
+            // If only date provided (YYYY-MM-DD), assume end of day in UTC
+            if (strlen($endDate) === 10) {
+                $endTs = (new DateTime($endDate . 'T23:59:59Z'))->getTimestamp();
+            } else {
+                $endTs = $this->parseIsoToTimestamp($endDate);
+            }
+        }
+        
+        if ($projectId) {
+            return new DataResponse($this->mapper->findByProject($projectId, $startTs, $endTs));
+        }
+        
+        return new DataResponse($this->mapper->findByUser($this->userId, $startTs, $endTs));
     }
 
     /**
@@ -47,21 +84,29 @@ class TimeEntryController extends Controller {
 
     /**
      * @NoAdminRequired
+     * 
+     * Create a new time entry.
+     * 
+     * @param int $projectId Project ID
+     * @param string $startTime ISO 8601 datetime with timezone (e.g., "2026-01-19T10:45:00+01:00")
+     * @param string|null $endTime ISO 8601 datetime with timezone (optional)
+     * @param string|null $description Optional description
+     * @param bool|null $billable Whether the entry is billable (default: true)
      */
-    public function create(int $projectId, string $date, string $startTime, ?string $endTime = null,
+    public function create(int $projectId, string $startTime, ?string $endTime = null,
                           ?string $description = null, ?bool $billable = true): DataResponse {
         $entry = new TimeEntry();
         $entry->setProjectId($projectId);
         $entry->setUserId($this->userId);
-        $entry->setDate(new DateTime($date));
-        $entry->setStartTime(new DateTime($startTime));
+        
+        $startTs = $this->parseIsoToTimestamp($startTime);
+        $entry->setStartTimestamp($startTs);
         
         if ($endTime) {
-            $end = new DateTime($endTime);
-            $entry->setEndTime($end);
+            $endTs = $this->parseIsoToTimestamp($endTime);
+            $entry->setEndTimestamp($endTs);
             
-            $start = new DateTime($startTime);
-            $duration = ($end->getTimestamp() - $start->getTimestamp()) / 60;
+            $duration = ($endTs - $startTs) / 60;
             $entry->setDurationMinutes((int)$duration);
         }
         
@@ -75,6 +120,14 @@ class TimeEntryController extends Controller {
 
     /**
      * @NoAdminRequired
+     * 
+     * Update an existing time entry.
+     * 
+     * @param int $id Entry ID
+     * @param string $startTime ISO 8601 datetime with timezone
+     * @param string|null $endTime ISO 8601 datetime with timezone (optional)
+     * @param string|null $description Optional description
+     * @param bool|null $billable Whether the entry is billable
      */
     public function update(int $id, string $startTime, ?string $endTime = null,
                           ?string $description = null, ?bool $billable = null): DataResponse {
@@ -86,14 +139,14 @@ class TimeEntryController extends Controller {
                 return new DataResponse(['error' => 'Unauthorized'], 403);
             }
             
-            $entry->setStartTime(new DateTime($startTime));
+            $startTs = $this->parseIsoToTimestamp($startTime);
+            $entry->setStartTimestamp($startTs);
             
             if ($endTime) {
-                $end = new DateTime($endTime);
-                $entry->setEndTime($end);
+                $endTs = $this->parseIsoToTimestamp($endTime);
+                $entry->setEndTimestamp($endTs);
                 
-                $start = new DateTime($startTime);
-                $duration = ($end->getTimestamp() - $start->getTimestamp()) / 60;
+                $duration = ($endTs - $startTs) / 60;
                 $entry->setDurationMinutes((int)$duration);
             }
             
@@ -132,6 +185,8 @@ class TimeEntryController extends Controller {
 
     /**
      * @NoAdminRequired
+     * 
+     * Start a new timer. The start time is the current server time (stored as UTC timestamp).
      */
     public function startTimer(?int $projectId = null, ?string $description = null): DataResponse {
         // Check if there's already a running timer
@@ -145,8 +200,7 @@ class TimeEntryController extends Controller {
             $entry->setProjectId($projectId);
         }
         $entry->setUserId($this->userId);
-        $entry->setDate(new DateTime());
-        $entry->setStartTime(new DateTime());
+        $entry->setStartTimestamp(time()); // Current Unix timestamp (timezone-independent)
         $entry->setDescription($description);
         $entry->setBillable(true);
         $entry->setCreatedAt(new \DateTime());
@@ -157,6 +211,8 @@ class TimeEntryController extends Controller {
 
     /**
      * @NoAdminRequired
+     * 
+     * Stop the running timer. The end time is the current server time (stored as UTC timestamp).
      */
     public function stopTimer(?int $projectId = null, ?string $description = null, ?bool $billable = true): DataResponse {
         $running = $this->mapper->findRunningTimer($this->userId);
@@ -180,10 +236,10 @@ class TimeEntryController extends Controller {
             return new DataResponse(['error' => 'Project is required'], 400);
         }
         
-        $now = new DateTime();
-        $running->setEndTime($now);
+        $nowTs = time(); // Current Unix timestamp (timezone-independent)
+        $running->setEndTimestamp($nowTs);
         
-        $duration = ($now->getTimestamp() - $running->getStartTime()->getTimestamp()) / 60;
+        $duration = ($nowTs - $running->getStartTimestamp()) / 60;
         $running->setDurationMinutes((int)$duration);
         $running->setUpdatedAt(new \DateTime());
         

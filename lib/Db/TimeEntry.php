@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace OCA\TimeTracking\Db;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
@@ -13,12 +15,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setProjectId(int $projectId)
  * @method string getUserId()
  * @method void setUserId(string $userId)
- * @method \DateTime getDate()
- * @method void setDate(\DateTime $date)
- * @method \DateTime getStartTime()
- * @method void setStartTime(\DateTime $startTime)
- * @method \DateTime|null getEndTime()
- * @method void setEndTime(?\DateTime $endTime)
+ * @method int|null getStartTimestamp()
+ * @method void setStartTimestamp(?int $startTimestamp)
+ * @method int|null getEndTimestamp()
+ * @method void setEndTimestamp(?int $endTimestamp)
  * @method int|null getDurationMinutes()
  * @method void setDurationMinutes(?int $durationMinutes)
  * @method string|null getDescription()
@@ -33,9 +33,8 @@ use OCP\AppFramework\Db\Entity;
 class TimeEntry extends Entity implements JsonSerializable {
     protected $projectId;
     protected $userId;
-    protected $date;
-    protected $startTime;
-    protected $endTime;
+    protected $startTimestamp;
+    protected $endTimestamp;
     protected $durationMinutes;
     protected $description;
     protected $billable;
@@ -44,9 +43,8 @@ class TimeEntry extends Entity implements JsonSerializable {
 
     public function __construct() {
         $this->addType('projectId', 'integer');
-        $this->addType('date', 'datetime');
-        $this->addType('startTime', 'datetime');
-        $this->addType('endTime', 'datetime');
+        $this->addType('startTimestamp', 'integer');
+        $this->addType('endTimestamp', 'integer');
         $this->addType('durationMinutes', 'integer');
         $this->addType('billable', 'boolean');
         $this->addType('createdAt', 'datetime');
@@ -54,31 +52,31 @@ class TimeEntry extends Entity implements JsonSerializable {
     }
 
     public function jsonSerialize(): array {
-        // Get the default timezone
-        $tz = new \DateTimeZone(date_default_timezone_get());
+        // Always return timestamps in ISO 8601 format with UTC timezone
+        // This ensures unambiguous communication between server and client
+        $utc = new DateTimeZone('UTC');
         
-        // Format start/end time with timezone offset for correct client-side parsing
-        $startTime = $this->getStartTime();
-        if ($startTime) {
-            $startTime->setTimezone($tz);
+        $startTime = null;
+        if ($this->getStartTimestamp()) {
+            $startTime = (new DateTimeImmutable('@' . $this->getStartTimestamp()))->setTimezone($utc)->format('c');
         }
-        $endTime = $this->getEndTime();
-        if ($endTime) {
-            $endTime->setTimezone($tz);
+        
+        $endTime = null;
+        if ($this->getEndTimestamp()) {
+            $endTime = (new DateTimeImmutable('@' . $this->getEndTimestamp()))->setTimezone($utc)->format('c');
         }
         
         return [
             'id' => $this->getId(),
             'projectId' => $this->getProjectId(),
             'userId' => $this->getUserId(),
-            'date' => $this->getDate()?->format('Y-m-d'),
-            'startTime' => $startTime?->format('c'), // ISO 8601 with timezone
-            'endTime' => $endTime?->format('c'), // ISO 8601 with timezone
+            'startTime' => $startTime, // ISO 8601 with UTC timezone (e.g., "2026-01-19T09:45:00+00:00")
+            'endTime' => $endTime, // ISO 8601 with UTC timezone
             'durationMinutes' => $this->getDurationMinutes(),
             'description' => $this->getDescription(),
             'billable' => $this->getBillable(),
-            'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
-            'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s'),
+            'createdAt' => $this->getCreatedAt()?->format('c'),
+            'updatedAt' => $this->getUpdatedAt()?->format('c'),
         ];
     }
 }

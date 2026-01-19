@@ -58,7 +58,7 @@
                 </thead>
                 <tbody>
                     <tr v-for="entry in recentEntries" :key="entry.id">
-                        <td>{{ formatDate(entry.date) }}</td>
+                        <td>{{ formatDate(entry.startTime) }}</td>
                         <td>{{ getProjectName(entry.projectId) }}</td>
                         <td>{{ formatDuration(entry.durationMinutes) }}</td>
                         <td>{{ entry.description || '-' }}</td>
@@ -119,31 +119,33 @@ export default {
         async loadData() {
             try {
                 const today = new Date()
-                const todayStr = today.toISOString().split('T')[0]
                 
-                // Get this week's Monday
+                // Start of today in local time, converted to ISO 8601
+                const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0)
+                const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
+                
+                // Get this week's Monday at start of day
                 const monday = new Date(today)
                 const dayOfWeek = today.getDay()
                 const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
                 monday.setDate(today.getDate() + daysToMonday)
-                const mondayStr = monday.toISOString().split('T')[0]
+                monday.setHours(0, 0, 0, 0)
                 
-                // Get first day of month
-                const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-                const monthStartStr = monthStart.toISOString().split('T')[0]
+                // Get first day of month at start of day
+                const monthStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0)
                 
                 const todayEntriesResponse = await axios.get(
-                    generateUrl('/apps/timetracking/api/time-entries?startDate=' + todayStr + '&endDate=' + todayStr)
+                    generateUrl('/apps/timetracking/api/time-entries?startDate=' + todayStart.toISOString() + '&endDate=' + todayEnd.toISOString())
                 )
                 this.todayHours = this.calculateHours(todayEntriesResponse.data)
                 
                 const weekEntriesResponse = await axios.get(
-                    generateUrl('/apps/timetracking/api/time-entries?startDate=' + mondayStr)
+                    generateUrl('/apps/timetracking/api/time-entries?startDate=' + monday.toISOString())
                 )
                 this.weekHours = this.calculateHours(weekEntriesResponse.data)
                 
                 const monthEntriesResponse = await axios.get(
-                    generateUrl('/apps/timetracking/api/time-entries?startDate=' + monthStartStr)
+                    generateUrl('/apps/timetracking/api/time-entries?startDate=' + monthStart.toISOString())
                 )
                 this.monthHours = this.calculateHours(monthEntriesResponse.data)
                 
@@ -182,8 +184,10 @@ export default {
             const totalMinutes = entries.reduce((sum, entry) => sum + (entry.durationMinutes || 0), 0)
             return (totalMinutes / 60).toFixed(2)
         },
-        formatDate(dateStr) {
-            return new Date(dateStr).toLocaleDateString('de-DE')
+        formatDate(isoDateTimeStr) {
+            // Parse ISO 8601 string and display as local date
+            if (!isoDateTimeStr) return '-'
+            return new Date(isoDateTimeStr).toLocaleDateString('de-DE')
         },
         formatDuration(minutes) {
             if (!minutes) return '-'
@@ -211,17 +215,8 @@ export default {
         },
         updateTimerDisplay() {
             const startTimeStr = this.runningTimer.startTime
-            // Parse as local time - add local timezone offset to prevent UTC interpretation
-            let start
-            if (startTimeStr.includes('Z') || startTimeStr.includes('+')) {
-                start = new Date(startTimeStr)
-            } else {
-                // Parse without timezone indicator - treat as local time
-                const [datePart, timePart] = startTimeStr.replace(' ', 'T').split('T')
-                const [year, month, day] = datePart.split('-').map(Number)
-                const [hours, minutes, seconds] = timePart.split(':').map(Number)
-                start = new Date(year, month - 1, day, hours, minutes, seconds || 0)
-            }
+            // Parse ISO 8601 string - the Date constructor handles timezone correctly
+            const start = new Date(startTimeStr)
             const now = new Date()
             const diff = Math.floor((now - start) / 1000)
             
