@@ -58,9 +58,16 @@ class ReportController extends Controller {
     }
 
     /**
+     * Convert DateTime to Unix timestamp for mapper queries
+     */
+    private function dateTimeToTimestamp(?DateTime $dateTime): ?int {
+        return $dateTime ? $dateTime->getTimestamp() : null;
+    }
+
+    /**
      * Calculate date range based on period type
      */
-    private function getDateRange(string $periodType, int $year, ?int $month = null, ?int $quarter = null): array {
+    private function getDateRange(string $periodType, int $year, ?int $month = null, ?int $quarter = null, ?string $customStartDate = null, ?string $customEndDate = null): array {
         switch ($periodType) {
             case 'month':
                 $startDate = new DateTime("$year-$month-01");
@@ -78,6 +85,13 @@ class ReportController extends Controller {
                 $startDate = new DateTime("$year-01-01");
                 $endDate = new DateTime("$year-12-31");
                 break;
+            case 'custom':
+                $startDate = $customStartDate ? new DateTime($customStartDate) : null;
+                $endDate = $customEndDate ? new DateTime($customEndDate) : null;
+                if ($endDate) {
+                    $endDate->setTime(23, 59, 59);
+                }
+                break;
             case 'total':
             default:
                 $startDate = null;
@@ -90,7 +104,7 @@ class ReportController extends Controller {
     /**
      * Get period label for display
      */
-    private function getPeriodLabel(string $periodType, int $year, ?int $month = null, ?int $quarter = null): string {
+    private function getPeriodLabel(string $periodType, int $year, ?int $month = null, ?int $quarter = null, ?string $customStartDate = null, ?string $customEndDate = null): string {
         switch ($periodType) {
             case 'month':
                 $months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 
@@ -104,6 +118,10 @@ class ReportController extends Controller {
                 return 'Gesamt';
             case 'project_period':
                 return 'Projektzeitraum';
+            case 'custom':
+                $start = $customStartDate ? (new DateTime($customStartDate))->format('d.m.Y') : '';
+                $end = $customEndDate ? (new DateTime($customEndDate))->format('d.m.Y') : '';
+                return "$start - $end";
             default:
                 return '';
         }
@@ -142,7 +160,11 @@ class ReportController extends Controller {
             ];
             
             foreach ($projects as $project) {
-                $entries = $this->timeEntryMapper->findByProject($project->getId(), $startDate, $endDate);
+                $entries = $this->timeEntryMapper->findByProject(
+                    $project->getId(),
+                    $this->dateTimeToTimestamp($startDate),
+                    $this->dateTimeToTimestamp($endDate)
+                );
                 
                 $projectHours = 0;
                 $billableHours = 0;
@@ -209,7 +231,11 @@ class ReportController extends Controller {
                 [$startDate, $endDate] = $this->getDateRange($periodType, $year, $month, $quarter);
             }
             
-            $entries = $this->timeEntryMapper->findByProject($projectId, $startDate, $endDate);
+            $entries = $this->timeEntryMapper->findByProject(
+                $projectId,
+                $this->dateTimeToTimestamp($startDate),
+                $this->dateTimeToTimestamp($endDate)
+            );
             
             $periodLabel = $periodType === 'project_period' 
                 ? 'Projektzeitraum (' . ($project->getStartDate() ?? '?') . ' - ' . ($project->getEndDate() ?? '?') . ')'
@@ -244,6 +270,7 @@ class ReportController extends Controller {
                 if (!isset($userSummary[$userId])) {
                     $userSummary[$userId] = [
                         'userId' => $userId,
+                        'displayName' => $this->getDisplayName($userId),
                         'hours' => 0,
                         'billableHours' => 0,
                         'entryCount' => 0,
@@ -301,26 +328,30 @@ class ReportController extends Controller {
     /**
      * Employee report - Admin only
      */
-    public function employeeReport(string $userId, string $periodType, int $year, ?int $month = null, ?int $quarter = null): DataResponse {
+    public function employeeReport(string $userId, string $periodType, int $year, ?int $month = null, ?int $quarter = null, ?string $startDate = null, ?string $endDate = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Forbidden'], 403);
         }
-        [$startDate, $endDate] = $this->getDateRange($periodType, $year, $month, $quarter);
+        [$rangeStart, $rangeEnd] = $this->getDateRange($periodType, $year, $month, $quarter, $startDate, $endDate);
         
         $settings = $this->employeeSettingsMapper->findByUserId($userId);
-        $entries = $this->timeEntryMapper->findByUser($userId, $startDate, $endDate);
+        $entries = $this->timeEntryMapper->findByUser(
+            $userId,
+            $this->dateTimeToTimestamp($rangeStart),
+            $this->dateTimeToTimestamp($rangeEnd)
+        );
         
         $report = [
             'userId' => $userId,
             'employeeSettings' => $settings,
             'period' => [
                 'type' => $periodType,
-                'label' => $this->getPeriodLabel($periodType, $year, $month, $quarter),
+                'label' => $this->getPeriodLabel($periodType, $year, $month, $quarter, $startDate, $endDate),
                 'year' => $year,
                 'month' => $month,
                 'quarter' => $quarter,
-                'startDate' => $startDate?->format('Y-m-d'),
-                'endDate' => $endDate?->format('Y-m-d'),
+                'startDate' => $rangeStart?->format('Y-m-d'),
+                'endDate' => $rangeEnd?->format('Y-m-d'),
             ],
             'dailySummary' => [],
             'projectSummary' => [],
@@ -335,7 +366,8 @@ class ReportController extends Controller {
         
         foreach ($entries as $entry) {
             $hours = ($entry->getDurationMinutes() ?? 0) / 60;
-            $date = $entry->getDate()->format('Y-m-d');
+            $startTs = $entry->getStartTimestamp();
+            $date = $startTs ? date('Y-m-d', $startTs) : null;
             $projectId = $entry->getProjectId();
             
             if (!isset($dailyHours[$date])) {
@@ -377,7 +409,7 @@ class ReportController extends Controller {
         if ($settings) {
             if ($settings->getEmploymentType() === 'freelance' && $settings->getMaxTotalHours()) {
                 // For freelancers with hour contingent
-                $allEntries = $this->timeEntryMapper->findByUser($userId, null, null);
+                $allEntries = $this->timeEntryMapper->findByUser($userId, null, null); // null timestamps = no date filter
                 $totalHoursAllTime = 0;
                 foreach ($allEntries as $entry) {
                     $totalHoursAllTime += ($entry->getDurationMinutes() ?? 0) / 60;
@@ -412,6 +444,99 @@ class ReportController extends Controller {
         }
         
         $report['totals']['hours'] = round($report['totals']['hours'], 2);
+        
+        return new DataResponse($report);
+    }
+
+    /**
+     * All employees report - Admin only
+     */
+    public function allEmployeesReport(string $periodType, int $year, ?int $month = null, ?int $quarter = null, ?string $startDate = null, ?string $endDate = null): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
+        [$rangeStart, $rangeEnd] = $this->getDateRange($periodType, $year, $month, $quarter, $startDate, $endDate);
+        
+        $startTs = $this->dateTimeToTimestamp($rangeStart);
+        $endTs = $this->dateTimeToTimestamp($rangeEnd);
+        
+        // Get all users
+        $allUsers = $this->userManager->search('', 1000, 0);
+        
+        $report = [
+            'period' => [
+                'type' => $periodType,
+                'label' => $this->getPeriodLabel($periodType, $year, $month, $quarter, $startDate, $endDate),
+                'year' => $year,
+                'month' => $month,
+                'quarter' => $quarter,
+                'startDate' => $rangeStart?->format('Y-m-d'),
+                'endDate' => $rangeEnd?->format('Y-m-d'),
+            ],
+            'employees' => [],
+            'totals' => [
+                'hours' => 0,
+                'workDays' => 0,
+                'revenue' => 0,
+            ],
+        ];
+        
+        foreach ($allUsers as $user) {
+            $userId = $user->getUID();
+            $entries = $this->timeEntryMapper->findByUser($userId, $startTs, $endTs);
+            
+            if (empty($entries)) {
+                continue; // Skip users with no entries in this period
+            }
+            
+            $settings = $this->employeeSettingsMapper->findByUserId($userId);
+            $hours = 0;
+            $dailyHours = [];
+            
+            foreach ($entries as $entry) {
+                $entryHours = ($entry->getDurationMinutes() ?? 0) / 60;
+                $hours += $entryHours;
+                
+                $startTs2 = $entry->getStartTimestamp();
+                $date = $startTs2 ? date('Y-m-d', $startTs2) : null;
+                if ($date && !isset($dailyHours[$date])) {
+                    $dailyHours[$date] = true;
+                }
+            }
+            
+            $employeeData = [
+                'userId' => $userId,
+                'displayName' => $this->getDisplayName($userId),
+                'hours' => round($hours, 2),
+                'workDays' => count($dailyHours),
+                'entryCount' => count($entries),
+            ];
+            
+            // Add hourly rate and revenue if available
+            if ($settings && $settings->getHourlyRate()) {
+                $employeeData['hourlyRate'] = $settings->getHourlyRate();
+                $employeeData['revenue'] = round($hours * $settings->getHourlyRate(), 2);
+                $report['totals']['revenue'] += $employeeData['revenue'];
+            }
+            
+            // Add employment type info
+            if ($settings) {
+                $employeeData['employmentType'] = $settings->getEmploymentType();
+                $employeeData['weeklyHours'] = $settings->getWeeklyHours();
+            }
+            
+            $report['employees'][] = $employeeData;
+            $report['totals']['hours'] += $hours;
+            $report['totals']['workDays'] += count($dailyHours);
+        }
+        
+        $report['totals']['hours'] = round($report['totals']['hours'], 2);
+        $report['totals']['revenue'] = round($report['totals']['revenue'], 2);
+        
+        // Sort by hours descending
+        usort($report['employees'], function ($a, $b) {
+            return $b['hours'] <=> $a['hours'];
+        });
         
         return new DataResponse($report);
     }
@@ -503,7 +628,11 @@ class ReportController extends Controller {
             ];
             
             foreach ($customerProjects as $project) {
-                $entries = $this->timeEntryMapper->findByProject($project->getId(), $startDate, $endDate);
+                $entries = $this->timeEntryMapper->findByProject(
+                    $project->getId(),
+                    $this->dateTimeToTimestamp($startDate),
+                    $this->dateTimeToTimestamp($endDate)
+                );
                 
                 if (empty($entries)) {
                     continue;

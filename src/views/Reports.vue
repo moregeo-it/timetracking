@@ -222,7 +222,7 @@
                     </thead>
                     <tbody>
                         <tr v-for="user in projectReport.userSummary" :key="user.userId">
-                            <td>{{ user.userId }}</td>
+                            <td>{{ user.displayName }}</td>
                             <td>{{ user.hours }} h</td>
                             <td>{{ user.billableHours }} h</td>
                             <td>{{ user.entryCount }}</td>
@@ -238,14 +238,24 @@
             <h2>{{ t('timetracking', 'Mitarbeiter Arbeitszeitbericht') }}</h2>
             <form @submit.prevent="loadEmployeeReport" class="report-form">
                 <div class="form-group">
+                    <label>{{ t('timetracking', 'Mitarbeiter') }}</label>
+                    <select v-model="employeeReportForm.userId" @change="employeeReport = null">
+                        <option value="">{{ t('timetracking', 'Alle Mitarbeiter') }}</option>
+                        <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+                            {{ employee.displayName }}
+                        </option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>{{ t('timetracking', 'Zeitraum') }}</label>
                     <select v-model="employeeReportForm.periodType" @change="employeeReport = null">
                         <option value="month">{{ t('timetracking', 'Monat') }}</option>
                         <option value="quarter">{{ t('timetracking', 'Quartal') }}</option>
                         <option value="year">{{ t('timetracking', 'Jahr') }}</option>
+                        <option value="custom">{{ t('timetracking', 'Benutzerdefiniert') }}</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group" v-if="employeeReportForm.periodType !== 'custom'">
                     <label>{{ t('timetracking', 'Jahr') }}</label>
                     <input v-model.number="employeeReportForm.year" type="number" :min="2020" :max="2030" required>
                 </div>
@@ -264,13 +274,22 @@
                         <option value="4">Q4 (Okt-Dez)</option>
                     </select>
                 </div>
+                <div class="form-group" v-if="employeeReportForm.periodType === 'custom'">
+                    <label>{{ t('timetracking', 'Startdatum (inkl.)') }}</label>
+                    <input v-model="employeeReportForm.startDate" type="date" required>
+                </div>
+                <div class="form-group" v-if="employeeReportForm.periodType === 'custom'">
+                    <label>{{ t('timetracking', 'Enddatum (inkl.)') }}</label>
+                    <input v-model="employeeReportForm.endDate" type="date" required>
+                </div>
                 <div class="form-group form-group-button">
                     <label>&nbsp;</label>
                     <NcButton type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
                 </div>
             </form>
             
-            <div v-if="employeeReport" class="report-result">
+            <!-- Single Employee Report -->
+            <div v-if="employeeReport && !employeeReport.employees" class="report-result">
                 <h3>{{ t('timetracking', 'Arbeitszeit') }} {{ employeeReport.period.label }}</h3>
                 
                 <div class="summary-cards">
@@ -340,6 +359,55 @@
                     </tbody>
                 </table>
                 <p v-else>{{ t('timetracking', 'Keine Daten vorhanden') }}</p>
+            </div>
+            
+            <!-- All Employees Report -->
+            <div v-if="employeeReport && employeeReport.employees" class="report-result">
+                <h3>{{ t('timetracking', 'Mitarbeiter-Gesamtübersicht') }} {{ employeeReport.period.label }}</h3>
+                
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
+                        <div class="summary-value">{{ employeeReport.totals.hours }} h</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">{{ t('timetracking', 'Arbeitstage') }}</div>
+                        <div class="summary-value">{{ employeeReport.totals.workDays }}</div>
+                    </div>
+                    <div v-if="employeeReport.totals.revenue" class="summary-card">
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtumsatz') }}</div>
+                        <div class="summary-value success">{{ employeeReport.totals.revenue }} €</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">{{ t('timetracking', 'Mitarbeiter') }}</div>
+                        <div class="summary-value">{{ employeeReport.employees.length }}</div>
+                    </div>
+                </div>
+                
+                <h4>{{ t('timetracking', 'Mitarbeiter-Details') }}</h4>
+                <table v-if="employeeReport.employees.length > 0">
+                    <thead>
+                        <tr>
+                            <th>{{ t('timetracking', 'Mitarbeiter') }}</th>
+                            <th>{{ t('timetracking', 'Stunden') }}</th>
+                            <th>{{ t('timetracking', 'Arbeitstage') }}</th>
+                            <th>{{ t('timetracking', 'Einträge') }}</th>
+                            <th>{{ t('timetracking', 'Stundensatz') }}</th>
+                            <th>{{ t('timetracking', 'Umsatz') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="emp in employeeReport.employees" :key="emp.userId">
+                            <td>{{ emp.displayName }}</td>
+                            <td>{{ emp.hours }} h</td>
+                            <td>{{ emp.workDays }}</td>
+                            <td>{{ emp.entryCount }}</td>
+                            <td>{{ emp.hourlyRate ? emp.hourlyRate + ' €' : '-' }}</td>
+                            <td>{{ emp.revenue ? emp.revenue + ' €' : '-' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p v-else>{{ t('timetracking', 'Keine Mitarbeiter mit Einträgen in diesem Zeitraum') }}</p>
             </div>
         </div>
         
@@ -464,7 +532,7 @@
                 
                 <div v-for="customerData in monthlyOverview.customers" :key="customerData.customer.id" class="overview-customer">
                     <div class="overview-customer-header" @click="toggleOverviewCustomer(customerData.customer.id)">
-                        <span class="toggle-icon">{{ expandedOverviewCustomers[customerData.customer.id] ? '▼' : '▶' }}</span>
+                        <span class="toggle-icon">{{ expandedOverviewCustomers[customerData.customer.id] ? '⮟' : '⮞' }}</span>
                         <strong>{{ customerData.customer.name }}</strong>
                         <span class="overview-hours">{{ formatHoursDecimal(customerData.totals.hours) }} h</span>
                     </div>
@@ -472,7 +540,7 @@
                     <div v-if="expandedOverviewCustomers[customerData.customer.id]" class="overview-customer-content">
                         <div v-for="projectData in customerData.projects" :key="projectData.project.id" class="overview-project">
                             <div class="overview-project-header" @click="toggleOverviewProject(projectData.project.id)">
-                                <span class="toggle-icon">{{ expandedOverviewProjects[projectData.project.id] ? '▼' : '▶' }}</span>
+                                <span class="toggle-icon">{{ expandedOverviewProjects[projectData.project.id] ? '⮟' : '⮞' }}</span>
                                 {{ projectData.project.name }}
                                 <span class="overview-hours">{{ formatHoursDecimal(projectData.totals.hours) }} h</span>
                             </div>
@@ -511,10 +579,13 @@ export default {
     data() {
         const now = new Date()
         const currentQuarter = Math.ceil((now.getMonth() + 1) / 3)
+        const y = now.getFullYear();
+        const m = now.getMonth() + 1;
         return {
             activeTab: 'customer',
             customers: [],
             projects: [],
+            employees: [],
             customerReport: null,
             projectReport: null,
             employeeReport: null,
@@ -548,10 +619,14 @@ export default {
                 quarter: currentQuarter,
             },
             employeeReportForm: {
+                userId: '',
                 periodType: 'month',
                 year: now.getFullYear(),
                 month: now.getMonth() + 1,
                 quarter: currentQuarter,
+                // 15. des Vormonats bis 14. des aktuellen Monats
+                startDate: `${m === 1 ? y - 1 : y}-${String(m === 1 ? 12 : m - 1).padStart(2, "0")}-15`,
+                endDate:   `${y}-${String(m).padStart(2, "0")}-14`,
             },
             complianceReportForm: {
                 periodType: 'month',
@@ -583,6 +658,7 @@ export default {
         }
         this.loadCustomers()
         this.loadProjects()
+        this.loadEmployees()
     },
     methods: {
         async loadCustomers() {
@@ -597,6 +673,14 @@ export default {
             try {
                 const response = await axios.get(generateUrl('/apps/timetracking/api/projects'))
                 this.projects = response.data
+            } catch (error) {
+                console.error(error)
+            }
+        },
+        async loadEmployees() {
+            try {
+                const response = await axios.get(generateUrl('/apps/timetracking/api/admin/users'))
+                this.employees = response.data
             } catch (error) {
                 console.error(error)
             }
@@ -648,17 +732,28 @@ export default {
         },
         async loadEmployeeReport() {
             try {
-                const { periodType, year, month, quarter } = this.employeeReportForm
-                const userId = OC.getCurrentUser().uid
+                const { userId, periodType, year, month, quarter, startDate, endDate } = this.employeeReportForm
                 const params = new URLSearchParams({
-                    userId,
                     periodType,
                     year,
                 })
                 if (periodType === 'month') params.append('month', month)
                 if (periodType === 'quarter') params.append('quarter', quarter)
+                if (periodType === 'custom') {
+                    params.append('startDate', startDate)
+                    params.append('endDate', endDate)
+                }
                 
-                const url = `/apps/timetracking/api/reports/employee?${params.toString()}`
+                let url
+                if (userId) {
+                    // Single employee report
+                    params.append('userId', userId)
+                    url = `/apps/timetracking/api/reports/employee?${params.toString()}`
+                } else {
+                    // All employees report
+                    url = `/apps/timetracking/api/reports/all-employees?${params.toString()}`
+                }
+                
                 const response = await axios.get(generateUrl(url))
                 this.employeeReport = response.data
             } catch (error) {

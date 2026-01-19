@@ -34,6 +34,7 @@ return [
         ['name' => 'report#project_report', 'url' => '/api/reports/project', 'verb' => 'GET'],
         ['name' => 'report#employee_monthly', 'url' => '/api/reports/employee/{userId}/{year}/{month}', 'verb' => 'GET'],
         ['name' => 'report#employee_report', 'url' => '/api/reports/employee', 'verb' => 'GET'],
+        ['name' => 'report#all_employees_report', 'url' => '/api/reports/all-employees', 'verb' => 'GET'],
         ['name' => 'report#compliance_check', 'url' => '/api/reports/compliance/{userId}/{year}/{month}', 'verb' => 'GET'],
         ['name' => 'report#compliance_report', 'url' => '/api/reports/compliance', 'verb' => 'GET'],
         ['name' => 'report#monthly_overview', 'url' => '/api/reports/monthly-overview/{year}/{month}', 'verb' => 'GET'],

@@ -73,7 +73,7 @@ class AdminController extends Controller {
             return new DataResponse(['error' => 'userId required'], 400);
         }
 
-        $entries = $this->timeEntryMapper->findByUser($userId);
+        $entries = $this->timeEntryMapper->findByUser($userId, null, null);
         return new DataResponse(array_map(function ($entry) {
             return $entry->jsonSerialize();
         }, $entries));

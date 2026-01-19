@@ -24,16 +24,24 @@ class ComplianceService {
     }
     
     public function checkCompliance(string $userId, DateTime $startDate, DateTime $endDate): array {
-        $entries = $this->timeEntryMapper->findByUser($userId, $startDate, $endDate);
+        $entries = $this->timeEntryMapper->findByUser(
+            $userId,
+            $startDate->getTimestamp(),
+            $endDate->getTimestamp()
+        );
         
         $violations = [];
         $warnings = [];
         $dailyHours = [];
         $weeklyHours = [];
         
-        // Group entries by date
+        // Group entries by date (derived from start timestamp)
         foreach ($entries as $entry) {
-            $date = $entry->getDate()->format('Y-m-d');
+            $startTs = $entry->getStartTimestamp();
+            if (!$startTs) {
+                continue;
+            }
+            $date = date('Y-m-d', $startTs);
             $hours = ($entry->getDurationMinutes() ?? 0) / 60;
             
             if (!isset($dailyHours[$date])) {
