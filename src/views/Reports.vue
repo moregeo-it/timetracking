@@ -5,31 +5,36 @@
         </div>
         
         <div class="tabs">
-            <button 
+            <button
+                type="button"
                 @click="activeTab = 'customer'" 
                 :class="{ active: activeTab === 'customer' }"
                 class="tab-button">
                 {{ t('timetracking', 'Kunden-Berichte') }}
             </button>
-            <button 
+            <button
+                type="button"
                 @click="activeTab = 'project'" 
                 :class="{ active: activeTab === 'project' }"
                 class="tab-button">
                 {{ t('timetracking', 'Projekt-Berichte') }}
             </button>
-            <button 
+            <button
+                type="button"
                 @click="activeTab = 'employee'" 
                 :class="{ active: activeTab === 'employee' }"
                 class="tab-button">
                 {{ t('timetracking', 'Mitarbeiter-Berichte') }}
             </button>
-            <button 
+            <button
+                type="button"
                 @click="activeTab = 'compliance'" 
                 :class="{ active: activeTab === 'compliance' }"
                 class="tab-button">
                 {{ t('timetracking', 'Arbeitszeitgesetz-Prüfung') }}
             </button>
-            <button 
+            <button
+                type="button"
                 @click="activeTab = 'overview'" 
                 :class="{ active: activeTab === 'overview' }"
                 class="tab-button">
@@ -80,7 +85,7 @@
                 </div>
                 <div class="form-group form-group-button">
                     <label>&nbsp;</label>
-                    <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
+                    <NcButton type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
                 </div>
             </form>
             
@@ -171,7 +176,7 @@
                 </div>
                 <div class="form-group form-group-button">
                     <label>&nbsp;</label>
-                    <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
+                    <NcButton type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
                 </div>
             </form>
             
@@ -261,7 +266,7 @@
                 </div>
                 <div class="form-group form-group-button">
                     <label>&nbsp;</label>
-                    <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
+                    <NcButton type="submit">{{ t('timetracking', 'Bericht Erstellen') }}</NcButton>
                 </div>
             </form>
             
@@ -369,7 +374,7 @@
                 </div>
                 <div class="form-group form-group-button">
                     <label>&nbsp;</label>
-                    <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Prüfung Starten') }}</NcButton>
+                    <NcButton type="submit">{{ t('timetracking', 'Prüfung Starten') }}</NcButton>
                 </div>
             </form>
             
@@ -439,7 +444,7 @@
                 </div>
                 <div class="form-group form-group-button">
                     <label>&nbsp;</label>
-                    <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Übersicht Laden') }}</NcButton>
+                    <NcButton type="submit">{{ t('timetracking', 'Übersicht Laden') }}</NcButton>
                 </div>
             </form>
             

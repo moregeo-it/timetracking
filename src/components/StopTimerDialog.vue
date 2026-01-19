@@ -27,8 +27,8 @@
                     </label>
                 </div>
                 <div class="dialog-actions">
-                    <NcButton type="tertiary" @click="cancel">{{ t('timetracking', 'Abbrechen') }}</NcButton>
-                    <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Speichern') }}</NcButton>
+                    <NcButton type="button" @click="cancel">{{ t('timetracking', 'Abbrechen') }}</NcButton>
+                    <NcButton type="submit">{{ t('timetracking', 'Speichern') }}</NcButton>
                 </div>
             </form>
         </div>

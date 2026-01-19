@@ -30,10 +30,10 @@
                         <td>{{ request.days }}</td>
                         <td class="notes-cell">{{ request.notes || '-' }}</td>
                         <td class="actions-cell">
-                            <NcButton type="primary" @click="approveRequest(request.id)">
+                            <NcButton type="button" @click="approveRequest(request.id)">
                                 {{ t('timetracking', 'Genehmigen') }}
                             </NcButton>
-                            <NcButton type="error" @click="rejectRequest(request.id)">
+                            <NcButton type="button" @click="rejectRequest(request.id)">
                                 {{ t('timetracking', 'Ablehnen') }}
                             </NcButton>
                         </td>
@@ -92,7 +92,7 @@
         
         <!-- Add New Vacation Button -->
         <div class="actions">
-            <NcButton type="primary" @click="showModal = true">
+            <NcButton type="button" @click="showModal = true">
                 <template #icon>
                     <Plus :size="20" />
                 </template>
@@ -140,25 +140,25 @@
                         <td class="actions-cell">
                             <NcButton
                                 v-if="isAdmin && vacation.status === 'pending'"
-                                type="primary"
+                                type="button"
                                 @click="approveRequest(vacation.id)">
                                 {{ t('timetracking', 'Genehmigen') }}
                             </NcButton>
                             <NcButton
                                 v-if="isAdmin && vacation.status === 'pending'"
-                                type="warning"
+                                type="button"
                                 @click="rejectRequest(vacation.id)">
                                 {{ t('timetracking', 'Ablehnen') }}
                             </NcButton>
                             <NcButton
                                 v-if="vacation.status === 'pending' || isAdmin"
-                                type="tertiary"
+                                type="button"
                                 @click="editVacation(vacation)">
                                 {{ t('timetracking', 'Bearbeiten') }}
                             </NcButton>
                             <NcButton
                                 v-if="vacation.status === 'pending' || isAdmin"
-                                type="error"
+                                type="button"
                                 @click="deleteVacation(vacation.id)">
                                 {{ t('timetracking', 'Löschen') }}
                             </NcButton>
@@ -196,10 +196,10 @@
                     </div>
                     
                     <div class="modal-actions">
-                        <NcButton type="secondary" native-type="button" @click="closeModal">
+                        <NcButton type="button" @click="closeModal">
                             {{ t('timetracking', 'Abbrechen') }}
                         </NcButton>
-                        <NcButton type="primary" native-type="submit">
+                        <NcButton type="submit">
                             {{ t('timetracking', 'Speichern') }}
                         </NcButton>
                     </div>

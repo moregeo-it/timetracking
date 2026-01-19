@@ -135,7 +135,7 @@
                 </div>
                 
                 <div v-if="isAdmin" class="form-actions">
-                    <NcButton type="primary" native-type="submit">
+                    <NcButton type="submit">
                         {{ t('timetracking', 'Einstellungen Speichern') }}
                     </NcButton>
                 </div>

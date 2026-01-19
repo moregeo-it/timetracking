@@ -25,11 +25,11 @@
                 <div v-if="runningTimer" class="timer-running">
                     <div :class="['timer-display', { overtime: isOvertime }]">{{ timerDisplay }}</div>
                     <p v-if="isOvertime" class="overtime-warning">⚠️ {{ t('timetracking', 'Bitte machen Sie eine Pause!') }}</p>
-                    <NcButton type="primary" @click="openStopDialog" style="width: 100%">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
+                    <NcButton type="button" @click="openStopDialog" style="width: 100%">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
                 </div>
                 <div v-else>
                     <p class="no-timer-display">{{ t('timetracking', 'Kein aktiver Timer') }}</p>
-                    <NcButton @click="startTimer" style="width: 100%">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                    <NcButton type="button" @click="startTimer" style="width: 100%">{{ t('timetracking', 'Timer Starten') }}</NcButton>
                 </div>
             </div>
         </div>

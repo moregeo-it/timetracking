@@ -3,7 +3,7 @@
         <div class="page-header">
             <h1>{{ t('timetracking', 'Projekte') }}</h1>
             <div class="actions">
-                <NcButton v-if="isAdmin" type="primary" @click="showAddDialog = true">
+                <NcButton v-if="isAdmin" type="button" @click="showAddDialog = true">
                     <template #icon>
                         <Plus :size="20" />
                     </template>
@@ -58,12 +58,12 @@
                         </span>
                     </td>
                     <td v-if="isAdmin" class="actions">
-                        <NcButton type="tertiary" @click="editProject(project)" :title="t('timetracking', 'Bearbeiten')">
+                        <NcButton @click="editProject(project)" type="button" :title="t('timetracking', 'Bearbeiten')">
                             <template #icon>
                                 <Pencil :size="20" />
                             </template>
                         </NcButton>
-                        <NcButton type="tertiary" @click="deleteProject(project.id)" :title="t('timetracking', 'Löschen')">
+                        <NcButton type="button" @click="deleteProject(project.id)" :title="t('timetracking', 'Löschen')">
                             <template #icon>
                                 <Delete :size="20" />
                             </template>
@@ -120,8 +120,8 @@
                         </label>
                     </div>
                     <div class="dialog-actions">
-                        <button type="button" class="btn-secondary" @click="closeDialog">{{ t('timetracking', 'Abbrechen') }}</button>
-                        <button type="submit" class="btn-primary">{{ t('timetracking', 'Speichern') }}</button>
+                        <NcButton type="button" @click="closeDialog">{{ t('timetracking', 'Abbrechen') }}</NcButton>
+                        <NcButton type="submit">{{ t('timetracking', 'Speichern') }}</NcButton>
                     </div>
                 </form>
             </div>

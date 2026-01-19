@@ -11,7 +11,7 @@
                 <p v-if="isOvertime" class="overtime-warning">⚠️ {{ t('timetracking', 'Bitte machen Sie eine Pause!') }}</p>
                 <p class="timer-project" v-if="runningProjectName">{{ runningProjectName }}</p>
                 <p class="timer-description" v-if="runningTimer.description">{{ runningTimer.description }}</p>
-                <NcButton type="primary" @click="openStopDialog" style="width: 100%">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
+                <NcButton type="button" @click="openStopDialog" style="width: 100%">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
             </div>
         </div>
         
@@ -19,7 +19,7 @@
             <div class="timer-card">
                 <h3>{{ t('timetracking', 'Zeiterfassung') }}</h3>
                 <p class="no-timer-display">{{ t('timetracking', 'Kein aktiver Timer') }}</p>
-                <NcButton type="primary" @click="startTimer" style="width: 100%">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                <NcButton type="button" @click="startTimer" style="width: 100%">{{ t('timetracking', 'Timer Starten') }}</NcButton>
             </div>
         </div>
         
@@ -75,7 +75,7 @@
                         {{ t('timetracking', 'Abrechenbar') }}
                     </label>
                 </div>
-                <NcButton type="primary" native-type="submit">{{ t('timetracking', 'Eintrag Hinzufügen') }}</NcButton>
+                <NcButton type="submit">{{ t('timetracking', 'Eintrag Hinzufügen') }}</NcButton>
             </form>
         </div>
         
@@ -113,7 +113,7 @@
                         <td>{{ formatDuration(entry.durationMinutes) }}</td>
                         <td>{{ entry.description || '-' }}</td>
                         <td class="actions">
-                            <NcButton type="tertiary" @click="deleteEntry(entry.id)" :title="t('timetracking', 'Löschen')">
+                            <NcButton type="button" @click="deleteEntry(entry.id)" :title="t('timetracking', 'Löschen')">
                                 <template #icon>
                                     <Delete :size="20" />
                                 </template>

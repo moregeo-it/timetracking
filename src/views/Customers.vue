@@ -3,7 +3,7 @@
         <div class="page-header">
             <h1>{{ t('timetracking', 'Kunden') }}</h1>
             <div class="actions">
-                <NcButton v-if="isAdmin" type="primary" @click="showAddDialog = true">
+                <NcButton v-if="isAdmin" type="button" @click="showAddDialog = true">
                     <template #icon>
                         <Plus :size="20" />
                     </template>
@@ -36,10 +36,10 @@
                         </span>
                     </td>
                     <td v-if="isAdmin" class="actions">
-                        <NcButton type="tertiary" @click="editCustomer(customer)">
+                        <NcButton type="button" @click="editCustomer(customer)">
                             Bearbeiten
                         </NcButton>
-                        <NcButton type="error" @click="deleteCustomer(customer.id)">
+                        <NcButton type="button" @click="deleteCustomer(customer.id)">
                             Löschen
                         </NcButton>
                     </td>
@@ -75,12 +75,12 @@
                         </label>
                     </div>
                     <div class="modal-actions">
-                        <button type="button" class="btn-secondary" @click="closeDialog">
+                        <NcButton type="button" @click="closeDialog">
                             {{ t('timetracking', 'Abbrechen') }}
-                        </button>
-                        <button type="submit" class="btn-primary">
+                        </NcButton>
+                        <NcButton type="submit">
                             {{ t('timetracking', 'Speichern') }}
-                        </button>
+                        </NcButton>
                     </div>
                 </form>
             </div>
