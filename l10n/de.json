@@ -210,6 +210,16 @@
         "Erfasste Zeit": "Erfasste Zeit",
         "Was haben Sie gemacht?": "Was haben Sie gemacht?",
         "Bitte machen Sie eine Pause!": "Bitte machen Sie eine Pause!",
-        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!"
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!",
+        "PDF-Export (Arbeitszeitnachweis)": "PDF-Export (Arbeitszeitnachweis)",
+        "Erstellen Sie einen PDF-Arbeitszeitnachweis zur Unterschrift für die Einhaltung des Arbeitszeitgesetzes (ArbZG).": "Erstellen Sie einen PDF-Arbeitszeitnachweis zur Unterschrift für die Einhaltung des Arbeitszeitgesetzes (ArbZG).",
+        "PDF Herunterladen": "PDF Herunterladen",
+        "PDF-Export gestartet": "PDF-Export gestartet",
+        "Fehler beim Exportieren": "Fehler beim Exportieren",
+        "Bitte wählen Sie einen Mitarbeiter": "Bitte wählen Sie einen Mitarbeiter",
+        "Alle Mitarbeiter": "Alle Mitarbeiter",
+        "Benutzerdefiniert": "Benutzerdefiniert",
+        "Keine Mitarbeiter mit Einträgen in diesem Zeitraum": "Keine Mitarbeiter mit Einträgen in diesem Zeitraum",
+        "Übersicht": "Übersicht"
     }
 }

@@ -210,6 +210,16 @@
         "Erfasste Zeit": "Recorded Time",
         "Was haben Sie gemacht?": "What did you work on?",
         "Bitte machen Sie eine Pause!": "Please take a break!",
-        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Work time over 6 hours - please take a break!"
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Work time over 6 hours - please take a break!",
+        "PDF-Export (Arbeitszeitnachweis)": "PDF Export (Work Time Record)",
+        "Erstellen Sie einen PDF-Arbeitszeitnachweis zur Unterschrift für die Einhaltung des Arbeitszeitgesetzes (ArbZG).": "Create a PDF work time record for signature to comply with the German Working Time Act (ArbZG).",
+        "PDF Herunterladen": "Download PDF",
+        "PDF-Export gestartet": "PDF export started",
+        "Fehler beim Exportieren": "Error exporting",
+        "Bitte wählen Sie einen Mitarbeiter": "Please select an employee",
+        "Alle Mitarbeiter": "All Employees",
+        "Benutzerdefiniert": "Custom",
+        "Keine Mitarbeiter mit Einträgen in diesem Zeitraum": "No employees with entries in this period",
+        "Übersicht": "Overview"
     }
 }

@@ -40,6 +40,10 @@ return [
         ['name' => 'report#monthly_overview', 'url' => '/api/reports/monthly-overview/{year}/{month}', 'verb' => 'GET'],
         ['name' => 'report#overview', 'url' => '/api/reports/overview', 'verb' => 'GET'],
         
+        // Export routes
+        ['name' => 'export#monthly_timesheet', 'url' => '/api/export/timesheet/{userId}/{year}/{month}', 'verb' => 'GET'],
+        ['name' => 'export#yearly_timesheet', 'url' => '/api/export/timesheet/{userId}/{year}', 'verb' => 'GET'],
+        
         // Vacation routes
         ['name' => 'vacation#index', 'url' => '/api/vacations', 'verb' => 'GET'],
         ['name' => 'vacation#show', 'url' => '/api/vacations/{id}', 'verb' => 'GET'],

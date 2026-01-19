@@ -409,6 +409,51 @@
                 </table>
                 <p v-else>{{ t('timetracking', 'Keine Mitarbeiter mit Einträgen in diesem Zeitraum') }}</p>
             </div>
+            
+            <!-- PDF Export Section -->
+            <div class="export-section">
+                <h3>{{ t('timetracking', 'PDF-Export (Arbeitszeitnachweis)') }}</h3>
+                <p class="info-text">
+                    {{ t('timetracking', 'Erstellen Sie einen PDF-Arbeitszeitnachweis zur Unterschrift für die Einhaltung des Arbeitszeitgesetzes (ArbZG).') }}
+                </p>
+                <form @submit.prevent="exportTimesheet" class="report-form">
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Mitarbeiter') }}</label>
+                        <select v-model="exportForm.userId" required>
+                            <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
+                            <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+                                {{ employee.displayName }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Zeitraum') }}</label>
+                        <select v-model="exportForm.periodType">
+                            <option value="month">{{ t('timetracking', 'Monat') }}</option>
+                            <option value="year">{{ t('timetracking', 'Jahr') }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Jahr') }}</label>
+                        <input v-model.number="exportForm.year" type="number" :min="2020" :max="2030" required>
+                    </div>
+                    <div class="form-group" v-if="exportForm.periodType === 'month'">
+                        <label>{{ t('timetracking', 'Monat') }}</label>
+                        <select v-model.number="exportForm.month" required>
+                            <option v-for="month in 12" :key="month" :value="month">{{ getMonthName(month) }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-group-button">
+                        <label>&nbsp;</label>
+                        <NcButton type="submit">
+                            <template #icon>
+                                <Download :size="20" />
+                            </template>
+                            {{ t('timetracking', 'PDF Herunterladen') }}
+                        </NcButton>
+                    </div>
+                </form>
+            </div>
         </div>
         
         <!-- Compliance Check -->
@@ -574,15 +619,17 @@
 <script>
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { showError } from '@nextcloud/dialogs'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { getCurrentUser } from '@nextcloud/auth'
 import { NcButton } from '@nextcloud/vue'
+import Download from 'vue-material-design-icons/Download.vue'
 
 export default {
     name: 'Reports',
     components: {
         NcButton,
+        Download,
     },
     data() {
         const now = new Date()
@@ -650,6 +697,13 @@ export default {
             overview: null,
             expandedOverviewCustomers: {},
             expandedOverviewProjects: {},
+            // Export
+            exportForm: {
+                userId: '',
+                periodType: 'month',
+                year: now.getFullYear(),
+                month: now.getMonth() + 1,
+            },
         }
     },
     computed: {
@@ -839,6 +893,36 @@ export default {
         formatHoursDecimal(hours) {
             return hours.toFixed(2)
         },
+        async exportTimesheet() {
+            if (!this.exportForm.userId) {
+                showError(this.t('timetracking', 'Bitte wählen Sie einen Mitarbeiter'))
+                return
+            }
+            
+            try {
+                const { userId, periodType, year, month } = this.exportForm
+                let url
+                
+                if (periodType === 'year') {
+                    url = generateUrl(`/apps/timetracking/api/export/timesheet/${userId}/${year}`)
+                } else {
+                    url = generateUrl(`/apps/timetracking/api/export/timesheet/${userId}/${year}/${month}`)
+                }
+                
+                // Create a link and trigger download
+                const link = document.createElement('a')
+                link.href = url
+                link.target = '_blank'
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                
+                showSuccess(this.t('timetracking', 'PDF-Export gestartet'))
+            } catch (error) {
+                showError(this.t('timetracking', 'Fehler beim Exportieren'))
+                console.error(error)
+            }
+        },
         t,
     },
 }
@@ -852,6 +936,17 @@ export default {
 
 .report-section {
     margin-top: 20px;
+}
+
+.export-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+}
+
+.export-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
 }
 
 .info-text {
