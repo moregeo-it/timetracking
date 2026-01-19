@@ -20,7 +20,7 @@
                 </thead>
                 <tbody>
                     <tr v-for="request in pendingRequests" :key="request.id" class="status-pending">
-                        <td>{{ request.userId }}</td>
+                        <td>{{ request.displayName || request.userId }}</td>
                         <td>
                             <strong>{{ formatDate(request.startDate) }}</strong>
                             <span v-if="request.startDate !== request.endDate">
@@ -42,11 +42,27 @@
             </table>
         </div>
         
-        <!-- Vacation Balance Card -->
-        <div class="balance-card">
+        <!-- Admin: Employee Selection -->
+        <div v-if="isAdmin" class="employee-selection">
+            <div class="form-group">
+                <label>{{ t('timetracking', 'Mitarbeiter auswählen') }}</label>
+                <select v-model="selectedUserId" @change="onEmployeeChange">
+                    <option value="">{{ t('timetracking', 'Alle Mitarbeiter') }}</option>
+                    <option v-for="user in allUsers" :key="user.id" :value="user.id">
+                        {{ user.displayName || user.id }}
+                    </option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Vacation Balance Card - only for admin or viewing own data -->
+        <div v-if="isAdmin || !selectedUserId" class="balance-card">
             <div class="balance-header">
-                <h3>{{ t('timetracking', 'Urlaubssaldo') }} {{ currentYear }}</h3>
-                <select v-model="currentYear" @change="loadVacations" class="year-selector">
+                <h3>
+                    {{ t('timetracking', 'Urlaubssaldo') }} {{ currentYear }}
+                    <span v-if="selectedEmployeeName"> - {{ selectedEmployeeName }}</span>
+                </h3>
+                <select v-model="currentYear" @change="onYearChange" class="year-selector">
                     <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
                 </select>
             </div>
@@ -71,10 +87,10 @@
             </div>
             
             <div class="balance-progress">
-                <div class="progress-bar">
-                    <div class="progress-segment used" :style="{ width: usedPercentage + '%' }"></div>
-                    <div class="progress-segment pending" :style="{ width: pendingPercentage + '%' }"></div>
-                    <div class="progress-segment remaining" :style="{ width: remainingPercentage + '%' }"></div>
+                <div class="progress-bar" :class="{ 'no-entitlement': !hasVacationEntitlement }">
+                    <div v-if="hasVacationEntitlement" class="progress-segment used" :style="{ width: usedPercentage + '%' }"></div>
+                    <div v-if="hasVacationEntitlement" class="progress-segment pending" :style="{ width: pendingPercentage + '%' }"></div>
+                    <div v-if="hasVacationEntitlement" class="progress-segment remaining" :style="{ width: remainingPercentage + '%' }"></div>
                 </div>
                 <div class="progress-legend">
                     <span class="legend-item">
@@ -102,7 +118,10 @@
         
         <!-- Vacation List -->
         <div class="vacation-list">
-            <h3>{{ t('timetracking', 'Meine Urlaubsanträge') }}</h3>
+            <h3>
+                {{ t('timetracking', 'Urlaubsübersicht') }}
+                <span v-if="selectedEmployeeName"> - {{ selectedEmployeeName }}</span>
+            </h3>
             
             <div v-if="loading" class="loading">
                 {{ t('timetracking', 'Laden...') }}
@@ -115,6 +134,7 @@
             <table v-else class="vacation-table">
                 <thead>
                     <tr>
+                        <th v-if="!selectedUserId">{{ t('timetracking', 'Mitarbeiter') }}</th>
                         <th>{{ t('timetracking', 'Zeitraum') }}</th>
                         <th>{{ t('timetracking', 'Tage') }}</th>
                         <th>{{ t('timetracking', 'Status') }}</th>
@@ -124,6 +144,7 @@
                 </thead>
                 <tbody>
                     <tr v-for="vacation in vacations" :key="vacation.id" :class="'status-' + vacation.status">
+                        <td v-if="!selectedUserId">{{ vacation.displayName || vacation.userId }}</td>
                         <td>
                             <strong>{{ formatDate(vacation.startDate) }}</strong>
                             <span v-if="vacation.startDate !== vacation.endDate">
@@ -151,13 +172,13 @@
                                 {{ t('timetracking', 'Ablehnen') }}
                             </NcButton>
                             <NcButton
-                                v-if="vacation.status === 'pending' || isAdmin"
+                                v-if="vacation.canEdit && (vacation.status === 'pending' || isAdmin)"
                                 type="button"
                                 @click="editVacation(vacation)">
                                 {{ t('timetracking', 'Bearbeiten') }}
                             </NcButton>
                             <NcButton
-                                v-if="vacation.status === 'pending' || isAdmin"
+                                v-if="vacation.canDelete && (vacation.status === 'pending' || isAdmin)"
                                 type="button"
                                 @click="deleteVacation(vacation.id)">
                                 {{ t('timetracking', 'Löschen') }}
@@ -236,6 +257,8 @@ export default {
             showModal: false,
             editingVacation: null,
             isAdmin: getCurrentUser()?.isAdmin || false,
+            allUsers: [],
+            selectedUserId: '',
             form: {
                 startDate: '',
                 endDate: '',
@@ -249,34 +272,63 @@ export default {
             const currentYear = new Date().getFullYear()
             return [currentYear - 1, currentYear, currentYear + 1]
         },
+        selectedEmployeeName() {
+            if (!this.selectedUserId) return null
+            const user = this.allUsers.find(u => u.id === this.selectedUserId)
+            return user ? (user.displayName || user.id) : null
+        },
+        hasVacationEntitlement() {
+            return this.balance && this.balance.totalDays > 0
+        },
         usedPercentage() {
-            if (!this.balance) return 0
+            if (!this.balance || this.balance.totalDays === 0) return 0
             return (this.balance.usedDays / this.balance.totalDays) * 100
         },
         pendingPercentage() {
-            if (!this.balance) return 0
+            if (!this.balance || this.balance.totalDays === 0) return 0
             return (this.balance.pendingDays / this.balance.totalDays) * 100
         },
         remainingPercentage() {
-            if (!this.balance) return 0
+            if (!this.balance || this.balance.totalDays === 0) return 0
             return (this.balance.remainingDays / this.balance.totalDays) * 100
         },
     },
     mounted() {
-        this.loadVacations()
-        this.loadBalance()
         if (this.isAdmin) {
+            this.loadAllUsers()
             this.loadPendingRequests()
         }
+        this.loadVacations()
+        this.loadBalance()
     },
     methods: {
         t,
+        async loadAllUsers() {
+            try {
+                const response = await axios.get(generateUrl('/apps/timetracking/api/admin/users'))
+                this.allUsers = response.data
+            } catch (error) {
+                console.error('Error loading users:', error)
+            }
+        },
+        onEmployeeChange() {
+            this.loadVacations()
+            this.loadBalance()
+        },
+        onYearChange() {
+            this.loadVacations()
+            this.loadBalance()
+        },
         async loadVacations() {
             try {
                 this.loading = true
+                const params = { year: this.currentYear }
+                if (this.selectedUserId) {
+                    params.userId = this.selectedUserId
+                }
                 const response = await axios.get(
                     generateUrl('/apps/timetracking/api/vacations'),
-                    { params: { year: this.currentYear } }
+                    { params }
                 )
                 this.vacations = response.data
             } catch (error) {
@@ -288,9 +340,11 @@ export default {
         },
         async loadBalance() {
             try {
-                const response = await axios.get(
-                    generateUrl(`/apps/timetracking/api/vacations/balance/${this.currentYear}`)
-                )
+                let url = generateUrl(`/apps/timetracking/api/vacations/balance/${this.currentYear}`)
+                if (this.selectedUserId) {
+                    url += `?userId=${this.selectedUserId}`
+                }
+                const response = await axios.get(url)
                 this.balance = response.data
             } catch (error) {
                 console.error(error)
@@ -478,6 +532,33 @@ export default {
     max-width: 1200px;
 }
 
+.employee-selection {
+    background: var(--color-main-background);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.employee-selection .form-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+}
+
+.employee-selection label {
+    font-weight: 500;
+    margin: 0;
+}
+
+.employee-selection select {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    min-width: 250px;
+}
+
 .balance-card {
     background: var(--color-main-background);
     border: 1px solid var(--color-border);
@@ -564,6 +645,10 @@ export default {
     display: flex;
 }
 
+.progress-bar.no-entitlement {
+    background: #9e9e9e;
+}
+
 .progress-segment {
     height: 100%;
     transition: width 0.3s ease;
@@ -633,8 +718,20 @@ export default {
 }
 
 .actions-cell {
-    display: flex;
-    gap: 8px;
+    white-space: nowrap;
+}
+
+.actions-cell :deep(button) {
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.actions-cell :deep(button:last-child) {
+    margin-right: 0;
+}
+
+.actions-cell button:last-child {
+    margin-right: 0;
 }
 
 .pending-requests-card {

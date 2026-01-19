@@ -101,6 +101,65 @@ class VacationMapper extends QBMapper {
     }
 
     /**
+     * Find all vacations for all users (for team calendar view)
+     */
+    public function findAll(?int $year = null): array {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName());
+
+        if ($year !== null) {
+            $qb->where(
+                $qb->expr()->orX(
+                    $qb->expr()->andX(
+                        $qb->expr()->gte('start_date', $qb->createNamedParameter("$year-01-01")),
+                        $qb->expr()->lte('start_date', $qb->createNamedParameter("$year-12-31"))
+                    ),
+                    $qb->expr()->andX(
+                        $qb->expr()->gte('end_date', $qb->createNamedParameter("$year-01-01")),
+                        $qb->expr()->lte('end_date', $qb->createNamedParameter("$year-12-31"))
+                    )
+                )
+            );
+        }
+
+        $qb->orderBy('start_date', 'DESC');
+
+        return $this->findEntities($qb);
+    }
+
+    /**
+     * Find all vacations within a date range for all users (for team calendar)
+     */
+    public function findAllByDateRange(DateTime $startDate, DateTime $endDate): array {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where(
+                $qb->expr()->orX(
+                    // Vacation starts within range
+                    $qb->expr()->andX(
+                        $qb->expr()->gte('start_date', $qb->createNamedParameter($startDate->format('Y-m-d'))),
+                        $qb->expr()->lte('start_date', $qb->createNamedParameter($endDate->format('Y-m-d')))
+                    ),
+                    // Vacation ends within range
+                    $qb->expr()->andX(
+                        $qb->expr()->gte('end_date', $qb->createNamedParameter($startDate->format('Y-m-d'))),
+                        $qb->expr()->lte('end_date', $qb->createNamedParameter($endDate->format('Y-m-d')))
+                    ),
+                    // Vacation spans entire range
+                    $qb->expr()->andX(
+                        $qb->expr()->lte('start_date', $qb->createNamedParameter($startDate->format('Y-m-d'))),
+                        $qb->expr()->gte('end_date', $qb->createNamedParameter($endDate->format('Y-m-d')))
+                    )
+                )
+            )
+            ->orderBy('start_date', 'ASC');
+
+        return $this->findEntities($qb);
+    }
+
+    /**
      * Find all pending vacations (for admin approval)
      */
     public function findAllPending(): array {

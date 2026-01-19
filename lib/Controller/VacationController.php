@@ -118,12 +118,90 @@ class VacationController extends Controller {
         }
     }
 
+    private function notifyEmployeeAboutVacationStatusChange(Vacation $vacation): void {
+        $employee = $this->userManager->get($vacation->getUserId());
+        if ($employee === null) {
+            return;
+        }
+
+        $employeeEmail = $employee->getEMailAddress();
+        if ($employeeEmail === null || $employeeEmail === '') {
+            return;
+        }
+
+        $employeeName = $employee->getDisplayName();
+        $startDate = $vacation->getStartDate()->format('d.m.Y');
+        $endDate = $vacation->getEndDate()->format('d.m.Y');
+        $days = $vacation->getDays();
+        $status = $vacation->getStatus();
+        
+        $appUrl = $this->urlGenerator->linkToRouteAbsolute('timetracking.page.index');
+
+        if ($status === 'approved') {
+            $subject = $this->l10n->t('Ihr Urlaubsantrag wurde genehmigt');
+            $statusText = $this->l10n->t('genehmigt');
+        } else {
+            $subject = $this->l10n->t('Ihr Urlaubsantrag wurde abgelehnt');
+            $statusText = $this->l10n->t('abgelehnt');
+        }
+        
+        $body = $this->l10n->t('Hallo %s,', [$employeeName]) . "\n\n";
+        $body .= $this->l10n->t('Ihr Urlaubsantrag wurde %s.', [$statusText]) . "\n\n";
+        $body .= $this->l10n->t('Zeitraum: %s - %s', [$startDate, $endDate]) . "\n";
+        $body .= $this->l10n->t('Anzahl Tage: %s', [$days]) . "\n";
+        $body .= "\n" . $this->l10n->t('Details finden Sie hier:') . "\n";
+        $body .= $appUrl . "\n\n";
+        $body .= $this->l10n->t('Mit freundlichen Grüßen,') . "\n";
+        $body .= $this->l10n->t('Ihr Zeiterfassungssystem');
+
+        try {
+            $message = $this->mailer->createMessage();
+            $message->setSubject($subject);
+            $message->setPlainBody($body);
+            $message->setTo([$employeeEmail => $employeeName]);
+
+            $this->mailer->send($message);
+        } catch (\Exception $e) {
+            \OC::$server->getLogger()->error(
+                'Failed to send vacation status notification email to ' . $employeeEmail . ': ' . $e->getMessage(),
+                ['app' => 'timetracking']
+            );
+        }
+    }
+
     /**
      * @NoAdminRequired
      */
-    public function index(?int $year = null): DataResponse {
-        $vacations = $this->vacationMapper->findByUser($this->userId, $year);
-        return new DataResponse($vacations);
+    public function index(?int $year = null, ?string $userId = null): DataResponse {
+        // Admin can filter by userId, otherwise show all for team visibility
+        $isAdmin = $this->isAdmin();
+        
+        if ($userId !== null && $isAdmin) {
+            // Admin viewing specific user's vacations
+            $vacations = $this->vacationMapper->findByUser($userId, $year);
+        } else {
+            // Get all vacations for all users (team visibility)
+            $vacations = $this->vacationMapper->findAll($year);
+        }
+        
+        // Filter notes for non-owners (except admins)
+        $result = [];
+        foreach ($vacations as $vacation) {
+            $data = $vacation->jsonSerialize();
+            // Hide notes if not owner and not admin
+            if ($vacation->getUserId() !== $this->userId && !$isAdmin) {
+                $data['notes'] = null;
+            }
+            // Add display name for the user
+            $user = $this->userManager->get($vacation->getUserId());
+            $data['displayName'] = $user ? $user->getDisplayName() : $vacation->getUserId();
+            // Add flags for UI to know what actions are allowed
+            $data['canEdit'] = ($vacation->getUserId() === $this->userId || $isAdmin);
+            $data['canDelete'] = ($vacation->getUserId() === $this->userId || $isAdmin);
+            $result[] = $data;
+        }
+        
+        return new DataResponse($result);
     }
 
     /**
@@ -132,13 +210,18 @@ class VacationController extends Controller {
     public function show(int $id): DataResponse {
         try {
             $vacation = $this->vacationMapper->find($id);
+            $data = $vacation->jsonSerialize();
             
-            // Only allow user to see their own vacations
-            if ($vacation->getUserId() !== $this->userId) {
-                return new DataResponse(['error' => 'Unauthorized'], 403);
+            // Hide notes if not owner and not admin
+            if ($vacation->getUserId() !== $this->userId && !$this->isAdmin()) {
+                $data['notes'] = null;
             }
             
-            return new DataResponse($vacation);
+            // Add display name
+            $user = $this->userManager->get($vacation->getUserId());
+            $data['displayName'] = $user ? $user->getDisplayName() : $vacation->getUserId();
+            
+            return new DataResponse($data);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 404);
         }
@@ -274,17 +357,23 @@ class VacationController extends Controller {
     /**
      * @NoAdminRequired
      */
-    public function balance(int $year): DataResponse {
+    public function balance(int $year, ?string $userId = null): DataResponse {
         try {
+            // Admin can view another user's balance
+            $targetUserId = $this->userId;
+            if ($userId !== null && $this->isAdmin()) {
+                $targetUserId = $userId;
+            }
+            
             // Get employee settings to determine vacation days per year
-            $settings = $this->employeeSettingsMapper->findByUserId($this->userId);
+            $settings = $this->employeeSettingsMapper->findByUserId($targetUserId);
             $totalDays = $settings ? $settings->getVacationDaysPerYear() : 20;
             
             // Calculate used days (approved vacations)
-            $usedDays = $this->vacationMapper->getTotalDaysUsed($this->userId, $year);
+            $usedDays = $this->vacationMapper->getTotalDaysUsed($targetUserId, $year);
             
             // Calculate pending days
-            $pendingVacations = $this->vacationMapper->findByUser($this->userId, $year);
+            $pendingVacations = $this->vacationMapper->findByUser($targetUserId, $year);
             $pendingDays = 0;
             foreach ($pendingVacations as $vacation) {
                 if ($vacation->getStatus() === 'pending') {
@@ -315,9 +404,28 @@ class VacationController extends Controller {
             $endDate = clone $startDate;
             $endDate->modify('last day of this month');
             
-            $vacations = $this->vacationMapper->findByDateRange($this->userId, $startDate, $endDate);
+            // Get all vacations for all users (team calendar)
+            $vacations = $this->vacationMapper->findAllByDateRange($startDate, $endDate);
             
-            return new DataResponse($vacations);
+            // Filter notes and add display names
+            $isAdmin = $this->isAdmin();
+            $result = [];
+            foreach ($vacations as $vacation) {
+                $data = $vacation->jsonSerialize();
+                // Hide notes if not owner and not admin
+                if ($vacation->getUserId() !== $this->userId && !$isAdmin) {
+                    $data['notes'] = null;
+                }
+                // Add display name
+                $user = $this->userManager->get($vacation->getUserId());
+                $data['displayName'] = $user ? $user->getDisplayName() : $vacation->getUserId();
+                // Add permission flags
+                $data['canEdit'] = ($vacation->getUserId() === $this->userId || $isAdmin);
+                $data['canDelete'] = ($vacation->getUserId() === $this->userId || $isAdmin);
+                $result[] = $data;
+            }
+            
+            return new DataResponse($result);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 400);
         }
@@ -334,7 +442,17 @@ class VacationController extends Controller {
         
         try {
             $vacations = $this->vacationMapper->findAllPending();
-            return new DataResponse($vacations);
+            
+            // Add display names
+            $result = [];
+            foreach ($vacations as $vacation) {
+                $data = $vacation->jsonSerialize();
+                $user = $this->userManager->get($vacation->getUserId());
+                $data['displayName'] = $user ? $user->getDisplayName() : $vacation->getUserId();
+                $result[] = $data;
+            }
+            
+            return new DataResponse($result);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 400);
         }
@@ -360,6 +478,9 @@ class VacationController extends Controller {
             $vacation->setUpdatedAt(new DateTime());
             
             $result = $this->vacationMapper->update($vacation);
+            
+            $this->notifyEmployeeAboutVacationStatusChange($vacation);
+            
             return new DataResponse($result);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 404);
@@ -386,6 +507,9 @@ class VacationController extends Controller {
             $vacation->setUpdatedAt(new DateTime());
             
             $result = $this->vacationMapper->update($vacation);
+            
+            $this->notifyEmployeeAboutVacationStatusChange($vacation);
+            
             return new DataResponse($result);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 404);
