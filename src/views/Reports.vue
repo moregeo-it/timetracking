@@ -481,7 +481,7 @@
         <div v-if="activeTab === 'compliance'" class="report-section">
             <h2>{{ t('timetracking', 'Arbeitszeitgesetz-Prüfung') }}</h2>
             <p class="info-text">
-                {{ t('timetracking', 'Prüfung der Einhaltung des deutschen Arbeitszeitgesetzes (ArbZG)') }}:<br>
+                {{ t('timetracking', 'Prüfung der Einhaltung des deutschen Arbeitszeitgesetzes (ArbZG) für alle Mitarbeiter') }}:<br>
                 • Max. 8 Stunden täglich (Regelarbeitszeit)<br>
                 • Max. 10 Stunden täglich (mit Ausgleich)<br>
                 • Max. 48 Stunden wöchentlich<br>
@@ -513,63 +513,101 @@
             </form>
             
             <div v-if="complianceReport" class="report-result">
-                <!-- Exempt from compliance check (e.g., executives) -->
-                <div v-if="complianceReport.exempt" class="compliance-status exempt">
-                    <h3>
-                        <span class="icon-checkmark"></span>
-                        {{ t('timetracking', 'Vom ArbZG befreit') }}
-                    </h3>
-                    <p>{{ complianceReport.exemptReason }}</p>
-                    <p>{{ complianceReport.period.label }}</p>
-                </div>
+                <h3>{{ complianceReport.period.label }}</h3>
                 
-                <!-- Normal compliance status -->
-                <div v-else :class="['compliance-status', complianceReport.compliant ? 'compliant' : 'non-compliant']">
-                    <h3>
-                        <span v-if="complianceReport.compliant" class="icon-checkmark"></span>
-                        <span v-else class="icon-close"></span>
-                        {{ complianceReport.compliant ? t('timetracking', 'Konform') : t('timetracking', 'Verstöße festgestellt') }}
-                    </h3>
-                    <p>{{ complianceReport.period.label }}</p>
-                </div>
-                
-                <div v-if="!complianceReport.exempt" class="summary-cards">
+                <!-- Summary cards -->
+                <div class="summary-cards">
                     <div class="summary-card">
-                        <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
-                        <div class="summary-value">{{ complianceReport.statistics.totalHours }} h</div>
+                        <div class="summary-label">{{ t('timetracking', 'Mitarbeiter geprüft') }}</div>
+                        <div class="summary-value">{{ complianceReport.summary.totalEmployees }}</div>
+                    </div>
+                    <div class="summary-card" :class="{ 'card-success': complianceReport.summary.allCompliant }">
+                        <div class="summary-label">{{ t('timetracking', 'Konform') }}</div>
+                        <div class="summary-value">{{ complianceReport.summary.compliantCount }}</div>
+                    </div>
+                    <div class="summary-card" :class="{ 'card-danger': complianceReport.summary.nonCompliantCount > 0 }">
+                        <div class="summary-label">{{ t('timetracking', 'Verstöße') }}</div>
+                        <div class="summary-value">{{ complianceReport.summary.nonCompliantCount }}</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-label">{{ t('timetracking', 'Ø Stunden/Tag') }}</div>
-                        <div class="summary-value">{{ complianceReport.statistics.averageDailyHours }} h</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-label">{{ t('timetracking', 'Max. Stunden/Tag') }}</div>
-                        <div class="summary-value">{{ complianceReport.statistics.maxDailyHours }} h</div>
+                        <div class="summary-label">{{ t('timetracking', 'Befreit') }}</div>
+                        <div class="summary-value">{{ complianceReport.summary.exemptCount }}</div>
                     </div>
                 </div>
                 
-                <div v-if="complianceReport.violations && complianceReport.violations.length > 0" class="violations-section">
-                    <h4>⚠️ {{ t('timetracking', 'Verstöße') }} ({{ complianceReport.violationCount }})</h4>
-                    <div v-for="(violation, index) in complianceReport.violations" :key="index" class="violation-item high">
-                        <strong>{{ violation.type }}</strong><br>
-                        {{ violation.message }}<br>
-                        <small>
-                            <span v-if="violation.date">{{ t('timetracking', 'Datum') }}: {{ formatDate(violation.date) }}</span>
-                            <span v-if="violation.weekStart">{{ t('timetracking', 'Woche') }}: {{ formatDate(violation.weekStart) }} - {{ formatDate(violation.weekEnd) }}</span>
-                        </small>
+                <!-- Employee list -->
+                <div class="compliance-employees">
+                    <div v-for="employee in complianceReport.employees" :key="employee.userId" class="compliance-employee">
+                        <div class="compliance-employee-header" @click="toggleComplianceEmployee(employee.userId)">
+                            <span class="toggle-icon">{{ expandedComplianceEmployees[employee.userId] ? '⮟' : '⮞' }}</span>
+                            <span v-if="employee.exempt" class="status-icon exempt">ℹ️</span>
+                            <span v-else-if="employee.compliant" class="status-icon compliant">✅</span>
+                            <span v-else class="status-icon non-compliant">❌</span>
+                            <strong>{{ employee.displayName }}</strong>
+                            <span v-if="employee.exempt" class="status-badge exempt">{{ t('timetracking', 'Befreit') }}</span>
+                            <span v-else-if="employee.compliant" class="status-badge compliant">{{ t('timetracking', 'Konform') }}</span>
+                            <span v-else class="status-badge non-compliant">
+                                {{ employee.violationCount }} {{ t('timetracking', 'Verstöße') }}, {{ employee.warningCount }} {{ t('timetracking', 'Warnungen') }}
+                            </span>
+                        </div>
+                        
+                        <div v-if="expandedComplianceEmployees[employee.userId]" class="compliance-employee-content">
+                            <!-- Exempt info -->
+                            <div v-if="employee.exempt" class="exempt-info">
+                                <p>{{ employee.exemptReason }}</p>
+                            </div>
+                            
+                            <!-- Statistics -->
+                            <div v-else class="employee-statistics">
+                                <div class="stat-row">
+                                    <span>{{ t('timetracking', 'Gesamtstunden') }}:</span>
+                                    <strong>{{ employee.statistics.totalHours }} h</strong>
+                                </div>
+                                <div class="stat-row">
+                                    <span>{{ t('timetracking', 'Ø Stunden/Tag') }}:</span>
+                                    <strong>{{ employee.statistics.averageDailyHours }} h</strong>
+                                </div>
+                                <div class="stat-row">
+                                    <span>{{ t('timetracking', 'Max. Stunden/Tag') }}:</span>
+                                    <strong>{{ employee.statistics.maxDailyHours }} h</strong>
+                                </div>
+                                
+                                <!-- Violations -->
+                                <div v-if="employee.violations && employee.violations.length > 0" class="violations-section">
+                                    <h5>⚠️ {{ t('timetracking', 'Verstöße') }}</h5>
+                                    <div v-for="(violation, index) in employee.violations" :key="'v' + index" class="violation-item high">
+                                        <strong>{{ violation.type }}</strong><br>
+                                        {{ violation.message }}<br>
+                                        <small>
+                                            <span v-if="violation.date">{{ t('timetracking', 'Datum') }}: {{ formatDate(violation.date) }}</span>
+                                            <span v-if="violation.weekStart">{{ t('timetracking', 'Woche') }}: {{ formatDate(violation.weekStart) }} - {{ formatDate(violation.weekEnd) }}</span>
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Warnings -->
+                                <div v-if="employee.warnings && employee.warnings.length > 0" class="warnings-section">
+                                    <h5>⚡ {{ t('timetracking', 'Warnungen') }}</h5>
+                                    <div v-for="(warning, index) in employee.warnings" :key="'w' + index" class="violation-item medium">
+                                        <strong>{{ warning.type }}</strong><br>
+                                        {{ warning.message }}<br>
+                                        <small>
+                                            <span v-if="warning.date">{{ t('timetracking', 'Datum') }}: {{ formatDate(warning.date) }}</span>
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <p v-if="employee.compliant && employee.violations.length === 0 && employee.warnings.length === 0" class="no-issues">
+                                    ✅ {{ t('timetracking', 'Keine Verstöße oder Warnungen') }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <div v-if="complianceReport.warnings && complianceReport.warnings.length > 0" class="warnings-section">
-                    <h4>⚡ {{ t('timetracking', 'Warnungen') }} ({{ complianceReport.warningCount }})</h4>
-                    <div v-for="(warning, index) in complianceReport.warnings" :key="index" class="violation-item medium">
-                        <strong>{{ warning.type }}</strong><br>
-                        {{ warning.message }}<br>
-                        <small>
-                            <span v-if="warning.date">{{ t('timetracking', 'Datum') }}: {{ formatDate(warning.date) }}</span>
-                        </small>
-                    </div>
-                </div>
+                <p v-if="complianceReport.employees.length === 0" class="no-data">
+                    {{ t('timetracking', 'Keine Mitarbeiter mit Zeiteinträgen in diesem Zeitraum') }}
+                </p>
             </div>
         </div>
 
@@ -729,6 +767,7 @@ export default {
             overview: null,
             expandedOverviewCustomers: {},
             expandedOverviewProjects: {},
+            expandedComplianceEmployees: {},
             // Export
             exportForm: {
                 userId: '',
@@ -874,9 +913,7 @@ export default {
         async loadComplianceReport() {
             try {
                 const { periodType, year, month } = this.complianceReportForm
-                const userId = OC.getCurrentUser().uid
                 const params = new URLSearchParams({
-                    userId,
                     periodType,
                     year,
                 })
@@ -885,10 +922,20 @@ export default {
                 const url = `/apps/timetracking/api/reports/compliance?${params.toString()}`
                 const response = await axios.get(generateUrl(url))
                 this.complianceReport = response.data
+                // Expand employees with violations by default
+                this.expandedComplianceEmployees = {}
+                response.data.employees.forEach(e => {
+                    if (!e.compliant && !e.exempt) {
+                        this.expandedComplianceEmployees[e.userId] = true
+                    }
+                })
             } catch (error) {
                 showError(this.t('timetracking', 'Fehler beim Laden des Berichts'))
                 console.error(error)
             }
+        },
+        toggleComplianceEmployee(userId) {
+            this.expandedComplianceEmployees[userId] = !this.expandedComplianceEmployees[userId]
         },
         getMonthName(month) {
             const months = [
@@ -1219,5 +1266,123 @@ export default {
 .negative {
     color: #dc3545;
     font-weight: bold;
+}
+
+/* Compliance Employee List Styles */
+.compliance-employees {
+    margin-top: 20px;
+}
+
+.compliance-employee {
+    margin-bottom: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.compliance-employee-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    background: var(--color-main-background);
+    cursor: pointer;
+}
+
+.compliance-employee-header:hover {
+    background: var(--color-background-hover);
+}
+
+.compliance-employee-content {
+    padding: 15px;
+    background: var(--color-background-dark);
+}
+
+.status-icon {
+    font-size: 16px;
+}
+
+.status-badge {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.status-badge.compliant {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.non-compliant {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-badge.exempt {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.exempt-info {
+    padding: 10px;
+    background: var(--color-main-background);
+    border-radius: 4px;
+    color: var(--color-text-maxcontrast);
+    font-style: italic;
+}
+
+.employee-statistics {
+    padding: 10px;
+    background: var(--color-main-background);
+    border-radius: 4px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.employee-statistics .violations-section,
+.employee-statistics .warnings-section {
+    margin-top: 15px;
+}
+
+.employee-statistics h5 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+}
+
+.no-issues {
+    color: #155724;
+    margin: 10px 0 0 0;
+    padding: 10px;
+    background: #d4edda;
+    border-radius: 4px;
+}
+
+.summary-card.card-success {
+    border-color: #28a745;
+    background: #d4edda;
+}
+
+.summary-card.card-success .summary-value {
+    color: #155724;
+}
+
+.summary-card.card-danger {
+    border-color: #dc3545;
+    background: #f8d7da;
+}
+
+.summary-card.card-danger .summary-value {
+    color: #721c24;
 }
 </style>

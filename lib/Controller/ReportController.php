@@ -769,73 +769,122 @@ class ReportController extends Controller {
     }
 
     /**
-     * Compliance report - Admin only
+     * All employees compliance report - Admin only
+     * Checks compliance for all employees and returns a summary
      */
-    public function complianceReport(string $userId, string $periodType, int $year, ?int $month = null): DataResponse {
+    public function allComplianceReport(string $periodType, int $year, ?int $month = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Forbidden'], 403);
         }
-        
-        // Check if user is executive (exempt from labor law compliance)
-        try {
-            $settings = $this->employeeSettingsMapper->findByUserId($userId);
-            if ($settings && $settings->getEmploymentType() === 'executive') {
-                return new DataResponse([
-                    'compliant' => true,
-                    'exempt' => true,
-                    'exemptReason' => 'Geschäftsführer sind vom Arbeitszeitgesetz ausgenommen (§18 Abs. 1 Nr. 1 ArbZG)',
-                    'violationCount' => 0,
-                    'warningCount' => 0,
-                    'violations' => [],
-                    'warnings' => [],
-                    'period' => [
-                        'type' => $periodType,
-                        'label' => $periodType === 'month' 
-                            ? $this->getPeriodLabel('month', $year, $month) 
-                            : (string)$year,
-                        'year' => $year,
-                        'month' => $month,
-                    ],
-                    'statistics' => [
-                        'totalDays' => 0,
-                        'averageDailyHours' => 0,
-                        'maxDailyHours' => 0,
-                        'totalHours' => 0,
-                    ],
-                ]);
-            }
-        } catch (\Exception $e) {
-            // Settings not found, continue with normal compliance check
-        }
-        
+
         if ($periodType === 'month') {
             $startDate = new DateTime("$year-$month-01");
             $endDate = clone $startDate;
             $endDate->modify('last day of this month');
+            $periodLabel = $this->getPeriodLabel('month', $year, $month);
         } else {
-            // year
             $startDate = new DateTime("$year-01-01");
             $endDate = new DateTime("$year-12-31");
+            $periodLabel = (string)$year;
         }
-        
-        $result = $this->complianceService->checkCompliance($userId, $startDate, $endDate);
-        $result['period'] = [
-            'type' => $periodType,
-            'label' => $periodType === 'month' 
-                ? $this->getPeriodLabel('month', $year, $month) 
-                : (string)$year,
-            'year' => $year,
-            'month' => $month,
-        ];
-        
-        return new DataResponse($result);
-    }
 
-    /**
-     * Backwards compatibility for old route - Admin only
-     */
-    public function complianceCheck(string $userId, int $year, int $month): DataResponse {
-        return $this->complianceReport($userId, 'month', $year, $month);
+        // Get all users
+        $allUsers = $this->userManager->search('', 1000, 0);
+        
+        $employees = [];
+        $totalViolations = 0;
+        $totalWarnings = 0;
+        $allCompliant = true;
+
+        foreach ($allUsers as $user) {
+            $userId = $user->getUID();
+            
+            // Check if user has any time entries in this period
+            $startTs = $startDate->getTimestamp();
+            $endTs = $endDate->getTimestamp();
+            $entries = $this->timeEntryMapper->findByUser($userId, $startTs, $endTs);
+            
+            if (empty($entries)) {
+                continue; // Skip users with no entries in this period
+            }
+
+            $employeeResult = [
+                'userId' => $userId,
+                'displayName' => $this->getDisplayName($userId),
+            ];
+
+            // Check if user is exempt (e.g., director)
+            try {
+                $settings = $this->employeeSettingsMapper->findByUserId($userId);
+                if ($settings && $settings->getEmploymentType() === 'director') {
+                    $employeeResult['exempt'] = true;
+                    $employeeResult['exemptReason'] = 'Geschäftsführer (§18 Abs. 1 Nr. 1 ArbZG)';
+                    $employeeResult['compliant'] = true;
+                    $employeeResult['violationCount'] = 0;
+                    $employeeResult['warningCount'] = 0;
+                    $employeeResult['violations'] = [];
+                    $employeeResult['warnings'] = [];
+                    $employeeResult['statistics'] = [
+                        'totalHours' => 0,
+                        'averageDailyHours' => 0,
+                        'maxDailyHours' => 0,
+                    ];
+                    $employees[] = $employeeResult;
+                    continue;
+                }
+            } catch (\Exception $e) {
+                // Settings not found, continue with normal compliance check
+            }
+
+            // Run compliance check for this employee
+            $result = $this->complianceService->checkCompliance($userId, $startDate, $endDate);
+            
+            $employeeResult['exempt'] = false;
+            $employeeResult['compliant'] = $result['compliant'];
+            $employeeResult['violationCount'] = $result['violationCount'];
+            $employeeResult['warningCount'] = $result['warningCount'];
+            $employeeResult['violations'] = $result['violations'];
+            $employeeResult['warnings'] = $result['warnings'];
+            $employeeResult['statistics'] = $result['statistics'];
+
+            if (!$result['compliant']) {
+                $allCompliant = false;
+            }
+            $totalViolations += $result['violationCount'];
+            $totalWarnings += $result['warningCount'];
+
+            $employees[] = $employeeResult;
+        }
+
+        // Sort: non-compliant first, then by violation count
+        usort($employees, function ($a, $b) {
+            if ($a['exempt'] !== $b['exempt']) {
+                return $a['exempt'] ? 1 : -1; // Non-exempt first
+            }
+            if ($a['compliant'] !== $b['compliant']) {
+                return $a['compliant'] ? 1 : -1; // Non-compliant first
+            }
+            return $b['violationCount'] <=> $a['violationCount'];
+        });
+
+        return new DataResponse([
+            'period' => [
+                'type' => $periodType,
+                'label' => $periodLabel,
+                'year' => $year,
+                'month' => $month,
+            ],
+            'employees' => $employees,
+            'summary' => [
+                'totalEmployees' => count($employees),
+                'allCompliant' => $allCompliant,
+                'totalViolations' => $totalViolations,
+                'totalWarnings' => $totalWarnings,
+                'exemptCount' => count(array_filter($employees, fn($e) => $e['exempt'])),
+                'compliantCount' => count(array_filter($employees, fn($e) => !$e['exempt'] && $e['compliant'])),
+                'nonCompliantCount' => count(array_filter($employees, fn($e) => !$e['exempt'] && !$e['compliant'])),
+            ],
+        ]);
     }
 
     /**

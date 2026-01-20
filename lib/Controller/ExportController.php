@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\TimeTracking\Controller;
 
 use DateTime;
+use DateTimeZone;
 use OCA\TimeTracking\Db\TimeEntryMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Response;
@@ -82,8 +83,9 @@ class ExportController extends Controller {
      */
     private function groupEntriesByDate(array $entries): array {
         $entriesByDate = [];
+        $tz = new DateTimeZone('Europe/Berlin');
         foreach ($entries as $entry) {
-            $startTime = new DateTime();
+            $startTime = new DateTime('now', $tz);
             $startTime->setTimestamp($entry->getStartTimestamp());
             $dateKey = $startTime->format('Y-m-d');
             
@@ -189,18 +191,19 @@ class ExportController extends Controller {
         $pdf->SetFont('dejavusans', '', 9);
         $totalMinutes = 0;
 
+        $tz = new DateTimeZone('Europe/Berlin');
         foreach ($entriesByDate as $dateKey => $dayEntries) {
             $daySummary = $this->calculateDaySummary($dayEntries);
             if ($daySummary === null) {
                 continue;
             }
             
-            $dateObj = new DateTime($dateKey);
+            $dateObj = new DateTime($dateKey, $tz);
             $dateFormatted = $dateObj->format('d.m.Y');
             
-            $startTimeObj = new DateTime();
+            $startTimeObj = new DateTime('now', $tz);
             $startTimeObj->setTimestamp($daySummary['firstStart']);
-            $endTimeObj = new DateTime();
+            $endTimeObj = new DateTime('now', $tz);
             $endTimeObj->setTimestamp($daySummary['lastEnd']);
             
             $pdf->Cell(40, 6, $dateFormatted, 1, 0, 'C');
@@ -323,8 +326,9 @@ class ExportController extends Controller {
         if ($isYearly) {
             // Group entries by month
             $entriesByMonth = [];
+            $tz = new DateTimeZone('Europe/Berlin');
             foreach ($entries as $entry) {
-                $startTime = new DateTime();
+                $startTime = new DateTime('now', $tz);
                 $startTime->setTimestamp($entry->getStartTimestamp());
                 $monthKey = $startTime->format('Y-m');
                 
