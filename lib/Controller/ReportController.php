@@ -110,6 +110,117 @@ class ReportController extends Controller {
     }
 
     /**
+     * Calculate aggregated employee settings for a date range.
+     * If the employee has multiple settings periods within the range,
+     * this calculates weighted averages or sums as appropriate.
+     * 
+     * @param string $userId User ID
+     * @param DateTime $startDate Start of the date range
+     * @param DateTime $endDate End of the date range
+     * @return array Aggregated settings with weighted values
+     */
+    private function getAggregatedSettings(string $userId, DateTime $startDate, DateTime $endDate): array {
+        $settingsPeriods = $this->employeeSettingsMapper->findByUserIdInRange($userId, $startDate, $endDate);
+        
+        if (empty($settingsPeriods)) {
+            // Fall back to current settings if no period-specific settings found
+            $currentSettings = $this->employeeSettingsMapper->findByUserId($userId);
+            if (!$currentSettings) {
+                return [
+                    'employmentType' => 'contract',
+                    'weeklyHours' => 40.0,
+                    'dailyHours' => 8.0,
+                    'vacationDaysPerYear' => 20,
+                    'hourlyRate' => null,
+                    'maxTotalHours' => null,
+                    'periods' => [],
+                ];
+            }
+            return [
+                'employmentType' => $currentSettings->getEmploymentType(),
+                'weeklyHours' => $currentSettings->getWeeklyHours(),
+                'dailyHours' => $currentSettings->getWeeklyHours() / 5,
+                'vacationDaysPerYear' => $currentSettings->getVacationDaysPerYear(),
+                'hourlyRate' => $currentSettings->getHourlyRate(),
+                'maxTotalHours' => $currentSettings->getMaxTotalHours(),
+                'periods' => [$currentSettings],
+            ];
+        }
+        
+        // Count total workdays in the date range
+        $totalWorkdays = 0;
+        $current = clone $startDate;
+        while ($current <= $endDate) {
+            $dayOfWeek = (int)$current->format('N');
+            if ($dayOfWeek <= 5) { // Mon-Fri
+                $totalWorkdays++;
+            }
+            $current->modify('+1 day');
+        }
+        
+        if ($totalWorkdays === 0) {
+            $totalWorkdays = 1; // Prevent division by zero
+        }
+        
+        // Calculate weighted average of settings based on days covered
+        $weightedWeeklyHours = 0;
+        $weightedVacationDays = 0;
+        $weightedHourlyRate = 0;
+        $hasHourlyRate = false;
+        $totalDaysCovered = 0;
+        $employmentTypes = [];
+        
+        foreach ($settingsPeriods as $period) {
+            // Determine the effective date range of this period within our report range
+            $periodStart = $period->getValidFrom() ? max($period->getValidFrom(), $startDate) : $startDate;
+            $periodEnd = $period->getValidTo() ? min($period->getValidTo(), $endDate) : $endDate;
+            
+            // Count workdays in this period
+            $periodWorkdays = 0;
+            $current = clone $periodStart;
+            while ($current <= $periodEnd) {
+                $dayOfWeek = (int)$current->format('N');
+                if ($dayOfWeek <= 5) {
+                    $periodWorkdays++;
+                }
+                $current->modify('+1 day');
+            }
+            
+            $weight = $periodWorkdays / $totalWorkdays;
+            $weightedWeeklyHours += $period->getWeeklyHours() * $weight;
+            $weightedVacationDays += $period->getVacationDaysPerYear() * $weight;
+            
+            if ($period->getHourlyRate()) {
+                $weightedHourlyRate += $period->getHourlyRate() * $weight;
+                $hasHourlyRate = true;
+            }
+            
+            $totalDaysCovered += $periodWorkdays;
+            $employmentTypes[$period->getEmploymentType()] = ($employmentTypes[$period->getEmploymentType()] ?? 0) + $periodWorkdays;
+        }
+        
+        // Determine dominant employment type
+        $dominantType = 'contract';
+        $maxDays = 0;
+        foreach ($employmentTypes as $type => $days) {
+            if ($days > $maxDays) {
+                $dominantType = $type;
+                $maxDays = $days;
+            }
+        }
+        
+        return [
+            'employmentType' => $dominantType,
+            'weeklyHours' => round($weightedWeeklyHours, 2),
+            'dailyHours' => round($weightedWeeklyHours / 5, 2),
+            'vacationDaysPerYear' => round($weightedVacationDays),
+            'hourlyRate' => $hasHourlyRate ? round($weightedHourlyRate, 2) : null,
+            'maxTotalHours' => count($settingsPeriods) === 1 ? $settingsPeriods[0]->getMaxTotalHours() : null,
+            'periods' => $settingsPeriods,
+        ];
+    }
+
+    /**
      * Calculate credited hours for vacations and public holidays in a date range
      * 
      * @param string $userId User ID to check vacations for

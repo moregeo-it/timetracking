@@ -260,6 +260,21 @@
         "Fehler beim Hinzufügen": "Fehler beim Hinzufügen",
         "Eintrag aktualisiert": "Eintrag aktualisiert",
         "Zeiterfassung an Sonntagen ist nicht erlaubt": "Zeiterfassung an Sonntagen ist nicht erlaubt",
-        "Zeiterfassung an Feiertagen ist nicht erlaubt": "Zeiterfassung an Feiertagen ist nicht erlaubt"
+        "Zeiterfassung an Feiertagen ist nicht erlaubt": "Zeiterfassung an Feiertagen ist nicht erlaubt",
+        "Zeiträume": "Zeiträume",
+        "Die Beschäftigungsart und andere Einstellungen können sich im Laufe der Zeit ändern. Hier sehen Sie alle Zeiträume.": "Die Beschäftigungsart und andere Einstellungen können sich im Laufe der Zeit ändern. Hier sehen Sie alle Zeiträume.",
+        "Anfang": "Anfang",
+        "Woche": "Woche",
+        "Neuen Zeitraum anlegen": "Neuen Zeitraum anlegen",
+        "Zeitraum bearbeiten": "Zeitraum bearbeiten",
+        "Neuer Zeitraum": "Neuer Zeitraum",
+        "Der vorherige Zeitraum wird automatisch zum Tag vor diesem neuen Zeitraum beendet.": "Der vorherige Zeitraum wird automatisch zum Tag vor diesem neuen Zeitraum beendet.",
+        "Gültig von": "Gültig von",
+        "Gültig bis": "Gültig bis",
+        "Leer lassen für aktuellen/offenen Zeitraum": "Leer lassen für aktuellen/offenen Zeitraum",
+        "Zeitraum speichern": "Zeitraum speichern",
+        "Zeitraum anlegen": "Zeitraum anlegen",
+        "Möchten Sie diesen Zeitraum wirklich löschen?": "Möchten Sie diesen Zeitraum wirklich löschen?",
+        "Zeitraum gelöscht": "Zeitraum gelöscht"
     }
 }

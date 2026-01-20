@@ -24,7 +24,63 @@
         <div v-if="loading" class="loading">{{ t('timetracking', 'Laden...') }}</div>
         
         <div v-else class="settings-form">
+            <!-- Existing Periods List (Admin Only) -->
+            <div v-if="isAdmin && periods.length > 0" class="periods-section">
+                <h3>{{ t('timetracking', 'Zeiträume') }}</h3>
+                <p class="hint">{{ t('timetracking', 'Die Beschäftigungsart und andere Einstellungen können sich im Laufe der Zeit ändern. Hier sehen Sie alle Zeiträume.') }}</p>
+                
+                <div class="periods-list">
+                    <div v-for="period in periods" :key="period.id" 
+                         class="period-item" 
+                         :class="{ active: isCurrentPeriod(period), editing: editingPeriodId === period.id }">
+                        <div class="period-header">
+                            <span class="period-dates">
+                                {{ formatDate(period.validFrom) || t('timetracking', 'Anfang') }} 
+                                - 
+                                {{ formatDate(period.validTo) || t('timetracking', 'Heute') }}
+                            </span>
+                            <span class="period-type">{{ getEmploymentTypeLabel(period.employmentType) }}</span>
+                            <span class="period-hours">{{ period.weeklyHours }} h/{{ t('timetracking', 'Woche') }}</span>
+                            <div class="period-actions">
+                                <NcButton type="tertiary" @click="editPeriod(period)">
+                                    {{ t('timetracking', 'Bearbeiten') }}
+                                </NcButton>
+                                <NcButton v-if="periods.length > 1" type="tertiary-no-background" @click="deletePeriod(period)">
+                                    {{ t('timetracking', 'Löschen') }}
+                                </NcButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="new-period-actions">
+                    <NcButton v-if="!showNewPeriodForm" type="secondary" @click="startNewPeriod">
+                        {{ t('timetracking', 'Neuen Zeitraum anlegen') }}
+                    </NcButton>
+                </div>
+            </div>
+            
+            <!-- New Period Form or Edit Form -->
             <form @submit.prevent="saveSettings">
+                <div v-if="showNewPeriodForm || editingPeriodId" class="period-form-header">
+                    <h3>{{ editingPeriodId ? t('timetracking', 'Zeitraum bearbeiten') : t('timetracking', 'Neuer Zeitraum') }}</h3>
+                    <p v-if="showNewPeriodForm" class="hint">
+                        {{ t('timetracking', 'Der vorherige Zeitraum wird automatisch zum Tag vor diesem neuen Zeitraum beendet.') }}
+                    </p>
+                </div>
+                
+                <div v-if="isAdmin && (showNewPeriodForm || editingPeriodId)" class="form-row">
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Gültig von') }} *</label>
+                        <input v-model="form.validFrom" type="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Gültig bis') }}</label>
+                        <input v-model="form.validTo" type="date">
+                        <p class="hint">{{ t('timetracking', 'Leer lassen für aktuellen/offenen Zeitraum') }}</p>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>{{ t('timetracking', 'Beschäftigungsbeginn') }}</label>
                     <input v-model="form.employmentStart" type="date" :disabled="!isAdmin">
@@ -113,13 +169,16 @@
                 
                 <div v-if="isAdmin" class="form-actions">
                     <NcButton type="submit">
-                        {{ t('timetracking', 'Einstellungen Speichern') }}
+                        {{ editingPeriodId ? t('timetracking', 'Zeitraum speichern') : (showNewPeriodForm ? t('timetracking', 'Zeitraum anlegen') : t('timetracking', 'Einstellungen Speichern')) }}
+                    </NcButton>
+                    <NcButton v-if="showNewPeriodForm || editingPeriodId" type="tertiary" @click="cancelEdit">
+                        {{ t('timetracking', 'Abbrechen') }}
                     </NcButton>
                 </div>
             </form>
             
             <!-- Current Status Display -->
-            <div v-if="savedSettings" class="current-status">
+            <div v-if="savedSettings && !showNewPeriodForm && !editingPeriodId" class="current-status">
                 <h3>{{ t('timetracking', 'Aktueller Status') }}</h3>
                 
                 <div v-if="savedSettings.employmentType === 'freelance' && savedSettings.maxTotalHours" class="status-card">
@@ -180,10 +239,13 @@ export default {
         return {
             loading: true,
             savedSettings: null,
+            periods: [],
             usedHours: 0,
             isAdmin: getCurrentUser()?.isAdmin || false,
             allUsers: [],
             selectedUserId: getCurrentUser()?.uid || '',
+            showNewPeriodForm: false,
+            editingPeriodId: null,
             form: {
                 employmentType: 'contract',
                 weeklyHours: 40,
@@ -191,6 +253,8 @@ export default {
                 vacationDaysPerYear: 20,
                 hourlyRate: null,
                 employmentStart: '',
+                validFrom: '',
+                validTo: '',
             },
         }
     },
@@ -216,6 +280,26 @@ export default {
     },
     methods: {
         t,
+        formatDate(dateStr) {
+            if (!dateStr) return null
+            const date = new Date(dateStr)
+            return date.toLocaleDateString('de-DE')
+        },
+        getEmploymentTypeLabel(type) {
+            const labels = {
+                director: t('timetracking', 'Geschäftsführer'),
+                contract: t('timetracking', 'Festanstellung / Teilzeit'),
+                freelance: t('timetracking', 'Praktikant / Stundenkontingent'),
+                student: t('timetracking', 'Werkstudent'),
+            }
+            return labels[type] || type
+        },
+        isCurrentPeriod(period) {
+            const today = new Date().toISOString().split('T')[0]
+            const validFrom = period.validFrom || '1970-01-01'
+            const validTo = period.validTo || '2099-12-31'
+            return validFrom <= today && today <= validTo
+        },
         async loadAllUsers() {
             try {
                 const response = await axios.get(generateUrl('/apps/timetracking/api/admin/users'))
@@ -236,6 +320,7 @@ export default {
         async loadUserSettings() {
             // Called when admin selects a different user
             this.loading = true
+            this.cancelEdit()
             await this.loadSettings()
             await this.loadUsedHoursForUser()
         },
@@ -246,14 +331,27 @@ export default {
                     url = generateUrl(`/apps/timetracking/api/employee-settings/${this.selectedUserId}`)
                 }
                 const response = await axios.get(url)
-                this.savedSettings = response.data
                 
-                this.form.employmentType = response.data.employmentType
-                this.form.weeklyHours = response.data.weeklyHours
-                this.form.maxTotalHours = response.data.maxTotalHours
-                this.form.vacationDaysPerYear = response.data.vacationDaysPerYear
-                this.form.hourlyRate = response.data.hourlyRate
-                this.form.employmentStart = response.data.employmentStart || ''
+                // New structure: { current, periods }
+                if (response.data.periods !== undefined) {
+                    this.savedSettings = response.data.current
+                    this.periods = response.data.periods || []
+                } else {
+                    // Backwards compatibility
+                    this.savedSettings = response.data
+                    this.periods = response.data ? [response.data] : []
+                }
+                
+                if (this.savedSettings) {
+                    this.form.employmentType = this.savedSettings.employmentType
+                    this.form.weeklyHours = this.savedSettings.weeklyHours
+                    this.form.maxTotalHours = this.savedSettings.maxTotalHours
+                    this.form.vacationDaysPerYear = this.savedSettings.vacationDaysPerYear
+                    this.form.hourlyRate = this.savedSettings.hourlyRate
+                    this.form.employmentStart = this.savedSettings.employmentStart || ''
+                    this.form.validFrom = this.savedSettings.validFrom || ''
+                    this.form.validTo = this.savedSettings.validTo || ''
+                }
             } catch (error) {
                 console.error(error)
             } finally {
@@ -293,17 +391,88 @@ export default {
                 this.form.vacationDaysPerYear = 20
             }
         },
+        startNewPeriod() {
+            this.showNewPeriodForm = true
+            this.editingPeriodId = null
+            // Set default validFrom to tomorrow
+            const tomorrow = new Date()
+            tomorrow.setDate(tomorrow.getDate() + 1)
+            this.form.validFrom = tomorrow.toISOString().split('T')[0]
+            this.form.validTo = ''
+            // Keep other values from current settings for convenience
+        },
+        editPeriod(period) {
+            this.editingPeriodId = period.id
+            this.showNewPeriodForm = false
+            this.form.employmentType = period.employmentType
+            this.form.weeklyHours = period.weeklyHours
+            this.form.maxTotalHours = period.maxTotalHours
+            this.form.vacationDaysPerYear = period.vacationDaysPerYear
+            this.form.hourlyRate = period.hourlyRate
+            this.form.employmentStart = period.employmentStart || ''
+            this.form.validFrom = period.validFrom ? period.validFrom.split('T')[0] : ''
+            this.form.validTo = period.validTo ? period.validTo.split('T')[0] : ''
+        },
+        cancelEdit() {
+            this.showNewPeriodForm = false
+            this.editingPeriodId = null
+            // Restore form from current settings
+            if (this.savedSettings) {
+                this.form.employmentType = this.savedSettings.employmentType
+                this.form.weeklyHours = this.savedSettings.weeklyHours
+                this.form.maxTotalHours = this.savedSettings.maxTotalHours
+                this.form.vacationDaysPerYear = this.savedSettings.vacationDaysPerYear
+                this.form.hourlyRate = this.savedSettings.hourlyRate
+                this.form.employmentStart = this.savedSettings.employmentStart || ''
+                this.form.validFrom = this.savedSettings.validFrom || ''
+                this.form.validTo = this.savedSettings.validTo || ''
+            }
+        },
+        async deletePeriod(period) {
+            if (!confirm(t('timetracking', 'Möchten Sie diesen Zeitraum wirklich löschen?'))) {
+                return
+            }
+            try {
+                await axios.delete(generateUrl(`/apps/timetracking/api/employee-settings/${period.id}`))
+                showSuccess(t('timetracking', 'Zeitraum gelöscht'))
+                this.loadSettings()
+            } catch (error) {
+                showError(t('timetracking', 'Fehler beim Löschen'))
+                console.error(error)
+            }
+        },
         async saveSettings() {
             try {
                 const data = { ...this.form }
                 if (this.isAdmin && this.selectedUserId) {
                     data.targetUserId = this.selectedUserId
                 }
-                await axios.put(
-                    generateUrl('/apps/timetracking/api/employee-settings'),
-                    data
-                )
-                showSuccess(t('timetracking', 'Einstellungen gespeichert'))
+                
+                if (this.editingPeriodId) {
+                    // Update existing period
+                    data.periodId = this.editingPeriodId
+                    await axios.put(
+                        generateUrl('/apps/timetracking/api/employee-settings'),
+                        data
+                    )
+                    showSuccess(t('timetracking', 'Zeitraum gespeichert'))
+                } else if (this.showNewPeriodForm) {
+                    // Create new period
+                    await axios.post(
+                        generateUrl('/apps/timetracking/api/employee-settings'),
+                        data
+                    )
+                    showSuccess(t('timetracking', 'Neuer Zeitraum angelegt'))
+                } else {
+                    // Regular update (backwards compatible)
+                    await axios.put(
+                        generateUrl('/apps/timetracking/api/employee-settings'),
+                        data
+                    )
+                    showSuccess(t('timetracking', 'Einstellungen gespeichert'))
+                }
+                
+                this.cancelEdit()
                 this.loadSettings()
                 if (this.isAdmin) {
                     this.loadUsedHoursForUser()
@@ -441,5 +610,85 @@ export default {
 
 .progress-fill.danger {
     background: var(--color-error);
+}
+
+/* Period Management Styles */
+.periods-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.periods-list {
+    margin: 15px 0;
+}
+
+.period-item {
+    background: var(--color-background-hover);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.period-item.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-element-light);
+}
+
+.period-item.editing {
+    border-color: var(--color-warning);
+}
+
+.period-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.period-dates {
+    font-weight: bold;
+    min-width: 200px;
+}
+
+.period-type {
+    color: var(--color-text-maxcontrast);
+    flex: 1;
+}
+
+.period-hours {
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+.period-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.new-period-actions {
+    margin-top: 15px;
+}
+
+.period-form-header {
+    background: var(--color-primary-element-light);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.period-form-header h3 {
+    margin: 0 0 5px 0;
+    color: var(--color-primary);
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
 }
 </style>

@@ -58,7 +58,9 @@ return [
         
         // Employee settings routes
         ['name' => 'employee_settings#get', 'url' => '/api/employee-settings', 'verb' => 'GET'],
+        ['name' => 'employee_settings#create', 'url' => '/api/employee-settings', 'verb' => 'POST'],
         ['name' => 'employee_settings#update', 'url' => '/api/employee-settings', 'verb' => 'PUT'],
+        ['name' => 'employee_settings#destroy', 'url' => '/api/employee-settings/{id}', 'verb' => 'DELETE'],
         ['name' => 'employee_settings#get_user', 'url' => '/api/employee-settings/{userId}', 'verb' => 'GET'],
         
         // Admin routes

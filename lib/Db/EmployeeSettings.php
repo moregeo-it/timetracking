@@ -23,6 +23,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setHourlyRate(?float $hourlyRate)
  * @method \DateTime|null getEmploymentStart()
  * @method void setEmploymentStart(?\DateTime $employmentStart)
+ * @method \DateTime|null getValidFrom()
+ * @method void setValidFrom(?\DateTime $validFrom)
+ * @method \DateTime|null getValidTo()
+ * @method void setValidTo(?\DateTime $validTo)
  * @method \DateTime getCreatedAt()
  * @method void setCreatedAt(\DateTime $createdAt)
  * @method \DateTime getUpdatedAt()
@@ -36,6 +40,8 @@ class EmployeeSettings extends Entity implements JsonSerializable {
     protected $vacationDaysPerYear;
     protected $hourlyRate;
     protected $employmentStart;
+    protected $validFrom;  // Date when these settings become effective
+    protected $validTo;    // Date when these settings end (null = current/indefinite)
     protected $createdAt;
     protected $updatedAt;
 
@@ -45,6 +51,8 @@ class EmployeeSettings extends Entity implements JsonSerializable {
         $this->addType('vacationDaysPerYear', 'integer');
         $this->addType('hourlyRate', 'float');
         $this->addType('employmentStart', 'datetime');
+        $this->addType('validFrom', 'datetime');
+        $this->addType('validTo', 'datetime');
         $this->addType('createdAt', 'datetime');
         $this->addType('updatedAt', 'datetime');
     }
@@ -59,6 +67,8 @@ class EmployeeSettings extends Entity implements JsonSerializable {
             'vacationDaysPerYear' => $this->getVacationDaysPerYear(),
             'hourlyRate' => $this->getHourlyRate(),
             'employmentStart' => $this->getEmploymentStart()?->format('Y-m-d'),
+            'validFrom' => $this->getValidFrom()?->format('Y-m-d'),
+            'validTo' => $this->getValidTo()?->format('Y-m-d'),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s'),
         ];

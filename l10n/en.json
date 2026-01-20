@@ -260,6 +260,21 @@
         "Fehler beim Hinzufügen": "Error adding",
         "Eintrag aktualisiert": "Entry updated",
         "Zeiterfassung an Sonntagen ist nicht erlaubt": "Time tracking on Sundays is not allowed",
-        "Zeiterfassung an Feiertagen ist nicht erlaubt": "Time tracking on public holidays is not allowed"
+        "Zeiterfassung an Feiertagen ist nicht erlaubt": "Time tracking on public holidays is not allowed",
+        "Zeiträume": "Time Periods",
+        "Die Beschäftigungsart und andere Einstellungen können sich im Laufe der Zeit ändern. Hier sehen Sie alle Zeiträume.": "Employment type and other settings can change over time. Here you can see all time periods.",
+        "Anfang": "Beginning",
+        "Woche": "Week",
+        "Neuen Zeitraum anlegen": "Create New Period",
+        "Zeitraum bearbeiten": "Edit Period",
+        "Neuer Zeitraum": "New Period",
+        "Der vorherige Zeitraum wird automatisch zum Tag vor diesem neuen Zeitraum beendet.": "The previous period will be automatically ended the day before this new period.",
+        "Gültig von": "Valid From",
+        "Gültig bis": "Valid To",
+        "Leer lassen für aktuellen/offenen Zeitraum": "Leave empty for current/open period",
+        "Zeitraum speichern": "Save Period",
+        "Zeitraum anlegen": "Create Period",
+        "Möchten Sie diesen Zeitraum wirklich löschen?": "Do you really want to delete this period?",
+        "Zeitraum gelöscht": "Period deleted"
     }
 }
