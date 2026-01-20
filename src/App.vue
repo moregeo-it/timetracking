@@ -38,6 +38,11 @@
             <template #footer>
                 <NcAppNavigationList>
                     <NcAppNavigationItem
+                        :to="{ path: '/public-holidays' }"
+                        :name="t('timetracking', 'Feiertage')"
+                        icon="icon-star">
+                    </NcAppNavigationItem>
+                    <NcAppNavigationItem
                         :to="{ path: '/settings' }"
                         :name="t('timetracking', 'Einstellungen')"
                         icon="icon-settings">

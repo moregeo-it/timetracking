@@ -7,6 +7,7 @@ import Projects from './views/Projects.vue'
 import TimeTracking from './views/TimeTracking.vue'
 import Reports from './views/Reports.vue'
 import Vacations from './views/Vacations.vue'
+import PublicHolidays from './views/PublicHolidays.vue'
 import EmployeeSettings from './views/EmployeeSettings.vue'
 
 const routes = [
@@ -16,6 +17,7 @@ const routes = [
     { path: '/tracking', component: TimeTracking },
     { path: '/reports', component: Reports },
     { path: '/vacations', component: Vacations },
+    { path: '/public-holidays', component: PublicHolidays },
     { path: '/settings', component: EmployeeSettings },
 ]
 

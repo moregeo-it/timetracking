@@ -316,6 +316,27 @@
                     <strong>{{ t('timetracking', 'Vertragliche Wochenstunden') }}:</strong> {{ employeeReport.totals.weeklyHours }} h<br>
                     <strong>{{ t('timetracking', 'Erwartete Stunden') }}:</strong> {{ employeeReport.totals.expectedHours }} h<br>
                     <strong>{{ t('timetracking', 'Erfasste Stunden') }}:</strong> {{ employeeReport.totals.hours }} h
+                    
+                    <!-- Credited hours for vacation and public holidays -->
+                    <template v-if="employeeReport.totals.creditedHours">
+                        <br><br>
+                        <strong>{{ t('timetracking', 'Gutgeschriebene Stunden:') }}</strong><br>
+                        <span class="indent">
+                            {{ t('timetracking', 'Urlaubstage') }}: {{ employeeReport.totals.creditedHours.vacationDays }} 
+                            ({{ employeeReport.totals.creditedHours.vacationHours }} h)
+                        </span><br>
+                        <span class="indent">
+                            {{ t('timetracking', 'Feiertage') }}: {{ employeeReport.totals.creditedHours.publicHolidayDays }} 
+                            ({{ employeeReport.totals.creditedHours.publicHolidayHours }} h)
+                        </span><br>
+                        <span class="indent">
+                            <strong>{{ t('timetracking', 'Gesamt gutgeschrieben') }}:</strong> {{ employeeReport.totals.creditedHours.totalCreditedHours }} h
+                        </span><br><br>
+                        <strong>{{ t('timetracking', 'Effektive Stunden') }}:</strong> {{ employeeReport.totals.effectiveHours }} h
+                        <span :class="{ 'positive': employeeReport.totals.balance >= 0, 'negative': employeeReport.totals.balance < 0 }">
+                            ({{ employeeReport.totals.balance >= 0 ? '+' : '' }}{{ employeeReport.totals.balance }} h)
+                        </span>
+                    </template>
                 </div>
                 
                 <!-- Additional info for freelancers -->
@@ -1184,5 +1205,19 @@ export default {
     color: var(--color-text-maxcontrast);
     text-align: center;
     padding: 1rem;
+}
+
+.indent {
+    margin-left: 15px;
+}
+
+.positive {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.negative {
+    color: #dc3545;
+    font-weight: bold;
 }
 </style>

@@ -8,6 +8,8 @@ use OCA\TimeTracking\Db\TimeEntryMapper;
 use OCA\TimeTracking\Db\ProjectMapper;
 use OCA\TimeTracking\Db\CustomerMapper;
 use OCA\TimeTracking\Db\EmployeeSettingsMapper;
+use OCA\TimeTracking\Db\VacationMapper;
+use OCA\TimeTracking\Db\PublicHolidayMapper;
 use OCA\TimeTracking\Service\ComplianceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
@@ -20,6 +22,8 @@ class ReportController extends Controller {
     private ProjectMapper $projectMapper;
     private CustomerMapper $customerMapper;
     private EmployeeSettingsMapper $employeeSettingsMapper;
+    private VacationMapper $vacationMapper;
+    private PublicHolidayMapper $publicHolidayMapper;
     private ComplianceService $complianceService;
     private IGroupManager $groupManager;
     private IUserManager $userManager;
@@ -32,6 +36,8 @@ class ReportController extends Controller {
         ProjectMapper $projectMapper,
         CustomerMapper $customerMapper,
         EmployeeSettingsMapper $employeeSettingsMapper,
+        VacationMapper $vacationMapper,
+        PublicHolidayMapper $publicHolidayMapper,
         ComplianceService $complianceService,
         IGroupManager $groupManager,
         IUserManager $userManager,
@@ -42,6 +48,8 @@ class ReportController extends Controller {
         $this->projectMapper = $projectMapper;
         $this->customerMapper = $customerMapper;
         $this->employeeSettingsMapper = $employeeSettingsMapper;
+        $this->vacationMapper = $vacationMapper;
+        $this->publicHolidayMapper = $publicHolidayMapper;
         $this->complianceService = $complianceService;
         $this->groupManager = $groupManager;
         $this->userManager = $userManager;
@@ -99,6 +107,77 @@ class ReportController extends Controller {
                 break;
         }
         return [$startDate, $endDate];
+    }
+
+    /**
+     * Calculate credited hours for vacations and public holidays in a date range
+     * 
+     * @param string $userId User ID to check vacations for
+     * @param DateTime $startDate Start of the date range
+     * @param DateTime $endDate End of the date range
+     * @param float $dailyHours Average daily working hours (weeklyHours / 5)
+     * @return array Array with vacation days, holiday days, and total credited hours
+     */
+    private function calculateCreditedHours(string $userId, DateTime $startDate, DateTime $endDate, float $dailyHours): array {
+        $vacationDays = 0;
+        $publicHolidayDays = 0;
+        $vacationDates = [];
+        $holidayDates = [];
+        
+        // Get approved vacations in the date range
+        $vacations = $this->vacationMapper->findByDateRange($userId, $startDate, $endDate);
+        foreach ($vacations as $vacation) {
+            if ($vacation->getStatus() !== 'approved') {
+                continue;
+            }
+            
+            // Iterate through each day of the vacation
+            $vacStart = $vacation->getStartDate();
+            $vacEnd = $vacation->getEndDate();
+            
+            $current = clone $vacStart;
+            while ($current <= $vacEnd) {
+                // Only count if within our date range
+                if ($current >= $startDate && $current <= $endDate) {
+                    $dayOfWeek = (int)$current->format('N'); // 1=Monday, 7=Sunday
+                    // Only count weekdays (Mon-Fri)
+                    if ($dayOfWeek <= 5) {
+                        $dateStr = $current->format('Y-m-d');
+                        if (!in_array($dateStr, $vacationDates)) {
+                            $vacationDates[] = $dateStr;
+                            $vacationDays++;
+                        }
+                    }
+                }
+                $current->modify('+1 day');
+            }
+        }
+        
+        // Get public holidays in the date range
+        $holidays = $this->publicHolidayMapper->findByDateRange($startDate, $endDate);
+        foreach ($holidays as $holiday) {
+            $holidayDate = $holiday->getDate();
+            $dayOfWeek = (int)$holidayDate->format('N');
+            $dateStr = $holidayDate->format('Y-m-d');
+            
+            // Only count weekdays (Mon-Fri) and don't double-count with vacation days
+            if ($dayOfWeek <= 5 && !in_array($dateStr, $holidayDates) && !in_array($dateStr, $vacationDates)) {
+                $holidayDates[] = $dateStr;
+                $publicHolidayDays++;
+            }
+        }
+        
+        $totalCreditedDays = $vacationDays + $publicHolidayDays;
+        $totalCreditedHours = round($totalCreditedDays * $dailyHours, 2);
+        
+        return [
+            'vacationDays' => $vacationDays,
+            'vacationHours' => round($vacationDays * $dailyHours, 2),
+            'publicHolidayDays' => $publicHolidayDays,
+            'publicHolidayHours' => round($publicHolidayDays * $dailyHours, 2),
+            'totalCreditedDays' => $totalCreditedDays,
+            'totalCreditedHours' => $totalCreditedHours,
+        ];
     }
 
     /**
@@ -407,6 +486,9 @@ class ReportController extends Controller {
         
         // Add additional calculations based on employment type
         if ($settings) {
+            // Calculate daily hours based on 5-day work week
+            $dailyContractHours = $settings->getWeeklyHours() / 5;
+            
             if ($settings->getEmploymentType() === 'freelance' && $settings->getMaxTotalHours()) {
                 // For freelancers with hour contingent
                 $allEntries = $this->timeEntryMapper->findByUser($userId, null, null); // null timestamps = no date filter
@@ -433,6 +515,25 @@ class ReportController extends Controller {
                     case 'year':
                         $report['totals']['expectedHours'] = round($settings->getWeeklyHours() * 52, 2);
                         break;
+                }
+                
+                // Calculate credited hours for vacations and public holidays
+                if ($rangeStart && $rangeEnd) {
+                    $creditedHours = $this->calculateCreditedHours($userId, $rangeStart, $rangeEnd, $dailyContractHours);
+                    $report['totals']['creditedHours'] = $creditedHours;
+                    
+                    // Calculate effective hours (worked + credited)
+                    $workedHours = $report['totals']['hours'];
+                    $totalCredited = $creditedHours['totalCreditedHours'];
+                    $report['totals']['effectiveHours'] = round($workedHours + $totalCredited, 2);
+                    
+                    // Calculate balance (effective - expected)
+                    if (isset($report['totals']['expectedHours'])) {
+                        $report['totals']['balance'] = round(
+                            $report['totals']['effectiveHours'] - $report['totals']['expectedHours'], 
+                            2
+                        );
+                    }
                 }
             }
             
@@ -519,10 +620,18 @@ class ReportController extends Controller {
                 $report['totals']['revenue'] += $employeeData['revenue'];
             }
             
-            // Add employment type info
+            // Add employment type info and credited hours
             if ($settings) {
                 $employeeData['employmentType'] = $settings->getEmploymentType();
                 $employeeData['weeklyHours'] = $settings->getWeeklyHours();
+                
+                // Calculate credited hours for non-freelance employees
+                if ($settings->getEmploymentType() !== 'freelance' && $rangeStart && $rangeEnd) {
+                    $dailyContractHours = $settings->getWeeklyHours() / 5;
+                    $creditedHours = $this->calculateCreditedHours($userId, $rangeStart, $rangeEnd, $dailyContractHours);
+                    $employeeData['creditedHours'] = $creditedHours;
+                    $employeeData['effectiveHours'] = round($hours + $creditedHours['totalCreditedHours'], 2);
+                }
             }
             
             $report['employees'][] = $employeeData;

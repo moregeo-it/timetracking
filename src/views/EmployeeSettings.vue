@@ -26,6 +26,11 @@
         <div v-else class="settings-form">
             <form @submit.prevent="saveSettings">
                 <div class="form-group">
+                    <label>{{ t('timetracking', 'Beschäftigungsbeginn') }}</label>
+                    <input v-model="form.employmentStart" type="date" :disabled="!isAdmin">
+                </div>
+        
+                <div class="form-group">
                     <label>{{ t('timetracking', 'Beschäftigungsart') }} *</label>
                     <select v-model="form.employmentType" required :disabled="!isAdmin" @change="onEmploymentTypeChange">
                         <option value="director">{{ t('timetracking', 'Geschäftsführer') }}</option>
@@ -42,7 +47,7 @@
                 </div>
                 
                 <!-- Contract/Minijob/Executive Settings -->
-                <div v-if="['director', 'contract', 'freelance', 'student'].includes(form.employmentType)" class="contract-settings">
+                <div v-if="['director', 'contract', 'student'].includes(form.employmentType)" class="contract-settings">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Wochenstunden') }} *</label>
                         <input v-model.number="form.weeklyHours" type="number" step="0.5" min="0" max="60" required :disabled="!isAdmin">
@@ -69,7 +74,7 @@
                 </div>
                 
                 <!-- Freelance Settings -->
-                <div v-if="form.employmentType === 'freelance'" class="freelance-settings">
+                <div v-else-if="form.employmentType === 'freelance'" class="freelance-settings">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Maximale Gesamtstunden') }} *</label>
                         <input v-model.number="form.maxTotalHours" type="number" step="1" min="0" required :disabled="!isAdmin">
@@ -101,11 +106,6 @@
                         <p class="hint">
                             Falls gewünscht, können Sie auch als Praktikant Urlaubstage tracken
                         </p>
-                    </div>
-
-                    <div class="form-group">
-                        <label>{{ t('timetracking', 'Beschäftigungsbeginn') }}</label>
-                        <input v-model="form.employmentStart" type="date" :disabled="!isAdmin">
                     </div>
                 </div>
                 

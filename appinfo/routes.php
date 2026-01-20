@@ -64,5 +64,15 @@ return [
         // Admin routes
         ['name' => 'admin#users', 'url' => '/api/admin/users', 'verb' => 'GET'],
         ['name' => 'admin#time_entries', 'url' => '/api/admin/time-entries', 'verb' => 'GET'],
+        
+        // Public holiday routes
+        ['name' => 'public_holiday#index', 'url' => '/api/public-holidays', 'verb' => 'GET'],
+        ['name' => 'public_holiday#show', 'url' => '/api/public-holidays/{id}', 'verb' => 'GET'],
+        ['name' => 'public_holiday#create', 'url' => '/api/public-holidays', 'verb' => 'POST'],
+        ['name' => 'public_holiday#update', 'url' => '/api/public-holidays/{id}', 'verb' => 'PUT'],
+        ['name' => 'public_holiday#destroy', 'url' => '/api/public-holidays/{id}', 'verb' => 'DELETE'],
+        ['name' => 'public_holiday#check_date', 'url' => '/api/public-holidays/check/{date}', 'verb' => 'GET'],
+        ['name' => 'public_holiday#range', 'url' => '/api/public-holidays/range', 'verb' => 'GET'],
+        ['name' => 'public_holiday#import_german', 'url' => '/api/public-holidays/import-german/{year}', 'verb' => 'POST'],
     ]
 ];

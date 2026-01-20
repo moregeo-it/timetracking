@@ -7,18 +7,77 @@ use DateTime;
 use DateTimeZone;
 use OCA\TimeTracking\Db\TimeEntry;
 use OCA\TimeTracking\Db\TimeEntryMapper;
+use OCA\TimeTracking\Db\EmployeeSettingsMapper;
+use OCA\TimeTracking\Db\PublicHolidayMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
 
 class TimeEntryController extends Controller {
     private TimeEntryMapper $mapper;
+    private EmployeeSettingsMapper $employeeSettingsMapper;
+    private PublicHolidayMapper $publicHolidayMapper;
     private string $userId;
 
-    public function __construct(string $appName, IRequest $request, TimeEntryMapper $mapper, string $userId) {
+    public function __construct(
+        string $appName,
+        IRequest $request,
+        TimeEntryMapper $mapper,
+        EmployeeSettingsMapper $employeeSettingsMapper,
+        PublicHolidayMapper $publicHolidayMapper,
+        string $userId
+    ) {
         parent::__construct($appName, $request);
         $this->mapper = $mapper;
+        $this->employeeSettingsMapper = $employeeSettingsMapper;
+        $this->publicHolidayMapper = $publicHolidayMapper;
         $this->userId = $userId;
+    }
+
+    /**
+     * Check if the user is allowed to log hours on a specific date.
+     * Directors and freelancers can log hours anytime.
+     * Other employees cannot log hours on Sundays or public holidays.
+     * 
+     * @param int $timestamp Unix timestamp of the entry
+     * @return array|null Returns null if allowed, or error array if not allowed
+     */
+    private function checkDateRestriction(int $timestamp): ?array {
+        // Get employee settings
+        try {
+            $settings = $this->employeeSettingsMapper->findByUserId($this->userId);
+            $employmentType = $settings->getEmploymentType();
+        } catch (\Exception $e) {
+            // No settings found, assume regular employee (restricted)
+            $employmentType = 'contract';
+        }
+        
+        // Directors and freelancers can log hours anytime
+        if (in_array($employmentType, ['director', 'freelance'])) {
+            return null;
+        }
+        
+        // Check if it's a Sunday (day 7 in ISO-8601)
+        $date = new DateTime('@' . $timestamp);
+        $date->setTimezone(new DateTimeZone('Europe/Berlin'));
+        $dayOfWeek = (int)$date->format('N');
+        
+        if ($dayOfWeek === 7) {
+            return [
+                'error' => 'Zeiterfassung an Sonntagen ist nicht erlaubt',
+                'code' => 'SUNDAY_NOT_ALLOWED'
+            ];
+        }
+        
+        // Check if it's a public holiday
+        if ($this->publicHolidayMapper->isHoliday($date)) {
+            return [
+                'error' => 'Zeiterfassung an Feiertagen ist nicht erlaubt',
+                'code' => 'HOLIDAY_NOT_ALLOWED'
+            ];
+        }
+        
+        return null;
     }
 
     /**
@@ -97,6 +156,12 @@ class TimeEntryController extends Controller {
                           ?string $description = null, ?bool $billable = true): DataResponse {
         $startTs = $this->parseIsoToTimestamp($startTime);
         
+        // Check date restrictions (Sundays and public holidays)
+        $dateRestriction = $this->checkDateRestriction($startTs);
+        if ($dateRestriction !== null) {
+            return new DataResponse($dateRestriction, 400);
+        }
+        
         if ($endTime) {
             $endTs = $this->parseIsoToTimestamp($endTime);
             
@@ -120,7 +185,6 @@ class TimeEntryController extends Controller {
         
         if ($endTs !== null) {
             $entry->setEndTimestamp($endTs);
-            $entry->setDurationMinutes((int)$duration);
         }
         
         $entry->setDescription($description);
@@ -155,6 +219,12 @@ class TimeEntryController extends Controller {
             
             $startTs = $this->parseIsoToTimestamp($startTime);
             
+            // Check date restrictions (Sundays and public holidays)
+            $dateRestriction = $this->checkDateRestriction($startTs);
+            if ($dateRestriction !== null) {
+                return new DataResponse($dateRestriction, 400);
+            }
+            
             if ($endTime) {
                 $endTs = $this->parseIsoToTimestamp($endTime);
                 
@@ -167,7 +237,6 @@ class TimeEntryController extends Controller {
                 
                 $entry->setEndTimestamp($endTs);
                 $duration = ($endTs - $startTs) / 60;
-                $entry->setDurationMinutes((int)$duration);
             }
             
             $entry->setStartTimestamp($startTs);
@@ -220,12 +289,20 @@ class TimeEntryController extends Controller {
             return new DataResponse(['error' => 'Timer already running'], 400);
         }
         
+        $nowTs = time();
+        
+        // Check date restrictions (Sundays and public holidays)
+        $dateRestriction = $this->checkDateRestriction($nowTs);
+        if ($dateRestriction !== null) {
+            return new DataResponse($dateRestriction, 400);
+        }
+        
         $entry = new TimeEntry();
         if ($projectId) {
             $entry->setProjectId($projectId);
         }
         $entry->setUserId($this->userId);
-        $entry->setStartTimestamp(time()); // Current Unix timestamp (timezone-independent)
+        $entry->setStartTimestamp($nowTs);
         $entry->setDescription($description);
         $entry->setBillable(true);
         $entry->setCreatedAt(new \DateTime());
@@ -274,7 +351,6 @@ class TimeEntryController extends Controller {
         $running->setEndTimestamp($nowTs);
         
         $duration = ($nowTs - $startTs) / 60;
-        $running->setDurationMinutes((int)$duration);
         $running->setUpdatedAt(new \DateTime());
         
         return new DataResponse($this->mapper->update($running));
