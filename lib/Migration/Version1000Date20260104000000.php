@@ -190,7 +190,7 @@ class Version1000Date20260104000000 extends SimpleMigrationStep {
                 'notnull' => true,
                 'length' => 20,
                 'default' => 'contract',
-                'comment' => 'contract (employee), freelance (hourly contingent), or mini_job',
+                'comment' => 'director, contract (employee), freelance (hourly contingent), or student',
             ]);
             $table->addColumn('weekly_hours', Types::DECIMAL, [
                 'notnull' => true,

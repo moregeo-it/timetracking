@@ -32,7 +32,7 @@ use OCP\AppFramework\Db\Entity;
  */
 class EmployeeSettings extends Entity implements JsonSerializable {
     protected $userId;
-    protected $employmentType; // 'contract', 'freelance', 'mini_job'
+    protected $employmentType; // 'director', 'contract', 'freelance', 'student'
     protected $weeklyHours;
     protected $maxTotalHours;
     protected $vacationDaysPerYear;

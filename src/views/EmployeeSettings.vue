@@ -28,10 +28,10 @@
                 <div class="form-group">
                     <label>{{ t('timetracking', 'Beschäftigungsart') }} *</label>
                     <select v-model="form.employmentType" required :disabled="!isAdmin" @change="onEmploymentTypeChange">
+                        <option value="director">{{ t('timetracking', 'Geschäftsführer') }}</option>
                         <option value="contract">{{ t('timetracking', 'Festanstellung / Teilzeit') }}</option>
-                        <option value="executive">{{ t('timetracking', 'Geschäftsführer') }}</option>
                         <option value="freelance">{{ t('timetracking', 'Praktikant / Stundenkontingent') }}</option>
-                        <option value="mini_job">{{ t('timetracking', 'Werkstudent') }}</option>
+                        <option value="student">{{ t('timetracking', 'Werkstudent') }}</option>
                     </select>
                     <p class="hint">
                         <strong>Festanstellung:</strong> Reguläre Arbeitsverträge mit Urlaubsanspruch und ArbZG-Prüfung<br>
@@ -42,7 +42,7 @@
                 </div>
                 
                 <!-- Contract/Minijob/Executive Settings -->
-                <div v-if="form.employmentType === 'contract' || form.employmentType === 'executive' || form.employmentType === 'mini_job'" class="contract-settings">
+                <div v-if="['director', 'contract', 'freelance', 'student'].includes(form.employmentType)" class="contract-settings">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Wochenstunden') }} *</label>
                         <input v-model.number="form.weeklyHours" type="number" step="0.5" min="0" max="60" required :disabled="!isAdmin">
@@ -245,7 +245,6 @@ export default {
         async loadAllUsers() {
             try {
                 const response = await axios.get(generateUrl('/apps/timetracking/api/admin/users'))
-                console.log('Loaded users:', response.data)
                 this.allUsers = response.data
                 // Ensure selected user is set
                 if (this.allUsers.length > 0) {
