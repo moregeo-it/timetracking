@@ -20,7 +20,6 @@ use OCP\AppFramework\Db\Entity;
  * @method int|null getEndTimestamp()
  * @method void setEndTimestamp(?int $endTimestamp)
  * @method int|null getDurationMinutes()
- * @method void setDurationMinutes(?int $durationMinutes)
  * @method string|null getDescription()
  * @method void setDescription(?string $description)
  * @method bool getBillable()
@@ -35,7 +34,6 @@ class TimeEntry extends Entity implements JsonSerializable {
     protected $userId;
     protected $startTimestamp;
     protected $endTimestamp;
-    protected $durationMinutes;
     protected $description;
     protected $billable;
     protected $createdAt;
@@ -45,10 +43,16 @@ class TimeEntry extends Entity implements JsonSerializable {
         $this->addType('projectId', 'integer');
         $this->addType('startTimestamp', 'integer');
         $this->addType('endTimestamp', 'integer');
-        $this->addType('durationMinutes', 'integer');
         $this->addType('billable', 'boolean');
         $this->addType('createdAt', 'datetime');
         $this->addType('updatedAt', 'datetime');
+    }
+
+    public function getDurationMinutes(): ?int {
+        if ($this->startTimestamp === null || $this->endTimestamp === null) {
+            return null;
+        }
+        return (int)(($this->endTimestamp - $this->startTimestamp) / 60);
     }
 
     public function jsonSerialize(): array {
