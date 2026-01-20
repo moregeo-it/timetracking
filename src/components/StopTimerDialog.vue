@@ -86,13 +86,6 @@ export default {
             return this.projects
                 .filter(p => p.active)
                 .sort((a, b) => {
-                    // Sort by customer name first
-                    const customerA = this.getCustomerName(a.customerId)
-                    const customerB = this.getCustomerName(b.customerId)
-                    if (customerA !== customerB) {
-                        return customerA.localeCompare(customerB, undefined, { sensitivity: 'base' })
-                    }
-                    // Then by project name
                     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
                 })
         },
