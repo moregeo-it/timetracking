@@ -21,8 +21,6 @@ use OCP\AppFramework\Db\Entity;
  * @method void setVacationDaysPerYear(int $vacationDaysPerYear)
  * @method float|null getHourlyRate()
  * @method void setHourlyRate(?float $hourlyRate)
- * @method string|null getFederalState()
- * @method void setFederalState(?string $federalState)
  * @method \DateTime|null getEmploymentStart()
  * @method void setEmploymentStart(?\DateTime $employmentStart)
  * @method \DateTime getCreatedAt()
@@ -37,7 +35,6 @@ class EmployeeSettings extends Entity implements JsonSerializable {
     protected $maxTotalHours;
     protected $vacationDaysPerYear;
     protected $hourlyRate;
-    protected $federalState;
     protected $employmentStart;
     protected $createdAt;
     protected $updatedAt;
@@ -61,7 +58,6 @@ class EmployeeSettings extends Entity implements JsonSerializable {
             'maxTotalHours' => $this->getMaxTotalHours(),
             'vacationDaysPerYear' => $this->getVacationDaysPerYear(),
             'hourlyRate' => $this->getHourlyRate(),
-            'federalState' => $this->getFederalState(),
             'employmentStart' => $this->getEmploymentStart()?->format('Y-m-d'),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s'),

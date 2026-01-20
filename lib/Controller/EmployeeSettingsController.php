@@ -78,7 +78,6 @@ class EmployeeSettingsController extends Controller {
                 'maxTotalHours' => null,
                 'vacationDaysPerYear' => 20,
                 'hourlyRate' => null,
-                'federalState' => '',
                 'employmentStart' => '',
             ]);
         }
@@ -95,7 +94,6 @@ class EmployeeSettingsController extends Controller {
         ?float $maxTotalHours = null,
         ?int $vacationDaysPerYear = null,
         ?float $hourlyRate = null,
-        ?string $federalState = null,
         ?string $employmentStart = null,
         ?string $targetUserId = null
     ): DataResponse {
@@ -131,8 +129,6 @@ class EmployeeSettingsController extends Controller {
         } else {
             $settings->setVacationDaysPerYear($vacationDaysPerYear ?? 20);
         }
-        
-        $settings->setFederalState($federalState);
         
         if ($employmentStart) {
             $settings->setEmploymentStart(new \DateTime($employmentStart));

@@ -66,32 +66,6 @@
                             Stundensatz für Kundenabrechnung (optional)
                         </p>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>{{ t('timetracking', 'Bundesland') }}</label>
-                        <select v-model="form.federalState" :disabled="!isAdmin">
-                            <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
-                            <option value="BW">Baden-Württemberg</option>
-                            <option value="BY">Bayern</option>
-                            <option value="BE">Berlin</option>
-                            <option value="BB">Brandenburg</option>
-                            <option value="HB">Bremen</option>
-                            <option value="HH">Hamburg</option>
-                            <option value="HE">Hessen</option>
-                            <option value="MV">Mecklenburg-Vorpommern</option>
-                            <option value="NI">Niedersachsen</option>
-                            <option value="NW">Nordrhein-Westfalen</option>
-                            <option value="RP">Rheinland-Pfalz</option>
-                            <option value="SL">Saarland</option>
-                            <option value="SN">Sachsen</option>
-                            <option value="ST">Sachsen-Anhalt</option>
-                            <option value="SH">Schleswig-Holstein</option>
-                            <option value="TH">Thüringen</option>
-                        </select>
-                        <p class="hint">
-                            Für bundeslandspezifische Feiertage
-                        </p>
-                    </div>
                 </div>
                 
                 <!-- Freelance Settings -->
@@ -128,13 +102,14 @@
                             Falls gewünscht, können Sie auch als Praktikant Urlaubstage tracken
                         </p>
                     </div>
+
+                    <div class="form-group">
+                        <label>{{ t('timetracking', 'Beschäftigungsbeginn') }}</label>
+                        <input v-model="form.employmentStart" type="date" :disabled="!isAdmin">
+                    </div>
                 </div>
                 
                 <!-- Common Settings -->
-                <div class="form-group">
-                    <label>{{ t('timetracking', 'Beschäftigungsbeginn') }}</label>
-                    <input v-model="form.employmentStart" type="date" :disabled="!isAdmin">
-                </div>
                 
                 <div v-if="isAdmin" class="form-actions">
                     <NcButton type="submit">
@@ -215,7 +190,6 @@ export default {
                 maxTotalHours: null,
                 vacationDaysPerYear: 20,
                 hourlyRate: null,
-                federalState: '',
                 employmentStart: '',
             },
         }
@@ -279,7 +253,6 @@ export default {
                 this.form.maxTotalHours = response.data.maxTotalHours
                 this.form.vacationDaysPerYear = response.data.vacationDaysPerYear
                 this.form.hourlyRate = response.data.hourlyRate
-                this.form.federalState = response.data.federalState || ''
                 this.form.employmentStart = response.data.employmentStart || ''
             } catch (error) {
                 console.error(error)
