@@ -85,9 +85,7 @@ export default {
         activeProjects() {
             return this.projects
                 .filter(p => p.active)
-                .sort((a, b) => {
-                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-                })
+                .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
         },
     },
     watch: {

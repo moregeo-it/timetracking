@@ -241,23 +241,11 @@ export default {
     },
     computed: {
         activeProjects() {
-            return this.projects
-                .filter(p => p.active)
-                .sort((a, b) => {
-                    // Sort by customer name first
-                    const customerA = this.getCustomerName(a.customerId)
-                    const customerB = this.getCustomerName(b.customerId)
-                    if (customerA !== customerB) {
-                        return customerA.localeCompare(customerB, undefined, { sensitivity: 'base' })
-                    }
-                    // Then by project name
-                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-                })
+            return this.sortedProjects.filter(p => p.active)
         },
         sortedProjects() {
-            return [...this.projects].sort((a, b) => {
-                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-            })
+            return [...this.projects]
+                .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
         },
         manualEntryDuration() {
             if (!this.manualForm.startTime || !this.manualForm.endTime) return 0

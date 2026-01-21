@@ -139,9 +139,7 @@ export default {
             return [currentYear - 1, currentYear, currentYear + 1, currentYear + 2]
         },
         sortedHolidays() {
-            return [...this.holidays].sort((a, b) => {
-                return a.date.localeCompare(b.date)
-            })
+            return [...this.holidays].sort((a, b) => a.date.localeCompare(b.date))
         },
     },
     mounted() {
