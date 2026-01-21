@@ -68,7 +68,7 @@ class ExportController extends Controller {
     private function formatDuration(int $minutes): string {
         $hours = floor($minutes / 60);
         $mins = $minutes % 60;
-        return sprintf('%d:%02d h', $hours, $mins);
+        return sprintf('%d:%02d', $hours, $mins);
     }
 
     private function getCompanyName(): string {
@@ -181,8 +181,8 @@ class ExportController extends Controller {
         $pdf->Cell(40, 7, 'Datum', 1, 0, 'C', true);
         $pdf->Cell(35, 7, 'Beginn', 1, 0, 'C', true);
         $pdf->Cell(35, 7, 'Ende', 1, 0, 'C', true);
-        $pdf->Cell(30, 7, 'Pause', 1, 0, 'C', true);
-        $pdf->Cell(30, 7, 'Arbeitszeit', 1, 1, 'C', true);
+        $pdf->Cell(30, 7, 'Pause (Std.)', 1, 0, 'C', true);
+        $pdf->Cell(30, 7, 'Arbeitszeit (Std.)', 1, 1, 'C', true);
 
         // Group entries by date
         $entriesByDate = $this->groupEntriesByDate($entries);

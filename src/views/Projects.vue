@@ -49,7 +49,7 @@
                     <td>{{ getCustomerName(project.customerId) }}</td>
                     <td v-if="isAdmin">{{ project.hourlyRate !== null && project.hourlyRate !== undefined ? project.hourlyRate + ' ' + getCustomerCurrency(project.customerId) : '-' }}</td>
                     <td>{{ formatDateRange(project.startDate, project.endDate) }}</td>
-                    <td>{{ project.budgetHours !== null && project.budgetHours !== undefined ? project.budgetHours + ' h' : '-' }}</td>
+                    <td>{{ project.budgetHours !== null && project.budgetHours !== undefined ? project.budgetHours : '-' }}</td>
                     <td>{{ getWeeklyHours(project) }}</td>
                     <td>{{ getMonthlyHours(project) }}</td>
                     <td>

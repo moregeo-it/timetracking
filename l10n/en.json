@@ -19,7 +19,7 @@
         "Keine Zeiteinträge vorhanden": "No time entries available",
         "Datum": "Date",
         "Projekt": "Project",
-        "Dauer": "Duration",
+        "Dauer (Std.)": "Duration (h)",
         "Beschreibung": "Description",
         "Manueller Zeiteintrag": "Manual Time Entry",
         "Bitte wählen": "Please select",

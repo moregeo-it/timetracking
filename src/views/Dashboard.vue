@@ -52,7 +52,7 @@
                     <tr>
                         <th>{{ t('timetracking', 'Datum') }}</th>
                         <th>{{ t('timetracking', 'Projekt') }}</th>
-                        <th>{{ t('timetracking', 'Dauer') }}</th>
+                        <th>{{ t('timetracking', 'Dauer (Std.)') }}</th>
                         <th>{{ t('timetracking', 'Beschreibung') }}</th>
                     </tr>
                 </thead>
@@ -179,7 +179,7 @@ export default {
             if (!minutes) return '-'
             const hours = Math.floor(minutes / 60)
             const mins = minutes % 60
-            return `${hours}:${mins.toString().padStart(2, '0')}h`
+            return `${hours}:${mins.toString().padStart(2, '0')}`
         },
         getProjectName(projectId) {
             const project = this.projects.find(p => p.id === projectId)
