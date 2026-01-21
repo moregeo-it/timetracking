@@ -381,8 +381,8 @@ export default {
             
             this.editForm.projectId = entry.projectId || ''
             this.editForm.date = startDate.toISOString().split('T')[0]
-            this.editForm.startTime = startDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false })
-            this.editForm.endTime = endDate ? endDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''
+            this.editForm.startTime = startDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })
+            this.editForm.endTime = endDate ? endDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }) : ''
             this.editForm.description = entry.description || ''
             this.editForm.billable = entry.billable ?? true
             
@@ -432,12 +432,12 @@ export default {
         formatDate(isoDateTimeStr) {
             // Parse ISO 8601 string and display as local date
             if (!isoDateTimeStr) return '-'
-            return new Date(isoDateTimeStr).toLocaleDateString('de-DE')
+            return new Date(isoDateTimeStr).toLocaleDateString(undefined)
         },
         formatTime(isoDateTimeStr) {
             // Parse ISO 8601 string and display as local time
             if (!isoDateTimeStr) return '-'
-            return new Date(isoDateTimeStr).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+            return new Date(isoDateTimeStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
         },
         formatDuration(minutes) {
             if (!minutes) return '-'

@@ -283,7 +283,7 @@ export default {
         formatDate(dateStr) {
             if (!dateStr) return null
             const date = new Date(dateStr)
-            return date.toLocaleDateString('de-DE')
+            return date.toLocaleDateString()
         },
         getEmploymentTypeLabel(type) {
             const labels = {

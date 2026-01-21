@@ -179,10 +179,10 @@ class ExportController extends Controller {
         $pdf->SetFont('dejavusans', 'B', 9);
         $pdf->SetFillColor(240, 240, 240);
         $pdf->Cell(40, 7, 'Datum', 1, 0, 'C', true);
-        $pdf->Cell(35, 7, 'Beginn', 1, 0, 'C', true);
-        $pdf->Cell(35, 7, 'Ende', 1, 0, 'C', true);
-        $pdf->Cell(30, 7, 'Pause (Std.)', 1, 0, 'C', true);
-        $pdf->Cell(30, 7, 'Arbeitszeit (Std.)', 1, 1, 'C', true);
+        $pdf->Cell(30, 7, 'Beginn', 1, 0, 'C', true);
+        $pdf->Cell(30, 7, 'Ende', 1, 0, 'C', true);
+        $pdf->Cell(35, 7, 'Pause (Std.)', 1, 0, 'C', true);
+        $pdf->Cell(35, 7, 'Arbeitszeit (Std.)', 1, 1, 'C', true);
 
         // Group entries by date
         $entriesByDate = $this->groupEntriesByDate($entries);
@@ -207,18 +207,18 @@ class ExportController extends Controller {
             $endTimeObj->setTimestamp($daySummary['lastEnd']);
             
             $pdf->Cell(40, 6, $dateFormatted, 1, 0, 'C');
-            $pdf->Cell(35, 6, $startTimeObj->format('H:i'), 1, 0, 'C');
-            $pdf->Cell(35, 6, $endTimeObj->format('H:i'), 1, 0, 'C');
-            $pdf->Cell(30, 6, $this->formatDuration($daySummary['breakMinutes']), 1, 0, 'C');
-            $pdf->Cell(30, 6, $this->formatDuration($daySummary['totalWorkMinutes']), 1, 1, 'C');
+            $pdf->Cell(30, 6, $startTimeObj->format('H:i'), 1, 0, 'C');
+            $pdf->Cell(30, 6, $endTimeObj->format('H:i'), 1, 0, 'C');
+            $pdf->Cell(35, 6, $this->formatDuration($daySummary['breakMinutes']), 1, 0, 'C');
+            $pdf->Cell(35, 6, $this->formatDuration($daySummary['totalWorkMinutes']), 1, 1, 'C');
             
             $totalMinutes += $daySummary['totalWorkMinutes'];
         }
 
         // Total row
         $pdf->SetFont('dejavusans', 'B', 9);
-        $pdf->Cell(140, 7, $totalLabel, 1, 0, 'R');
-        $pdf->Cell(30, 7, $this->formatDuration($totalMinutes), 1, 1, 'C');
+        $pdf->Cell(135, 7, $totalLabel, 1, 0, 'R');
+        $pdf->Cell(35, 7, $this->formatDuration($totalMinutes), 1, 1, 'C');
 
         return $totalMinutes;
     }

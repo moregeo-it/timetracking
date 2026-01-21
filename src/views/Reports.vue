@@ -77,10 +77,10 @@
                 <div class="form-group" v-if="customerReportForm.periodType === 'quarter'">
                     <label>{{ t('timetracking', 'Quartal') }}</label>
                     <select v-model.number="customerReportForm.quarter" required>
-                        <option value="1">Q1 (Jan-Mär)</option>
-                        <option value="2">Q2 (Apr-Jun)</option>
-                        <option value="3">Q3 (Jul-Sep)</option>
-                        <option value="4">Q4 (Okt-Dez)</option>
+                        <option value="1">Q1 ({{ getMonthName(1).substring(0,3) }}-{{ getMonthName(3).substring(0,3) }})</option>
+                        <option value="2">Q2 ({{ getMonthName(4).substring(0,3) }}-{{ getMonthName(6).substring(0,3) }})</option>
+                        <option value="3">Q3 ({{ getMonthName(7).substring(0,3) }}-{{ getMonthName(9).substring(0,3) }})</option>
+                        <option value="4">Q4 ({{ getMonthName(10).substring(0,3) }}-{{ getMonthName(12).substring(0,3) }})</option>
                     </select>
                 </div>
                 <div class="form-group form-group-button">
@@ -168,10 +168,10 @@
                 <div class="form-group" v-if="projectReportForm.periodType === 'quarter'">
                     <label>{{ t('timetracking', 'Quartal') }}</label>
                     <select v-model.number="projectReportForm.quarter" required>
-                        <option value="1">Q1 (Jan-Mär)</option>
-                        <option value="2">Q2 (Apr-Jun)</option>
-                        <option value="3">Q3 (Jul-Sep)</option>
-                        <option value="4">Q4 (Okt-Dez)</option>
+                        <option value="1">Q1 ({{ getMonthName(1).substring(0,3) }}-{{ getMonthName(3).substring(0,3) }})</option>
+                        <option value="2">Q2 ({{ getMonthName(4).substring(0,3) }}-{{ getMonthName(6).substring(0,3) }})</option>
+                        <option value="3">Q3 ({{ getMonthName(7).substring(0,3) }}-{{ getMonthName(9).substring(0,3) }})</option>
+                        <option value="4">Q4 ({{ getMonthName(10).substring(0,3) }}-{{ getMonthName(12).substring(0,3) }})</option>
                     </select>
                 </div>
                 <div class="form-group form-group-button">
@@ -268,10 +268,10 @@
                 <div class="form-group" v-if="employeeReportForm.periodType === 'quarter'">
                     <label>{{ t('timetracking', 'Quartal') }}</label>
                     <select v-model.number="employeeReportForm.quarter" required>
-                        <option value="1">Q1 (Jan-Mär)</option>
-                        <option value="2">Q2 (Apr-Jun)</option>
-                        <option value="3">Q3 (Jul-Sep)</option>
-                        <option value="4">Q4 (Okt-Dez)</option>
+                        <option value="1">Q1 ({{ getMonthName(1).substring(0,3) }}-{{ getMonthName(3).substring(0,3) }})</option>
+                        <option value="2">Q2 ({{ getMonthName(4).substring(0,3) }}-{{ getMonthName(6).substring(0,3) }})</option>
+                        <option value="3">Q3 ({{ getMonthName(7).substring(0,3) }}-{{ getMonthName(9).substring(0,3) }})</option>
+                        <option value="4">Q4 ({{ getMonthName(10).substring(0,3) }}-{{ getMonthName(12).substring(0,3) }})</option>
                     </select>
                 </div>
                 <div class="form-group" v-if="employeeReportForm.periodType === 'custom'">
@@ -482,10 +482,10 @@
             <h2>{{ t('timetracking', 'Arbeitszeitgesetz-Prüfung') }}</h2>
             <p class="info-text">
                 {{ t('timetracking', 'Prüfung der Einhaltung des deutschen Arbeitszeitgesetzes (ArbZG) für alle Mitarbeiter') }}:<br>
-                • Max. 8 Stunden täglich (Regelarbeitszeit)<br>
-                • Max. 10 Stunden täglich (mit Ausgleich)<br>
-                • Max. 48 Stunden wöchentlich<br>
-                • Min. 11 Stunden Ruhezeit zwischen Arbeitstagen
+                • {{ t('timetracking', 'Max. 8 Stunden täglich (Regelarbeitszeit)') }}<br>
+                • {{ t('timetracking', 'Max. 10 Stunden täglich (mit Ausgleich)') }}<br>
+                • {{ t('timetracking', 'Max. 48 Stunden wöchentlich') }}<br>
+                • {{ t('timetracking', 'Min. 11 Stunden Ruhezeit zwischen Arbeitstagen') }}
             </p>
             
             <form @submit.prevent="loadComplianceReport" class="report-form">
@@ -938,14 +938,24 @@ export default {
             this.expandedComplianceEmployees[userId] = !this.expandedComplianceEmployees[userId]
         },
         getMonthName(month) {
-            const months = [
-                'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+            const monthNames = [
+                t('timetracking', 'Januar'),
+                t('timetracking', 'Februar'),
+                t('timetracking', 'März'),
+                t('timetracking', 'April'),
+                t('timetracking', 'Mai'),
+                t('timetracking', 'Juni'),
+                t('timetracking', 'Juli'),
+                t('timetracking', 'August'),
+                t('timetracking', 'September'),
+                t('timetracking', 'Oktober'),
+                t('timetracking', 'November'),
+                t('timetracking', 'Dezember'),
             ]
-            return months[month - 1]
+            return monthNames[month - 1]
         },
         formatDate(dateStr) {
-            return new Date(dateStr).toLocaleDateString('de-DE')
+            return new Date(dateStr).toLocaleDateString()
         },
         getCurrencySymbol(code) {
             const currency = this.currencies.find(c => c.code === code)

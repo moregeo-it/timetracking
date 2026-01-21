@@ -173,7 +173,7 @@ export default {
         formatDate(isoDateTimeStr) {
             // Parse ISO 8601 string and display as local date
             if (!isoDateTimeStr) return '-'
-            return new Date(isoDateTimeStr).toLocaleDateString('de-DE')
+            return new Date(isoDateTimeStr).toLocaleDateString()
         },
         formatDuration(minutes) {
             if (!minutes) return '-'

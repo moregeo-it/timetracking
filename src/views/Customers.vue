@@ -20,10 +20,10 @@
         <table v-else-if="customers.length > 0">
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th>{{ t('timetracking', 'Name') }}</th>
                     <th>{{ t('timetracking', 'Währung') }}</th>
-                    <th>Status</th>
-                    <th v-if="isAdmin">Aktionen</th>
+                    <th>{{ t('timetracking', 'Status') }}</th>
+                    <th v-if="isAdmin">{{ t('timetracking', 'Aktionen') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -32,22 +32,26 @@
                     <td>{{ getCurrencySymbol(customer.currency) }}</td>
                     <td>
                         <span :class="customer.active ? 'status-active' : 'status-inactive'">
-                            {{ customer.active ? 'Aktiv' : 'Inaktiv' }}
+                            {{ customer.active ? t('timetracking', 'Aktiv') : t('timetracking', 'Inaktiv') }}
                         </span>
                     </td>
                     <td v-if="isAdmin" class="actions">
-                        <NcButton type="button" @click="editCustomer(customer)">
-                            Bearbeiten
+                        <NcButton type="button" @click="editCustomer(customer)" :title="t('timetracking', 'Bearbeiten')">
+                            <template #icon>
+                                <Pencil :size="20" />
+                            </template>
                         </NcButton>
-                        <NcButton type="button" @click="deleteCustomer(customer.id)">
-                            Löschen
+                        <NcButton type="button" @click="deleteCustomer(customer.id)" :title="t('timetracking', 'Löschen')">
+                            <template #icon>
+                                <Delete :size="20" />
+                            </template>
                         </NcButton>
                     </td>
                 </tr>
             </tbody>
         </table>
         
-        <p v-else>Keine Kunden vorhanden</p>
+        <p v-else>{{ t('timetracking', 'Keine Kunden vorhanden') }}</p>
         
         <!-- Add/Edit Dialog -->
         <NcModal v-if="showAddDialog || editingCustomer" 
@@ -71,7 +75,7 @@
                     <div class="form-group" v-if="editingCustomer">
                         <label>
                             <input v-model="form.active" type="checkbox">
-                            Aktiv
+                            {{ t('timetracking', 'Aktiv') }}
                         </label>
                     </div>
                     <div class="modal-actions">
@@ -96,6 +100,8 @@ import { translate as t } from '@nextcloud/l10n'
 import { getCurrentUser } from '@nextcloud/auth'
 import { NcButton, NcModal } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 
 export default {
     name: 'Customers',
@@ -103,6 +109,8 @@ export default {
         NcButton,
         NcModal,
         Plus,
+        Pencil,
+        Delete,
     },
     data() {
         return {

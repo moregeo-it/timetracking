@@ -166,7 +166,7 @@ export default {
         formatDate(dateStr) {
             if (!dateStr) return ''
             const date = new Date(dateStr)
-            return date.toLocaleDateString('de-DE', {
+            return date.toLocaleDateString(undefined, {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
@@ -175,7 +175,7 @@ export default {
         getWeekday(dateStr) {
             if (!dateStr) return ''
             const date = new Date(dateStr)
-            return date.toLocaleDateString('de-DE', { weekday: 'short' })
+            return date.toLocaleDateString(undefined, { weekday: 'short' })
         },
         editHoliday(holiday) {
             this.editingHoliday = holiday

@@ -16,6 +16,7 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
 use OCP\IGroupManager;
 use OCP\IUserManager;
+use OCP\IL10N;
 
 class ReportController extends Controller {
     private TimeEntryMapper $timeEntryMapper;
@@ -27,6 +28,7 @@ class ReportController extends Controller {
     private ComplianceService $complianceService;
     private IGroupManager $groupManager;
     private IUserManager $userManager;
+    private IL10N $l10n;
     private string $userId;
 
     public function __construct(
@@ -41,6 +43,7 @@ class ReportController extends Controller {
         ComplianceService $complianceService,
         IGroupManager $groupManager,
         IUserManager $userManager,
+        IL10N $l10n,
         string $userId
     ) {
         parent::__construct($appName, $request);
@@ -53,6 +56,7 @@ class ReportController extends Controller {
         $this->complianceService = $complianceService;
         $this->groupManager = $groupManager;
         $this->userManager = $userManager;
+        $this->l10n = $l10n;
         $this->userId = $userId;
     }
 
@@ -297,17 +301,16 @@ class ReportController extends Controller {
     private function getPeriodLabel(string $periodType, int $year, ?int $month = null, ?int $quarter = null, ?string $customStartDate = null, ?string $customEndDate = null): string {
         switch ($periodType) {
             case 'month':
-                $months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 
-                           'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-                return $months[$month - 1] . ' ' . $year;
+                $monthName = $this->getLocalizedMonthName($month);
+                return $monthName . ' ' . $year;
             case 'quarter':
                 return "Q$quarter $year";
             case 'year':
                 return (string)$year;
             case 'total':
-                return 'Gesamt';
+                return $this->l10n->t('Gesamt');
             case 'project_period':
-                return 'Projektzeitraum';
+                return $this->l10n->t('Projektzeitraum');
             case 'custom':
                 $start = $customStartDate ? (new DateTime($customStartDate))->format('d.m.Y') : '';
                 $end = $customEndDate ? (new DateTime($customEndDate))->format('d.m.Y') : '';
@@ -315,6 +318,29 @@ class ReportController extends Controller {
             default:
                 return '';
         }
+    }
+
+    /**
+     * Get localized month name using IntlDateFormatter
+     */
+    private function getLocalizedMonthName(int $month): string {
+        $locale = $this->l10n->getLanguageCode();
+        $date = new DateTime("2000-$month-01");
+        
+        if (class_exists('IntlDateFormatter')) {
+            $formatter = new \IntlDateFormatter(
+                $locale,
+                \IntlDateFormatter::NONE,
+                \IntlDateFormatter::NONE,
+                null,
+                null,
+                'MMMM'
+            );
+            return $formatter->format($date);
+        }
+        
+        // Fallback if Intl extension is not available
+        return $date->format('F');
     }
 
     /**
@@ -428,7 +454,7 @@ class ReportController extends Controller {
             );
             
             $periodLabel = $periodType === 'project_period' 
-                ? 'Projektzeitraum (' . ($project->getStartDate() ?? '?') . ' - ' . ($project->getEndDate() ?? '?') . ')'
+                ? $this->l10n->t('Projektzeitraum') . ' (' . ($project->getStartDate() ?? '?') . ' - ' . ($project->getEndDate() ?? '?') . ')'
                 : $this->getPeriodLabel($periodType, $year, $month, $quarter);
             
             $report = [
@@ -818,7 +844,7 @@ class ReportController extends Controller {
                 $settings = $this->employeeSettingsMapper->findByUserId($userId);
                 if ($settings && $settings->getEmploymentType() === 'director') {
                     $employeeResult['exempt'] = true;
-                    $employeeResult['exemptReason'] = 'Geschäftsführer (§18 Abs. 1 Nr. 1 ArbZG)';
+                    $employeeResult['exemptReason'] = $this->l10n->t('Geschäftsführer') . ' (§18 Abs. 1 Nr. 1 ArbZG)';
                     $employeeResult['compliant'] = true;
                     $employeeResult['violationCount'] = 0;
                     $employeeResult['warningCount'] = 0;
@@ -1011,7 +1037,7 @@ class ReportController extends Controller {
                 $startDate = new DateTime("$year-$month-01");
                 $endDate = clone $startDate;
                 $endDate->modify('last day of this month');
-                $periodLabel = $this->getMonthName($month) . ' ' . $year;
+                $periodLabel = $this->getLocalizedMonthName($month) . ' ' . $year;
                 break;
                 
             case 'year':
@@ -1025,7 +1051,7 @@ class ReportController extends Controller {
                 // All time - use a very early start date
                 $startDate = new DateTime('2000-01-01');
                 $endDate = new DateTime('2099-12-31');
-                $periodLabel = 'Gesamt';
+                $periodLabel = $this->l10n->t('Gesamt');
                 $year = null;
                 $month = null;
                 break;

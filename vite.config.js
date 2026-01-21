@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
-import { copyFileSync, readdirSync, statSync, mkdirSync, existsSync, rmSync } from 'fs'
+import { copyFileSync, readdirSync, mkdirSync, existsSync, rmSync } from 'fs'
 import { join } from 'path'
 
 // Plugin to copy dist contents to parent folder

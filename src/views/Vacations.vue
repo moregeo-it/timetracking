@@ -30,11 +30,15 @@
                         <td>{{ request.days }}</td>
                         <td class="notes-cell">{{ request.notes || '-' }}</td>
                         <td class="actions-cell">
-                            <NcButton type="button" @click="approveRequest(request.id)">
-                                {{ t('timetracking', 'Genehmigen') }}
+                            <NcButton type="button" @click="approveRequest(request.id)" :title="t('timetracking', 'Genehmigen')">
+                                <template #icon>
+                                    <Check :size="20" />
+                                </template>
                             </NcButton>
-                            <NcButton type="button" @click="rejectRequest(request.id)">
-                                {{ t('timetracking', 'Ablehnen') }}
+                            <NcButton type="button" @click="rejectRequest(request.id)" :title="t('timetracking', 'Ablehnen')">
+                                <template #icon>
+                                    <Close :size="20" />
+                                </template>
                             </NcButton>
                         </td>
                     </tr>
@@ -94,13 +98,13 @@
                 </div>
                 <div class="progress-legend">
                     <span class="legend-item">
-                        <span class="legend-color used"></span> Genommen ({{ balance?.usedDays || 0 }})
+                        <span class="legend-color used"></span> {{ t('timetracking', 'Genommen') }} ({{ balance?.usedDays || 0 }})
                     </span>
                     <span class="legend-item">
-                        <span class="legend-color pending"></span> Beantragt ({{ balance?.pendingDays || 0 }})
+                        <span class="legend-color pending"></span> {{ t('timetracking', 'Beantragt') }} ({{ balance?.pendingDays || 0 }})
                     </span>
                     <span class="legend-item">
-                        <span class="legend-color remaining"></span> Verfügbar ({{ balance?.remainingDays || 0 }})
+                        <span class="legend-color remaining"></span> {{ t('timetracking', 'Verfügbar') }} ({{ balance?.remainingDays || 0 }})
                     </span>
                 </div>
             </div>
@@ -162,26 +166,38 @@
                             <NcButton
                                 v-if="isAdmin && vacation.status === 'pending'"
                                 type="button"
-                                @click="approveRequest(vacation.id)">
-                                {{ t('timetracking', 'Genehmigen') }}
+                                @click="approveRequest(vacation.id)"
+                                :title="t('timetracking', 'Genehmigen')">
+                                <template #icon>
+                                    <Check :size="20" />
+                                </template>
                             </NcButton>
                             <NcButton
                                 v-if="isAdmin && vacation.status === 'pending'"
                                 type="button"
-                                @click="rejectRequest(vacation.id)">
-                                {{ t('timetracking', 'Ablehnen') }}
+                                @click="rejectRequest(vacation.id)"
+                                :title="t('timetracking', 'Ablehnen')">
+                                <template #icon>
+                                    <Close :size="20" />
+                                </template>
                             </NcButton>
                             <NcButton
                                 v-if="vacation.canEdit && (vacation.status === 'pending' || isAdmin)"
                                 type="button"
-                                @click="editVacation(vacation)">
-                                {{ t('timetracking', 'Bearbeiten') }}
+                                @click="editVacation(vacation)"
+                                :title="t('timetracking', 'Bearbeiten')">
+                                <template #icon>
+                                    <Pencil :size="20" />
+                                </template>
                             </NcButton>
                             <NcButton
                                 v-if="vacation.canDelete && (vacation.status === 'pending' || isAdmin)"
                                 type="button"
-                                @click="deleteVacation(vacation.id)">
-                                {{ t('timetracking', 'Löschen') }}
+                                @click="deleteVacation(vacation.id)"
+                                :title="t('timetracking', 'Löschen')">
+                                <template #icon>
+                                    <Delete :size="20" />
+                                </template>
                             </NcButton>
                         </td>
                     </tr>
@@ -238,6 +254,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { getCurrentUser } from '@nextcloud/auth'
 import { NcButton, NcModal } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 
 export default {
     name: 'Vacations',
@@ -245,6 +265,10 @@ export default {
         NcButton,
         NcModal,
         Plus,
+        Pencil,
+        Delete,
+        Check,
+        Close,
     },
     data() {
         const now = new Date()
@@ -466,7 +490,7 @@ export default {
             
             if (isNaN(date.getTime())) return String(dateInput)
             
-            return date.toLocaleDateString('de-DE', {
+            return date.toLocaleDateString(undefined, {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',

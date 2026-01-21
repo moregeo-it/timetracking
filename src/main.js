@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { loadState } from '@nextcloud/initial-state'
+import { register } from '@nextcloud/l10n'
 import App from './App.vue'
 import Dashboard from './views/Dashboard.vue'
 import Customers from './views/Customers.vue'
@@ -9,6 +11,16 @@ import Reports from './views/Reports.vue'
 import Vacations from './views/Vacations.vue'
 import PublicHolidays from './views/PublicHolidays.vue'
 import EmployeeSettings from './views/EmployeeSettings.vue'
+
+// Load translations from initial state and register them
+try {
+    const translations = loadState('timetracking', 'translations', {})
+    if (Object.keys(translations).length > 0) {
+        register('timetracking', translations)
+    }
+} catch (e) {
+    console.warn('Could not load translations from initial state:', e)
+}
 
 const routes = [
     { path: '/', component: Dashboard },

@@ -326,8 +326,8 @@ export default {
         },
         formatDateRange(startDate, endDate) {
             if (!startDate && !endDate) return '-'
-            const start = startDate ? new Date(startDate).toLocaleDateString('de-DE') : '?'
-            const end = endDate ? new Date(endDate).toLocaleDateString('de-DE') : '?'
+            const start = startDate ? new Date(startDate).toLocaleDateString() : '?'
+            const end = endDate ? new Date(endDate).toLocaleDateString() : '?'
             return `${start} - ${end}`
         },
         getWeeklyHours(project) {
