@@ -108,7 +108,9 @@ class ComplianceService {
                     $requiredBreak = self::MIN_BREAK_AFTER_6H;
                 }
                 
-                if ($requiredBreak > 0 && $totalBreakMinutes < $requiredBreak) {
+                // Round to full minutes to avoid false positives from float precision
+                $totalBreakMinutesRounded = round($totalBreakMinutes);
+                if ($requiredBreak > 0 && $totalBreakMinutesRounded < $requiredBreak) {
                     $violations[] = [
                         'type' => 'INSUFFICIENT_BREAK',
                         'date' => $date,
@@ -333,8 +335,10 @@ class ComplianceService {
                 $requiredBreak = self::MIN_BREAK_AFTER_6H;
             }
             
+            // Round to full minutes to avoid false positives from float precision
+            $totalBreakMinutesRounded = round($totalBreakMinutes);
             // Check if break requirement is met
-            if ($requiredBreak > 0 && $totalBreakMinutes < $requiredBreak) {
+            if ($requiredBreak > 0 && $totalBreakMinutesRounded < $requiredBreak) {
                 $missingBreak = $requiredBreak - $totalBreakMinutes;
                 $violations[] = [
                     'type' => 'INSUFFICIENT_BREAK',
