@@ -4,6 +4,15 @@
             <h1>{{ t('timetracking', 'Zeiterfassung') }}</h1>
         </div>
         
+        <!-- Compliance Warnings Banner -->
+        <div v-if="complianceAlerts.length > 0" class="compliance-alerts">
+            <div v-for="(alert, index) in complianceAlerts" :key="index" 
+                 :class="['compliance-alert', alert.severity]">
+                <span class="alert-icon">{{ alert.severity === 'high' ? '🚨' : '⚠️' }}</span>
+                <span class="alert-message">{{ alert.message }}</span>
+            </div>
+        </div>
+        
         <div class="timer-section" v-if="runningTimer">
             <div class="timer-card running">
                 <h3>{{ t('timetracking', 'Zeiterfassung') }}</h3>
@@ -217,6 +226,8 @@ export default {
             projects: [],
             customers: [],
             entries: [],
+            complianceAlerts: [],
+            complianceCheckInterval: null,
             filterStartDate: weekAgo.toISOString().split('T')[0],
             filterEndDate: today,
             manualForm: {
@@ -264,8 +275,51 @@ export default {
         this.loadCustomers()
         this.loadEntries()
         this.checkRunningTimer()
+        this.checkDailyCompliance()
+        // Check compliance every 5 minutes while the page is open
+        this.complianceCheckInterval = setInterval(() => {
+            this.checkDailyCompliance()
+        }, 5 * 60 * 1000)
+    },
+    beforeUnmount() {
+        if (this.complianceCheckInterval) {
+            clearInterval(this.complianceCheckInterval)
+        }
     },
     methods: {
+        async checkDailyCompliance() {
+            try {
+                const response = await axios.get(generateUrl('/apps/timetracking/api/time-entries/compliance'))
+                const result = response.data
+                
+                // Combine violations and warnings into a single alerts array
+                const alerts = []
+                
+                if (result.violations && result.violations.length > 0) {
+                    for (const violation of result.violations) {
+                        alerts.push({
+                            severity: 'high',
+                            type: violation.type,
+                            message: violation.message,
+                        })
+                    }
+                }
+                
+                if (result.warnings && result.warnings.length > 0) {
+                    for (const warning of result.warnings) {
+                        alerts.push({
+                            severity: warning.severity || 'medium',
+                            type: warning.type,
+                            message: warning.message,
+                        })
+                    }
+                }
+                
+                this.complianceAlerts = alerts
+            } catch (error) {
+                console.error('Error checking daily compliance:', error)
+            }
+        },
         async loadProjects() {
             try {
                 const response = await axios.get(generateUrl('/apps/timetracking/api/projects'))
@@ -311,10 +365,12 @@ export default {
         },
         onTimerStarted() {
             this.runningProjectName = ''
+            this.checkDailyCompliance()
         },
         onTimerStopped() {
             this.runningProjectName = ''
             this.loadEntries()
+            this.checkDailyCompliance()
         },
         async addManualEntry() {
             try {
@@ -338,6 +394,7 @@ export default {
                 showSuccess(this.t('timetracking', 'Eintrag hinzugefügt'))
                 this.manualForm.description = ''
                 this.loadEntries()
+                this.checkDailyCompliance()
             } catch (error) {
                 if (error.response?.status === 409) {
                     showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
@@ -356,6 +413,7 @@ export default {
                 await axios.delete(generateUrl('/apps/timetracking/api/time-entries/' + id))
                 showSuccess('Eintrag gelöscht')
                 this.loadEntries()
+                this.checkDailyCompliance()
             } catch (error) {
                 showError('Fehler beim Löschen')
                 console.error(error)
@@ -400,6 +458,7 @@ export default {
                 showSuccess(this.t('timetracking', 'Eintrag aktualisiert'))
                 this.closeEditModal()
                 this.loadEntries()
+                this.checkDailyCompliance()
             } catch (error) {
                 if (error.response?.status === 409) {
                     showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
@@ -540,5 +599,46 @@ export default {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 20px;
+}
+
+/* Compliance Alerts */
+.compliance-alerts {
+    margin-bottom: 20px;
+}
+
+.compliance-alert {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.compliance-alert.high {
+    background-color: #ffebee;
+    border: 1px solid #f44336;
+    color: #c62828;
+}
+
+.compliance-alert.medium {
+    background-color: #fff3e0;
+    border: 1px solid #ff9800;
+    color: #e65100;
+}
+
+.compliance-alert.low {
+    background-color: #e3f2fd;
+    border: 1px solid #2196f3;
+    color: #1565c0;
+}
+
+.compliance-alert .alert-icon {
+    margin-right: 12px;
+    font-size: 1.2em;
+}
+
+.compliance-alert .alert-message {
+    flex: 1;
 }
 </style>

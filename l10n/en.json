@@ -296,6 +296,9 @@
         "September": "September",
         "Oktober": "October",
         "November": "November",
-        "Dezember": "December"
+        "Dezember": "December",
+        "Arbeitszeitgesetz-Warnung": "Working Time Regulation Warning",
+        "Bitte machen Sie eine Pause!": "Please take a break!",
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Working time over 6 hours - Please take required breaks!"
     }
 }

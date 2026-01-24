@@ -296,6 +296,9 @@
         "September": "September",
         "Oktober": "Oktober",
         "November": "November",
-        "Dezember": "Dezember"
+        "Dezember": "Dezember",
+        "Arbeitszeitgesetz-Warnung": "Arbeitszeitgesetz-Warnung",
+        "Bitte machen Sie eine Pause!": "Bitte machen Sie eine Pause!",
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!"
     }
 }

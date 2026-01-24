@@ -9,6 +9,7 @@ use OCA\TimeTracking\Db\TimeEntry;
 use OCA\TimeTracking\Db\TimeEntryMapper;
 use OCA\TimeTracking\Db\EmployeeSettingsMapper;
 use OCA\TimeTracking\Db\PublicHolidayMapper;
+use OCA\TimeTracking\Service\ComplianceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
@@ -17,6 +18,7 @@ class TimeEntryController extends Controller {
     private TimeEntryMapper $mapper;
     private EmployeeSettingsMapper $employeeSettingsMapper;
     private PublicHolidayMapper $publicHolidayMapper;
+    private ComplianceService $complianceService;
     private string $userId;
 
     public function __construct(
@@ -25,12 +27,14 @@ class TimeEntryController extends Controller {
         TimeEntryMapper $mapper,
         EmployeeSettingsMapper $employeeSettingsMapper,
         PublicHolidayMapper $publicHolidayMapper,
+        ComplianceService $complianceService,
         string $userId
     ) {
         parent::__construct($appName, $request);
         $this->mapper = $mapper;
         $this->employeeSettingsMapper = $employeeSettingsMapper;
         $this->publicHolidayMapper = $publicHolidayMapper;
+        $this->complianceService = $complianceService;
         $this->userId = $userId;
     }
 
@@ -354,6 +358,27 @@ class TimeEntryController extends Controller {
         $running->setUpdatedAt(new \DateTime());
         
         return new DataResponse($this->mapper->update($running));
+    }
+
+    /**
+     * @NoAdminRequired
+     * 
+     * Check compliance for the current day (or a specific date).
+     * Returns violations and warnings based on German labor law (ArbZG).
+     * 
+     * @param string|null $date Optional date in YYYY-MM-DD format (defaults to today)
+     */
+    public function checkDailyCompliance(?string $date = null): DataResponse {
+        // Parse date or use today
+        if ($date) {
+            $checkDate = new DateTime($date, new DateTimeZone('Europe/Berlin'));
+        } else {
+            $checkDate = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+        }
+        
+        $result = $this->complianceService->checkDailyCompliance($this->userId, $checkDate);
+        
+        return new DataResponse($result);
     }
 }
 
