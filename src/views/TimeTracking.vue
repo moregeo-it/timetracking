@@ -112,7 +112,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="entry in entries" :key="entry.id">
+                    <tr v-for="entry in entries" :key="entry.id" :class="{ 'past-month': !isCurrentMonth(entry.startTime) }">
                         <td>{{ formatDate(entry.startTime) }}</td>
                         <td>{{ getProjectName(entry.projectId) }}</td>
                         <td>{{ formatTime(entry.startTime) }}</td>
@@ -120,12 +120,20 @@
                         <td>{{ formatDuration(entry.durationMinutes) }}</td>
                         <td>{{ entry.description || '-' }}</td>
                         <td class="actions">
-                            <NcButton type="button" @click="openEditModal(entry)" :title="t('timetracking', 'Bearbeiten')">
+                            <NcButton 
+                                type="button" 
+                                @click="openEditModal(entry)" 
+                                :title="isCurrentMonth(entry.startTime) ? t('timetracking', 'Bearbeiten') : t('timetracking', 'Einträge aus vergangenen Monaten können nicht bearbeitet werden')"
+                                :disabled="!isCurrentMonth(entry.startTime)">
                                 <template #icon>
                                     <Pencil :size="20" />
                                 </template>
                             </NcButton>
-                            <NcButton type="button" @click="deleteEntry(entry.id)" :title="t('timetracking', 'Löschen')">
+                            <NcButton 
+                                type="button" 
+                                @click="deleteEntry(entry.id)" 
+                                :title="isCurrentMonth(entry.startTime) ? t('timetracking', 'Löschen') : t('timetracking', 'Einträge aus vergangenen Monaten können nicht gelöscht werden')"
+                                :disabled="!isCurrentMonth(entry.startTime)">
                                 <template #icon>
                                     <Delete :size="20" />
                                 </template>
@@ -492,6 +500,13 @@ export default {
             const mins = minutes % 60
             return `${hours}:${mins.toString().padStart(2, '0')}`
         },
+        isCurrentMonth(isoDateTimeStr) {
+            if (!isoDateTimeStr) return false
+            const entryDate = new Date(isoDateTimeStr)
+            const now = new Date()
+            return entryDate.getFullYear() === now.getFullYear() && 
+                   entryDate.getMonth() === now.getMonth()
+        },
     },
 }
 </script>
@@ -572,6 +587,15 @@ export default {
     margin-bottom: 16px;
 }
 
+.past-month {
+    opacity: 0.6;
+    background-color: var(--color-background-dark);
+}
+
+.past-month td {
+    color: var(--color-text-maxcontrast);
+}
+
 .actions {
     white-space: nowrap;
 }
@@ -583,6 +607,11 @@ export default {
 
 .actions :deep(button:last-child) {
     margin-right: 0;
+}
+
+.actions :deep(button:disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .modal-content {

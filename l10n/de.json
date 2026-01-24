@@ -299,6 +299,8 @@
         "Dezember": "Dezember",
         "Arbeitszeitgesetz-Warnung": "Arbeitszeitgesetz-Warnung",
         "Bitte machen Sie eine Pause!": "Bitte machen Sie eine Pause!",
-        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!"
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!",
+        "Einträge aus vergangenen Monaten können nicht bearbeitet werden": "Einträge aus vergangenen Monaten können nicht bearbeitet werden",
+        "Einträge aus vergangenen Monaten können nicht gelöscht werden": "Einträge aus vergangenen Monaten können nicht gelöscht werden"
     }
 }

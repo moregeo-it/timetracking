@@ -299,6 +299,8 @@
         "Dezember": "December",
         "Arbeitszeitgesetz-Warnung": "Working Time Regulation Warning",
         "Bitte machen Sie eine Pause!": "Please take a break!",
-        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Working time over 6 hours - Please take required breaks!"
+        "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Working time over 6 hours - Please take required breaks!",
+        "Einträge aus vergangenen Monaten können nicht bearbeitet werden": "Entries from past months cannot be edited",
+        "Einträge aus vergangenen Monaten können nicht gelöscht werden": "Entries from past months cannot be deleted"
     }
 }

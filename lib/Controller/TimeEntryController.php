@@ -221,6 +221,18 @@ class TimeEntryController extends Controller {
                 return new DataResponse(['error' => 'Unauthorized'], 403);
             }
             
+            // Check if entry is from the current month (only current month entries can be edited)
+            $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+            $entryDate->setTimezone(new DateTimeZone('Europe/Berlin'));
+            $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+            
+            if ($entryDate->format('Y-m') !== $now->format('Y-m')) {
+                return new DataResponse([
+                    'error' => 'Einträge aus vergangenen Monaten können nicht bearbeitet werden',
+                    'code' => 'PAST_MONTH_EDIT_NOT_ALLOWED'
+                ], 400);
+            }
+            
             $startTs = $this->parseIsoToTimestamp($startTime);
             
             // Check date restrictions (Sundays and public holidays)
@@ -272,6 +284,18 @@ class TimeEntryController extends Controller {
             // Check if user owns this entry
             if ($entry->getUserId() !== $this->userId) {
                 return new DataResponse(['error' => 'Unauthorized'], 403);
+            }
+            
+            // Check if entry is from the current month (only current month entries can be deleted)
+            $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+            $entryDate->setTimezone(new DateTimeZone('Europe/Berlin'));
+            $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+            
+            if ($entryDate->format('Y-m') !== $now->format('Y-m')) {
+                return new DataResponse([
+                    'error' => 'Einträge aus vergangenen Monaten können nicht gelöscht werden',
+                    'code' => 'PAST_MONTH_DELETE_NOT_ALLOWED'
+                ], 400);
             }
             
             $this->mapper->delete($entry);
