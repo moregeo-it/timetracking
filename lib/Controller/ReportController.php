@@ -1034,7 +1034,7 @@ class ReportController extends Controller {
                 'displayName' => $this->getDisplayName($userId),
             ];
 
-            // Check if user is exempt (directors, freelancers, interns are not subject to ArbZG)
+            // Check if user is exempt (directors and freelancers are not subject to ArbZG)
             try {
                 $settings = $this->employeeSettingsMapper->findByUserId($userId);
                 $employmentType = $settings ? $settings->getEmploymentType() : null;
@@ -1059,23 +1059,6 @@ class ReportController extends Controller {
                 if ($employmentType === 'freelance') {
                     $employeeResult['exempt'] = true;
                     $employeeResult['exemptReason'] = $this->l10n->t('Freiberufler') . ' - ' . $this->l10n->t('kein Arbeitnehmer');
-                    $employeeResult['compliant'] = true;
-                    $employeeResult['violationCount'] = 0;
-                    $employeeResult['warningCount'] = 0;
-                    $employeeResult['violations'] = [];
-                    $employeeResult['warnings'] = [];
-                    $employeeResult['statistics'] = [
-                        'totalHours' => 0,
-                        'averageDailyHours' => 0,
-                        'maxDailyHours' => 0,
-                    ];
-                    $employees[] = $employeeResult;
-                    continue;
-                }
-                
-                if ($employmentType === 'intern') {
-                    $employeeResult['exempt'] = true;
-                    $employeeResult['exemptReason'] = $this->l10n->t('Praktikant') . ' - ' . $this->l10n->t('kein Arbeitnehmer');
                     $employeeResult['compliant'] = true;
                     $employeeResult['violationCount'] = 0;
                     $employeeResult['warningCount'] = 0;

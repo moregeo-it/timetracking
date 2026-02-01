@@ -337,10 +337,17 @@ export default {
         async saveProject() {
             try {
                 // Convert empty strings to null for optional numeric fields
+                // Also clean up multipliers: convert empty strings to null
+                const cleanedMultipliers = {}
+                for (const [key, value] of Object.entries(this.form.multipliers)) {
+                    cleanedMultipliers[key] = (value === '' || value === null || value === undefined) ? null : parseFloat(value)
+                }
+                
                 const data = {
                     ...this.form,
                     hourlyRate: this.form.hourlyRate === '' || this.form.hourlyRate === null ? null : parseFloat(this.form.hourlyRate),
                     budgetHours: this.form.budgetHours === '' || this.form.budgetHours === null ? null : parseFloat(this.form.budgetHours),
+                    multipliers: cleanedMultipliers,
                 }
                 
                 if (this.editingProject) {

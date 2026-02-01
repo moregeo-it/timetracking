@@ -56,8 +56,8 @@ class TimeEntryController extends Controller {
             $employmentType = 'contract';
         }
         
-        // Directors, freelancers and interns can log hours anytime
-        if (in_array($employmentType, ['director', 'freelance', 'intern'])) {
+        // Directors and freelancers can log hours anytime
+        if (in_array($employmentType, ['director', 'freelance'])) {
             return null;
         }
         
@@ -221,16 +221,28 @@ class TimeEntryController extends Controller {
                 return new DataResponse(['error' => 'Unauthorized'], 403);
             }
             
-            // Check if entry is from the current month (only current month entries can be edited)
-            $entryDate = new DateTime('@' . $entry->getStartTimestamp());
-            $entryDate->setTimezone(new DateTimeZone('Europe/Berlin'));
-            $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+            // Get employment type to check if user is a director
+            $isDirector = false;
+            try {
+                $settings = $this->employeeSettingsMapper->findByUserId($this->userId);
+                $isDirector = ($settings->getEmploymentType() === 'director');
+            } catch (\Exception $e) {
+                // No settings found, assume not a director
+            }
             
-            if ($entryDate->format('Y-m') !== $now->format('Y-m')) {
-                return new DataResponse([
-                    'error' => 'Einträge aus vergangenen Monaten können nicht bearbeitet werden',
-                    'code' => 'PAST_MONTH_EDIT_NOT_ALLOWED'
-                ], 400);
+            // Check if entry is from the current month (only current month entries can be edited)
+            // Directors can edit entries from any month
+            if (!$isDirector) {
+                $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+                $entryDate->setTimezone(new DateTimeZone('Europe/Berlin'));
+                $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+                
+                if ($entryDate->format('Y-m') !== $now->format('Y-m')) {
+                    return new DataResponse([
+                        'error' => 'Einträge aus vergangenen Monaten können nicht bearbeitet werden',
+                        'code' => 'PAST_MONTH_EDIT_NOT_ALLOWED'
+                    ], 400);
+                }
             }
             
             $startTs = $this->parseIsoToTimestamp($startTime);
@@ -286,16 +298,28 @@ class TimeEntryController extends Controller {
                 return new DataResponse(['error' => 'Unauthorized'], 403);
             }
             
-            // Check if entry is from the current month (only current month entries can be deleted)
-            $entryDate = new DateTime('@' . $entry->getStartTimestamp());
-            $entryDate->setTimezone(new DateTimeZone('Europe/Berlin'));
-            $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+            // Get employment type to check if user is a director
+            $isDirector = false;
+            try {
+                $settings = $this->employeeSettingsMapper->findByUserId($this->userId);
+                $isDirector = ($settings->getEmploymentType() === 'director');
+            } catch (\Exception $e) {
+                // No settings found, assume not a director
+            }
             
-            if ($entryDate->format('Y-m') !== $now->format('Y-m')) {
-                return new DataResponse([
-                    'error' => 'Einträge aus vergangenen Monaten können nicht gelöscht werden',
-                    'code' => 'PAST_MONTH_DELETE_NOT_ALLOWED'
-                ], 400);
+            // Check if entry is from the current month (only current month entries can be deleted)
+            // Directors can delete entries from any month
+            if (!$isDirector) {
+                $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+                $entryDate->setTimezone(new DateTimeZone('Europe/Berlin'));
+                $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+                
+                if ($entryDate->format('Y-m') !== $now->format('Y-m')) {
+                    return new DataResponse([
+                        'error' => 'Einträge aus vergangenen Monaten können nicht gelöscht werden',
+                        'code' => 'PAST_MONTH_DELETE_NOT_ALLOWED'
+                    ], 400);
+                }
             }
             
             $this->mapper->delete($entry);

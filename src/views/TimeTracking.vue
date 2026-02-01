@@ -236,6 +236,7 @@ export default {
             entries: [],
             complianceAlerts: [],
             complianceCheckInterval: null,
+            employmentType: null,
             filterStartDate: weekAgo.toISOString().split('T')[0],
             filterEndDate: today,
             manualForm: {
@@ -282,6 +283,7 @@ export default {
         this.loadProjects()
         this.loadCustomers()
         this.loadEntries()
+        this.loadEmployeeSettings()
         this.checkRunningTimer()
         this.checkDailyCompliance()
         // Check compliance every 5 minutes while the page is open
@@ -342,6 +344,17 @@ export default {
                 this.customers = response.data
             } catch (error) {
                 console.error(error)
+            }
+        },
+        async loadEmployeeSettings() {
+            try {
+                const response = await axios.get(generateUrl('/apps/timetracking/api/employee-settings'))
+                if (response.data && response.data.employmentType) {
+                    this.employmentType = response.data.employmentType
+                }
+            } catch (error) {
+                // No settings found, that's okay
+                console.error('Could not load employee settings:', error)
             }
         },
         async loadEntries() {
@@ -434,7 +447,11 @@ export default {
             const endDate = entry.endTime ? new Date(entry.endTime) : null
             
             this.editForm.projectId = entry.projectId || ''
-            this.editForm.date = startDate.toISOString().split('T')[0]
+            // Use local date components to avoid timezone issues with toISOString()
+            const year = startDate.getFullYear()
+            const month = String(startDate.getMonth() + 1).padStart(2, '0')
+            const day = String(startDate.getDate()).padStart(2, '0')
+            this.editForm.date = `${year}-${month}-${day}`
             this.editForm.startTime = startDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })
             this.editForm.endTime = endDate ? endDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }) : ''
             this.editForm.description = entry.description || ''
@@ -501,6 +518,10 @@ export default {
             return `${hours}:${mins.toString().padStart(2, '0')}`
         },
         isCurrentMonth(isoDateTimeStr) {
+            // Directors can always edit/delete entries
+            if (this.employmentType === 'director') {
+                return true
+            }
             if (!isoDateTimeStr) return false
             const entryDate = new Date(isoDateTimeStr)
             const now = new Date()

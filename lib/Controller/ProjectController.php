@@ -135,10 +135,7 @@ class ProjectController extends Controller {
         
         // Save multipliers to normalized table
         if ($multipliers !== null) {
-            foreach (EmployeeSettings::EMPLOYMENT_TYPES as $type) {
-                $value = $multipliers[$type] ?? 1.0;
-                $this->multiplierMapper->setMultiplier($insertedProject->getId(), $type, $this->validateMultiplier($value));
-            }
+            $this->multiplierMapper->setMultipliers($insertedProject->getId(), $multipliers);
         }
         
         return new DataResponse($this->getProjectWithMultipliers($insertedProject));
@@ -172,10 +169,7 @@ class ProjectController extends Controller {
             
             // Update multipliers in normalized table
             if ($multipliers !== null) {
-                foreach (EmployeeSettings::EMPLOYMENT_TYPES as $type) {
-                    $value = $multipliers[$type] ?? 1.0;
-                    $this->multiplierMapper->setMultiplier($id, $type, $this->validateMultiplier($value));
-                }
+                $this->multiplierMapper->setMultipliers($id, $multipliers);
             }
             
             return new DataResponse($this->getProjectWithMultipliers($updatedProject));
