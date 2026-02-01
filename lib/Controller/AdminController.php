@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\TimeTracking\Controller;
 
+use OCA\TimeTracking\Db\DefaultMultiplierMapper;
 use OCA\TimeTracking\Db\TimeEntryMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
@@ -15,6 +16,7 @@ class AdminController extends Controller {
     private IGroupManager $groupManager;
     private IUserManager $userManager;
     private TimeEntryMapper $timeEntryMapper;
+    private DefaultMultiplierMapper $defaultMultiplierMapper;
 
     public function __construct(
         string $appName,
@@ -22,13 +24,15 @@ class AdminController extends Controller {
         string $userId,
         IGroupManager $groupManager,
         IUserManager $userManager,
-        TimeEntryMapper $timeEntryMapper
+        TimeEntryMapper $timeEntryMapper,
+        DefaultMultiplierMapper $defaultMultiplierMapper
     ) {
         parent::__construct($appName, $request);
         $this->userId = $userId;
         $this->groupManager = $groupManager;
         $this->userManager = $userManager;
         $this->timeEntryMapper = $timeEntryMapper;
+        $this->defaultMultiplierMapper = $defaultMultiplierMapper;
     }
 
     /**
@@ -77,5 +81,30 @@ class AdminController extends Controller {
         return new DataResponse(array_map(function ($entry) {
             return $entry->jsonSerialize();
         }, $entries));
+    }
+
+    /**
+     * Get default multipliers (admin only)
+     * @NoAdminRequired
+     */
+    public function getDefaultMultipliers(): DataResponse {
+        if (!$this->groupManager->isAdmin($this->userId)) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+
+        return new DataResponse($this->defaultMultiplierMapper->getDefaultsAsArray());
+    }
+
+    /**
+     * Update default multipliers (admin only)
+     * @NoAdminRequired
+     */
+    public function updateDefaultMultipliers(array $multipliers): DataResponse {
+        if (!$this->groupManager->isAdmin($this->userId)) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+
+        $this->defaultMultiplierMapper->setDefaults($multipliers);
+        return new DataResponse($this->defaultMultiplierMapper->getDefaultsAsArray());
     }
 }

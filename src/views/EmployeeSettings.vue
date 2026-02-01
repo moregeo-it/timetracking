@@ -4,6 +4,35 @@
             <h1>{{ t('timetracking', 'Mitarbeitereinstellungen') }}</h1>
         </div>
         
+        <!-- Admin: Default Multipliers Section -->
+        <div v-if="isAdmin" class="default-multipliers-section">
+            <h2>{{ t('timetracking', 'Standard-Multiplikatoren') }}</h2>
+            <p class="hint">{{ t('timetracking', 'Diese Standardwerte werden in Kunden- und Projektberichten verwendet, wenn kein projektspezifischer Multiplikator gesetzt ist.') }}</p>
+            
+            <div class="multiplier-grid">
+                <div class="form-group">
+                    <label>{{ t('timetracking', 'Geschäftsführer') }}</label>
+                    <input v-model.number="defaultMultipliers.director" type="number" step="any" min="0.01" max="2" placeholder="1.0" @change="saveDefaultMultipliers">
+                </div>
+                <div class="form-group">
+                    <label>{{ t('timetracking', 'Festanstellung / Teilzeit') }}</label>
+                    <input v-model.number="defaultMultipliers.contract" type="number" step="any" min="0.01" max="2" placeholder="1.0" @change="saveDefaultMultipliers">
+                </div>
+                <div class="form-group">
+                    <label>{{ t('timetracking', 'Freiberufler / Stundenkontingent') }}</label>
+                    <input v-model.number="defaultMultipliers.freelance" type="number" step="any" min="0.01" max="2" placeholder="1.0" @change="saveDefaultMultipliers">
+                </div>
+                <div class="form-group">
+                    <label>{{ t('timetracking', 'Praktikant') }}</label>
+                    <input v-model.number="defaultMultipliers.intern" type="number" step="any" min="0.01" max="2" placeholder="1.0" @change="saveDefaultMultipliers">
+                </div>
+                <div class="form-group">
+                    <label>{{ t('timetracking', 'Werkstudent') }}</label>
+                    <input v-model.number="defaultMultipliers.student" type="number" step="any" min="0.01" max="2" placeholder="1.0" @change="saveDefaultMultipliers">
+                </div>
+            </div>
+        </div>
+        
         <!-- Admin: User Selection -->
         <div v-if="isAdmin" class="user-selection">
             <div class="form-group">
@@ -91,12 +120,14 @@
                     <select v-model="form.employmentType" required :disabled="!isAdmin" @change="onEmploymentTypeChange">
                         <option value="director">{{ t('timetracking', 'Geschäftsführer') }}</option>
                         <option value="contract">{{ t('timetracking', 'Festanstellung / Teilzeit') }}</option>
-                        <option value="freelance">{{ t('timetracking', 'Praktikant / Stundenkontingent') }}</option>
+                        <option value="freelance">{{ t('timetracking', 'Freiberufler / Stundenkontingent') }}</option>
+                        <option value="intern">{{ t('timetracking', 'Praktikant') }}</option>
                         <option value="student">{{ t('timetracking', 'Werkstudent') }}</option>
                     </select>
                     <p class="hint">
                         <strong>Festanstellung:</strong> Reguläre Arbeitsverträge mit Urlaubsanspruch und ArbZG-Prüfung<br>
                         <strong>Geschäftsführer:</strong> Wie Festanstellung, aber keine ArbZG-Prüfung<br>
+                        <strong>Freiberufler:</strong> Maximale Gesamtstundenzahl, keine Urlaubstage<br>
                         <strong>Praktikant:</strong> Maximale Gesamtstundenzahl, keine Urlaubstage<br>
                         <strong>Werkstudent:</strong> Reduzierte Stundenzahl
                     </p>
@@ -129,8 +160,8 @@
                     </div>
                 </div>
                 
-                <!-- Freelance Settings -->
-                <div v-else-if="form.employmentType === 'freelance'" class="freelance-settings">
+                <!-- Freelance/Intern Settings -->
+                <div v-else-if="['freelance', 'intern'].includes(form.employmentType)" class="freelance-settings">
                     <div class="form-group">
                         <label>{{ t('timetracking', 'Maximale Gesamtstunden') }} *</label>
                         <input v-model.number="form.maxTotalHours" type="number" step="1" min="0" required :disabled="!isAdmin">
@@ -246,6 +277,13 @@ export default {
             selectedUserId: getCurrentUser()?.uid || '',
             showNewPeriodForm: false,
             editingPeriodId: null,
+            defaultMultipliers: {
+                director: 1.0,
+                contract: 1.0,
+                freelance: 1.0,
+                intern: 1.0,
+                student: 1.0,
+            },
             form: {
                 employmentType: 'contract',
                 weeklyHours: 40,
@@ -274,6 +312,7 @@ export default {
     mounted() {
         if (this.isAdmin) {
             this.loadAllUsers()
+            this.loadDefaultMultipliers()
         }
         this.loadSettings()
         this.loadUsedHours()
@@ -289,7 +328,8 @@ export default {
             const labels = {
                 director: t('timetracking', 'Geschäftsführer'),
                 contract: t('timetracking', 'Festanstellung / Teilzeit'),
-                freelance: t('timetracking', 'Praktikant / Stundenkontingent'),
+                freelance: t('timetracking', 'Freiberufler / Stundenkontingent'),
+                intern: t('timetracking', 'Praktikant'),
                 student: t('timetracking', 'Werkstudent'),
             }
             return labels[type] || type
@@ -299,6 +339,32 @@ export default {
             const validFrom = period.validFrom || '1970-01-01'
             const validTo = period.validTo || '2099-12-31'
             return validFrom <= today && today <= validTo
+        },
+        async loadDefaultMultipliers() {
+            try {
+                const response = await axios.get(generateUrl('/apps/timetracking/api/admin/default-multipliers'))
+                this.defaultMultipliers = {
+                    director: response.data.director ?? 1.0,
+                    contract: response.data.contract ?? 1.0,
+                    freelance: response.data.freelance ?? 1.0,
+                    intern: response.data.intern ?? 1.0,
+                    student: response.data.student ?? 1.0,
+                }
+            } catch (error) {
+                console.error('Error loading default multipliers:', error)
+            }
+        },
+        async saveDefaultMultipliers() {
+            try {
+                await axios.put(
+                    generateUrl('/apps/timetracking/api/admin/default-multipliers'),
+                    { multipliers: this.defaultMultipliers }
+                )
+                showSuccess(t('timetracking', 'Standard-Multiplikatoren gespeichert'))
+            } catch (error) {
+                showError(t('timetracking', 'Fehler beim Speichern der Standard-Multiplikatoren'))
+                console.error('Error saving default multipliers:', error)
+            }
         },
         async loadAllUsers() {
             try {
@@ -690,5 +756,38 @@ export default {
 
 .form-row .form-group {
     flex: 1;
+}
+
+/* Default Multipliers Section */
+.default-multipliers-section {
+    background: var(--color-background-hover);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.default-multipliers-section h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+}
+
+.default-multipliers-section .hint {
+    color: var(--color-text-maxcontrast);
+    margin-bottom: 15px;
+}
+
+.multiplier-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.multiplier-grid .form-group {
+    margin-bottom: 0;
+}
+
+.multiplier-grid input {
+    width: 100%;
 }
 </style>

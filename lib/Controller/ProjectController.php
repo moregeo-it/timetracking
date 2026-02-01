@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 namespace OCA\TimeTracking\Controller;
 
+use OCA\TimeTracking\Db\EmployeeSettings;
 use OCA\TimeTracking\Db\Project;
 use OCA\TimeTracking\Db\ProjectMapper;
+use OCA\TimeTracking\Db\ProjectMultiplier;
+use OCA\TimeTracking\Db\ProjectMultiplierMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
@@ -12,6 +15,7 @@ use OCP\IGroupManager;
 
 class ProjectController extends Controller {
     private ProjectMapper $mapper;
+    private ProjectMultiplierMapper $multiplierMapper;
     private IGroupManager $groupManager;
     private string $userId;
 
@@ -19,11 +23,13 @@ class ProjectController extends Controller {
         string $appName,
         IRequest $request,
         ProjectMapper $mapper,
+        ProjectMultiplierMapper $multiplierMapper,
         IGroupManager $groupManager,
         string $userId
     ) {
         parent::__construct($appName, $request);
         $this->mapper = $mapper;
+        $this->multiplierMapper = $multiplierMapper;
         $this->groupManager = $groupManager;
         $this->userId = $userId;
     }
@@ -50,6 +56,19 @@ class ProjectController extends Controller {
     }
 
     /**
+     * Get project data with multipliers included
+     */
+    private function getProjectWithMultipliers(Project $project, bool $includeHourlyRate = true): array {
+        $data = $project->jsonSerialize();
+        if (!$includeHourlyRate) {
+            unset($data['hourlyRate']);
+        }
+        // Add multipliers from normalized table
+        $data['multipliers'] = $this->multiplierMapper->getMultipliersAsArray($project->getId());
+        return $data;
+    }
+
+    /**
      * @NoAdminRequired
      */
     public function index(?int $customerId = null): DataResponse {
@@ -58,12 +77,7 @@ class ProjectController extends Controller {
         $result = array_map(function ($project) use ($isAdmin) {
             // Check and deactivate if end date has passed
             $project = $this->checkAndDeactivateExpiredProject($project);
-            
-            $data = $project->jsonSerialize();
-            if (!$isAdmin) {
-                unset($data['hourlyRate']);
-            }
-            return $data;
+            return $this->getProjectWithMultipliers($project, $isAdmin);
         }, $projects);
         return new DataResponse($result);
     }
@@ -78,14 +92,21 @@ class ProjectController extends Controller {
             // Check and deactivate if end date has passed
             $project = $this->checkAndDeactivateExpiredProject($project);
             
-            $data = $project->jsonSerialize();
-            if (!$this->isAdmin()) {
-                unset($data['hourlyRate']);
-            }
-            return new DataResponse($data);
+            return new DataResponse($this->getProjectWithMultipliers($project, $this->isAdmin()));
         } catch (\Exception $e) {
             return new DataResponse(['error' => 'Project not found'], 404);
         }
+    }
+
+    /**
+     * Validate and normalize a multiplier value.
+     * Multiplier must be > 0 and <= 2, default is 1.0
+     */
+    private function validateMultiplier(?float $value): float {
+        if ($value === null) {
+            return 1.0;
+        }
+        return max(0.01, min(2.0, $value));
     }
 
     /**
@@ -93,7 +114,8 @@ class ProjectController extends Controller {
      */
     public function create(int $customerId, string $name, ?string $description = null,
                           ?float $hourlyRate = null, ?float $budgetHours = null,
-                          ?string $startDate = null, ?string $endDate = null): DataResponse {
+                          ?string $startDate = null, ?string $endDate = null,
+                          ?array $multipliers = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can create projects'], 403);
         }
@@ -109,7 +131,17 @@ class ProjectController extends Controller {
         $project->setCreatedAt(new \DateTime());
         $project->setUpdatedAt(new \DateTime());
         
-        return new DataResponse($this->mapper->insert($project));
+        $insertedProject = $this->mapper->insert($project);
+        
+        // Save multipliers to normalized table
+        if ($multipliers !== null) {
+            foreach (EmployeeSettings::EMPLOYMENT_TYPES as $type) {
+                $value = $multipliers[$type] ?? 1.0;
+                $this->multiplierMapper->setMultiplier($insertedProject->getId(), $type, $this->validateMultiplier($value));
+            }
+        }
+        
+        return new DataResponse($this->getProjectWithMultipliers($insertedProject));
     }
 
     /**
@@ -117,7 +149,8 @@ class ProjectController extends Controller {
      */
     public function update(int $id, string $name, ?string $description = null,
                           ?float $hourlyRate = null, ?float $budgetHours = null,
-                          ?string $startDate = null, ?string $endDate = null, ?bool $active = null): DataResponse {
+                          ?string $startDate = null, ?string $endDate = null, ?bool $active = null,
+                          ?array $multipliers = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can update projects'], 403);
         }
@@ -135,7 +168,17 @@ class ProjectController extends Controller {
             }
             $project->setUpdatedAt(new \DateTime());
             
-            return new DataResponse($this->mapper->update($project));
+            $updatedProject = $this->mapper->update($project);
+            
+            // Update multipliers in normalized table
+            if ($multipliers !== null) {
+                foreach (EmployeeSettings::EMPLOYMENT_TYPES as $type) {
+                    $value = $multipliers[$type] ?? 1.0;
+                    $this->multiplierMapper->setMultiplier($id, $type, $this->validateMultiplier($value));
+                }
+            }
+            
+            return new DataResponse($this->getProjectWithMultipliers($updatedProject));
         } catch (\Exception $e) {
             return new DataResponse(['error' => 'Project not found'], 404);
         }
@@ -150,6 +193,8 @@ class ProjectController extends Controller {
         }
         try {
             $project = $this->mapper->find($id);
+            // Delete multipliers first
+            $this->multiplierMapper->deleteByProject($id);
             $this->mapper->delete($project);
             return new DataResponse(['success' => true]);
         } catch (\Exception $e) {

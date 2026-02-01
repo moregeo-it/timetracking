@@ -113,6 +113,35 @@
                         <label>{{ t('timetracking', 'Budget (Stunden)') }}</label>
                         <input v-model="form.budgetHours" type="number" step="0.5" min="0" placeholder="-">
                     </div>
+                    
+                    <!-- Employee Category Multipliers -->
+                    <fieldset class="multipliers-fieldset">
+                        <legend>{{ t('timetracking', 'Multiplikatoren für Mitarbeiterkategorien') }}</legend>
+                        <p class="help-text">{{ t('timetracking', 'Leer lassen für Standardwert. Nur abweichende Werte werden gespeichert.') }}</p>
+                        <div class="multiplier-grid">
+                            <div class="form-group">
+                                <label>{{ t('timetracking', 'Geschäftsführer') }}</label>
+                                <input v-model.number="form.multipliers.director" type="number" step="any" min="0.01" max="2" :placeholder="'Standard: ' + defaultMultipliers.director">
+                            </div>
+                            <div class="form-group">
+                                <label>{{ t('timetracking', 'Festanstellung / Teilzeit') }}</label>
+                                <input v-model.number="form.multipliers.contract" type="number" step="any" min="0.01" max="2" :placeholder="'Standard: ' + defaultMultipliers.contract">
+                            </div>
+                            <div class="form-group">
+                                <label>{{ t('timetracking', 'Freiberufler / Stundenkontingent') }}</label>
+                                <input v-model.number="form.multipliers.freelance" type="number" step="any" min="0.01" max="2" :placeholder="'Standard: ' + defaultMultipliers.freelance">
+                            </div>
+                            <div class="form-group">
+                                <label>{{ t('timetracking', 'Praktikant') }}</label>
+                                <input v-model.number="form.multipliers.intern" type="number" step="any" min="0.01" max="2" :placeholder="'Standard: ' + defaultMultipliers.intern">
+                            </div>
+                            <div class="form-group">
+                                <label>{{ t('timetracking', 'Werkstudent') }}</label>
+                                <input v-model.number="form.multipliers.student" type="number" step="any" min="0.01" max="2" :placeholder="'Standard: ' + defaultMultipliers.student">
+                            </div>
+                        </div>
+                    </fieldset>
+                    
                     <div class="form-group" v-if="editingProject">
                         <label>
                             <input v-model="form.active" type="checkbox">
@@ -171,6 +200,13 @@ export default {
                 { code: 'PLN', symbol: 'zł', name: 'Polnischer Zloty' },
                 { code: 'CZK', symbol: 'Kč', name: 'Tschechische Krone' },
             ],
+            defaultMultipliers: {
+                director: 1.0,
+                contract: 1.0,
+                freelance: 1.0,
+                intern: 1.0,
+                student: 1.0,
+            },
             form: {
                 customerId: '',
                 name: '',
@@ -180,6 +216,13 @@ export default {
                 startDate: '',
                 endDate: '',
                 active: true,
+                multipliers: {
+                    director: null,
+                    contract: null,
+                    freelance: null,
+                    intern: null,
+                    student: null,
+                },
             },
         }
     },
@@ -209,8 +252,25 @@ export default {
     mounted() {
         this.loadCustomers()
         this.loadProjects()
+        if (this.isAdmin) {
+            this.loadDefaultMultipliers()
+        }
     },
     methods: {
+        async loadDefaultMultipliers() {
+            try {
+                const response = await axios.get(generateUrl('/apps/timetracking/api/admin/default-multipliers'))
+                this.defaultMultipliers = {
+                    director: response.data.director ?? 1.0,
+                    contract: response.data.contract ?? 1.0,
+                    freelance: response.data.freelance ?? 1.0,
+                    intern: response.data.intern ?? 1.0,
+                    student: response.data.student ?? 1.0,
+                }
+            } catch (error) {
+                console.error('Error loading default multipliers:', error)
+            }
+        },
         async loadCustomers() {
             try {
                 const response = await axios.get(generateUrl('/apps/timetracking/api/customers'))
@@ -265,6 +325,13 @@ export default {
                 startDate: project.startDate || '',
                 endDate: project.endDate || '',
                 active: project.active,
+                multipliers: {
+                    director: project.multipliers?.director ?? null,
+                    contract: project.multipliers?.contract ?? null,
+                    freelance: project.multipliers?.freelance ?? null,
+                    intern: project.multipliers?.intern ?? null,
+                    student: project.multipliers?.student ?? null,
+                },
             }
         },
         async saveProject() {
@@ -322,6 +389,13 @@ export default {
                 startDate: '',
                 endDate: '',
                 active: true,
+                multipliers: {
+                    director: null,
+                    contract: null,
+                    freelance: null,
+                    intern: null,
+                    student: null,
+                },
             }
         },
         formatDateRange(startDate, endDate) {
@@ -355,5 +429,44 @@ export default {
 /* Component-specific styles only - common styles are in App.vue */
 .projects {
     max-width: 1200px;
+}
+
+.multipliers-fieldset {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    background-color: var(--color-background-hover);
+}
+
+.multipliers-fieldset legend {
+    font-weight: bold;
+    padding: 0 8px;
+}
+
+.multipliers-fieldset .help-text {
+    font-size: 0.9em;
+    color: var(--color-text-maxcontrast);
+    margin: 0 0 12px 0;
+}
+
+.multiplier-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.multiplier-grid .form-group {
+    margin-bottom: 0;
+}
+
+.multiplier-grid input {
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    .multiplier-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>

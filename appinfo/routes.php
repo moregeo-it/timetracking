@@ -31,6 +31,7 @@ return [
         // Report routes
         ['name' => 'report#customer_monthly', 'url' => '/api/reports/customer/{customerId}/{year}/{month}', 'verb' => 'GET'],
         ['name' => 'report#customer_report', 'url' => '/api/reports/customer', 'verb' => 'GET'],
+        ['name' => 'report#all_customers_report', 'url' => '/api/reports/all-customers', 'verb' => 'GET'],
         ['name' => 'report#project_monthly', 'url' => '/api/reports/project/{projectId}/{year}/{month}', 'verb' => 'GET'],
         ['name' => 'report#project_report', 'url' => '/api/reports/project', 'verb' => 'GET'],
         ['name' => 'report#employee_monthly', 'url' => '/api/reports/employee/{userId}/{year}/{month}', 'verb' => 'GET'],
@@ -66,6 +67,8 @@ return [
         // Admin routes
         ['name' => 'admin#users', 'url' => '/api/admin/users', 'verb' => 'GET'],
         ['name' => 'admin#time_entries', 'url' => '/api/admin/time-entries', 'verb' => 'GET'],
+        ['name' => 'admin#get_default_multipliers', 'url' => '/api/admin/default-multipliers', 'verb' => 'GET'],
+        ['name' => 'admin#update_default_multipliers', 'url' => '/api/admin/default-multipliers', 'verb' => 'PUT'],
         
         // Public holiday routes
         ['name' => 'public_holiday#index', 'url' => '/api/public-holidays', 'verb' => 'GET'],

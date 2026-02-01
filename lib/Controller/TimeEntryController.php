@@ -56,8 +56,8 @@ class TimeEntryController extends Controller {
             $employmentType = 'contract';
         }
         
-        // Directors and freelancers can log hours anytime
-        if (in_array($employmentType, ['director', 'freelance'])) {
+        // Directors, freelancers and interns can log hours anytime
+        if (in_array($employmentType, ['director', 'freelance', 'intern'])) {
             return null;
         }
         

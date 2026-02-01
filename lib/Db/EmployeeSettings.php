@@ -34,7 +34,7 @@ use OCP\AppFramework\Db\Entity;
  */
 class EmployeeSettings extends Entity implements JsonSerializable {
     protected $userId;
-    protected $employmentType; // 'director', 'contract', 'freelance', 'student'
+    protected $employmentType;
     protected $weeklyHours;
     protected $maxTotalHours;
     protected $vacationDaysPerYear;
@@ -44,6 +44,22 @@ class EmployeeSettings extends Entity implements JsonSerializable {
     protected $validTo;    // Date when these settings end (null = current/indefinite)
     protected $createdAt;
     protected $updatedAt;
+
+    /**
+     * Available employment types
+     * - director:  Geschäftsführer (exempt from labor law checks)
+     * - contract:  Festanstellung / Teilzeit (regular employees)
+     * - freelance: Freiberufler / Stundenkontingent (hour quota, no vacation)
+     * - intern:    Praktikant (hour quota, no vacation)
+     * - student:   Werkstudent (reduced hours)
+     */
+    public const EMPLOYMENT_TYPES = [
+        'director',
+        'contract',
+        'freelance',
+        'intern',
+        'student',
+    ];
 
     public function __construct() {
         $this->addType('weeklyHours', 'float');

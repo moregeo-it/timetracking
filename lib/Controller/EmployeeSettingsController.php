@@ -138,7 +138,7 @@ class EmployeeSettingsController extends Controller {
         }
         
         // Validate employment type
-        if (!in_array($employmentType, ['director', 'contract', 'freelance', 'student'])) {
+        if (!in_array($employmentType, EmployeeSettings::EMPLOYMENT_TYPES, true)) {
             return new DataResponse(['error' => 'Invalid employment type'], 400);
         }
         
@@ -229,7 +229,7 @@ class EmployeeSettingsController extends Controller {
         }
         
         // Validate employment type
-        if (!in_array($employmentType, ['director', 'contract', 'freelance', 'student'])) {
+        if (!in_array($employmentType, EmployeeSettings::EMPLOYMENT_TYPES, true)) {
             return new DataResponse(['error' => 'Invalid employment type'], 400);
         }
         

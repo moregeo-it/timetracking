@@ -6,6 +6,7 @@ namespace OCA\TimeTracking\Controller;
 use DateTime;
 use OCA\TimeTracking\Db\TimeEntryMapper;
 use OCA\TimeTracking\Db\ProjectMapper;
+use OCA\TimeTracking\Db\ProjectMultiplierMapper;
 use OCA\TimeTracking\Db\CustomerMapper;
 use OCA\TimeTracking\Db\EmployeeSettingsMapper;
 use OCA\TimeTracking\Db\VacationMapper;
@@ -21,6 +22,7 @@ use OCP\IL10N;
 class ReportController extends Controller {
     private TimeEntryMapper $timeEntryMapper;
     private ProjectMapper $projectMapper;
+    private ProjectMultiplierMapper $projectMultiplierMapper;
     private CustomerMapper $customerMapper;
     private EmployeeSettingsMapper $employeeSettingsMapper;
     private VacationMapper $vacationMapper;
@@ -36,6 +38,7 @@ class ReportController extends Controller {
         IRequest $request,
         TimeEntryMapper $timeEntryMapper,
         ProjectMapper $projectMapper,
+        ProjectMultiplierMapper $projectMultiplierMapper,
         CustomerMapper $customerMapper,
         EmployeeSettingsMapper $employeeSettingsMapper,
         VacationMapper $vacationMapper,
@@ -49,6 +52,7 @@ class ReportController extends Controller {
         parent::__construct($appName, $request);
         $this->timeEntryMapper = $timeEntryMapper;
         $this->projectMapper = $projectMapper;
+        $this->projectMultiplierMapper = $projectMultiplierMapper;
         $this->customerMapper = $customerMapper;
         $this->employeeSettingsMapper = $employeeSettingsMapper;
         $this->vacationMapper = $vacationMapper;
@@ -67,6 +71,19 @@ class ReportController extends Controller {
     private function getDisplayName(string $userId): string {
         $user = $this->userManager->get($userId);
         return $user ? $user->getDisplayName() : $userId;
+    }
+
+    /**
+     * Get the employment type for a user at a specific date.
+     * Falls back to 'contract' if no settings found.
+     * 
+     * @param string $userId The user ID
+     * @param DateTime|null $date The date to check (defaults to today)
+     * @return string The employment type (director, contract, freelance, intern, student)
+     */
+    private function getEmploymentTypeForUser(string $userId, ?DateTime $date = null): string {
+        $settings = $this->employeeSettingsMapper->findByUserIdAtDate($userId, $date ?? new DateTime());
+        return $settings ? $settings->getEmploymentType() : 'contract';
     }
 
     /**
@@ -345,6 +362,7 @@ class ReportController extends Controller {
 
     /**
      * Customer report - Admin only
+     * Uses employee category multipliers from project settings for hours calculation.
      */
     public function customerReport(int $customerId, string $periodType, int $year, ?int $month = null, ?int $quarter = null): DataResponse {
         if (!$this->isAdmin()) {
@@ -371,9 +389,14 @@ class ReportController extends Controller {
                 'totals' => [
                     'hours' => 0,
                     'billableHours' => 0,
+                    'actualHours' => 0,
+                    'actualBillableHours' => 0,
                     'amount' => 0,
                 ],
             ];
+            
+            $totalActualHours = 0;
+            $totalActualBillableHours = 0;
             
             foreach ($projects as $project) {
                 $entries = $this->timeEntryMapper->findByProject(
@@ -384,40 +407,189 @@ class ReportController extends Controller {
                 
                 $projectHours = 0;
                 $billableHours = 0;
+                $adjustedHours = 0;
+                $adjustedBillableHours = 0;
                 
                 foreach ($entries as $entry) {
                     $hours = ($entry->getDurationMinutes() ?? 0) / 60;
                     $projectHours += $hours;
+                    
+                    // Get the employment type for this user at the entry date
+                    $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+                    $employmentType = $this->getEmploymentTypeForUser($entry->getUserId(), $entryDate);
+                    $multiplier = $this->projectMultiplierMapper->getMultiplierValue($project->getId(), $employmentType);
+                    
+                    $adjustedHours += $hours * $multiplier;
+                    
                     if ($entry->getBillable()) {
                         $billableHours += $hours;
+                        $adjustedBillableHours += $hours * $multiplier;
                     }
                 }
                 
-                $amount = $billableHours * ($project->getHourlyRate() ?? 0);
+                // Calculate amount based on adjusted billable hours
+                $amount = $adjustedBillableHours * ($project->getHourlyRate() ?? 0);
                 
                 if ($projectHours > 0) {
                     $report['projects'][] = [
                         'project' => $project,
-                        'hours' => round($projectHours, 2),
-                        'billableHours' => round($billableHours, 2),
+                        'hours' => round($adjustedHours, 2),
+                        'billableHours' => round($adjustedBillableHours, 2),
+                        'actualHours' => round($projectHours, 2),
+                        'actualBillableHours' => round($billableHours, 2),
                         'hourlyRate' => $project->getHourlyRate(),
                         'amount' => round($amount, 2),
                         'entryCount' => count($entries),
                     ];
                 }
                 
-                $report['totals']['hours'] += $projectHours;
-                $report['totals']['billableHours'] += $billableHours;
+                $report['totals']['hours'] += $adjustedHours;
+                $report['totals']['billableHours'] += $adjustedBillableHours;
+                $totalActualHours += $projectHours;
+                $totalActualBillableHours += $billableHours;
                 $report['totals']['amount'] += $amount;
             }
             
             $report['totals']['hours'] = round($report['totals']['hours'], 2);
             $report['totals']['billableHours'] = round($report['totals']['billableHours'], 2);
+            $report['totals']['actualHours'] = round($totalActualHours, 2);
+            $report['totals']['actualBillableHours'] = round($totalActualBillableHours, 2);
             $report['totals']['amount'] = round($report['totals']['amount'], 2);
             
             return new DataResponse($report);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 404);
+        }
+    }
+
+    /**
+     * All customers report - Admin only
+     * Returns a summary of all customers with their totals
+     */
+    public function allCustomersReport(string $periodType, int $year, ?int $month = null, ?int $quarter = null): DataResponse {
+        if (!$this->isAdmin()) {
+            return new DataResponse(['error' => 'Forbidden'], 403);
+        }
+        
+        try {
+            $customers = $this->customerMapper->findAll();
+            [$startDate, $endDate] = $this->getDateRange($periodType, $year, $month, $quarter);
+            
+            $report = [
+                'period' => [
+                    'type' => $periodType,
+                    'label' => $this->getPeriodLabel($periodType, $year, $month, $quarter),
+                    'year' => $year,
+                    'month' => $month,
+                    'quarter' => $quarter,
+                    'startDate' => $startDate?->format('Y-m-d'),
+                    'endDate' => $endDate?->format('Y-m-d'),
+                ],
+                'customers' => [],
+                'totals' => [
+                    'hours' => 0,
+                    'billableHours' => 0,
+                    'actualHours' => 0,
+                    'actualBillableHours' => 0,
+                    'amount' => 0,
+                ],
+            ];
+            
+            foreach ($customers as $customer) {
+                $projects = $this->projectMapper->findByCustomer($customer->getId());
+                
+                $customerHours = 0;
+                $customerBillableHours = 0;
+                $customerActualHours = 0;
+                $customerActualBillableHours = 0;
+                $customerAmount = 0;
+                $projectCount = 0;
+                $projectsData = [];
+                
+                foreach ($projects as $project) {
+                    $entries = $this->timeEntryMapper->findByProject(
+                        $project->getId(),
+                        $this->dateTimeToTimestamp($startDate),
+                        $this->dateTimeToTimestamp($endDate)
+                    );
+                    
+                    $projectHours = 0;
+                    $projectBillableHours = 0;
+                    $projectActualHours = 0;
+                    $projectActualBillableHours = 0;
+                    
+                    foreach ($entries as $entry) {
+                        $hours = ($entry->getDurationMinutes() ?? 0) / 60;
+                        $projectActualHours += $hours;
+                        $customerActualHours += $hours;
+                        
+                        // Get the employment type for this user at the entry date
+                        $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+                        $employmentType = $this->getEmploymentTypeForUser($entry->getUserId(), $entryDate);
+                        $multiplier = $this->projectMultiplierMapper->getMultiplierValue($project->getId(), $employmentType);
+                        
+                        $projectHours += $hours * $multiplier;
+                        $customerHours += $hours * $multiplier;
+                        
+                        if ($entry->getBillable()) {
+                            $projectActualBillableHours += $hours;
+                            $customerActualBillableHours += $hours;
+                            $projectBillableHours += $hours * $multiplier;
+                            $customerBillableHours += $hours * $multiplier;
+                        }
+                    }
+                    
+                    if (count($entries) > 0) {
+                        $projectCount++;
+                        $projectAmount = $projectBillableHours * ($project->getHourlyRate() ?? 0);
+                        $customerAmount += $projectAmount;
+                        
+                        $projectsData[] = [
+                            'project' => $project,
+                            'hours' => round($projectHours, 2),
+                            'billableHours' => round($projectBillableHours, 2),
+                            'actualHours' => round($projectActualHours, 2),
+                            'actualBillableHours' => round($projectActualBillableHours, 2),
+                            'hourlyRate' => $project->getHourlyRate(),
+                            'amount' => round($projectAmount, 2),
+                        ];
+                    }
+                }
+                
+                if ($customerActualHours > 0) {
+                    $report['customers'][] = [
+                        'customer' => $customer,
+                        'hours' => round($customerHours, 2),
+                        'billableHours' => round($customerBillableHours, 2),
+                        'actualHours' => round($customerActualHours, 2),
+                        'actualBillableHours' => round($customerActualBillableHours, 2),
+                        'amount' => round($customerAmount, 2),
+                        'projectCount' => $projectCount,
+                        'projects' => $projectsData,
+                    ];
+                    
+                    $report['totals']['hours'] += $customerHours;
+                    $report['totals']['billableHours'] += $customerBillableHours;
+                    $report['totals']['actualHours'] += $customerActualHours;
+                    $report['totals']['actualBillableHours'] += $customerActualBillableHours;
+                    $report['totals']['amount'] += $customerAmount;
+                }
+            }
+            
+            $report['totals']['hours'] = round($report['totals']['hours'], 2);
+            $report['totals']['billableHours'] = round($report['totals']['billableHours'], 2);
+            $report['totals']['actualHours'] = round($report['totals']['actualHours'], 2);
+            $report['totals']['actualBillableHours'] = round($report['totals']['actualBillableHours'], 2);
+            $report['totals']['amount'] = round($report['totals']['amount'], 2);
+            
+            // Sort by amount descending
+            usort($report['customers'], function ($a, $b) {
+                return $b['amount'] <=> $a['amount'];
+            });
+            
+            return new DataResponse($report);
+        } catch (\Exception $e) {
+            return new DataResponse(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -430,6 +602,7 @@ class ReportController extends Controller {
 
     /**
      * Project report - Admin only
+     * Uses employee category multipliers from project settings for hours calculation.
      */
     public function projectReport(int $projectId, string $periodType, int $year, ?int $month = null, ?int $quarter = null): DataResponse {
         if (!$this->isAdmin()) {
@@ -473,15 +646,26 @@ class ReportController extends Controller {
                 'totals' => [
                     'hours' => 0,
                     'billableHours' => 0,
+                    'actualHours' => 0,
+                    'actualBillableHours' => 0,
                     'amount' => 0,
                 ],
             ];
             
             $userSummary = [];
+            $actualTotalHours = 0;
+            $actualTotalBillableHours = 0;
             
             foreach ($entries as $entry) {
                 $hours = ($entry->getDurationMinutes() ?? 0) / 60;
                 $userId = $entry->getUserId();
+                
+                // Get the employment type for this user at the entry date
+                $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+                $employmentType = $this->getEmploymentTypeForUser($userId, $entryDate);
+                $multiplier = $this->projectMultiplierMapper->getMultiplierValue($project->getId(), $employmentType);
+                
+                $adjustedHours = $hours * $multiplier;
                 
                 if (!isset($userSummary[$userId])) {
                     $userSummary[$userId] = [
@@ -489,30 +673,39 @@ class ReportController extends Controller {
                         'displayName' => $this->getDisplayName($userId),
                         'hours' => 0,
                         'billableHours' => 0,
+                        'actualHours' => 0,
+                        'actualBillableHours' => 0,
                         'entryCount' => 0,
                     ];
                 }
                 
-                $userSummary[$userId]['hours'] += $hours;
+                $userSummary[$userId]['hours'] += $adjustedHours;
+                $userSummary[$userId]['actualHours'] += $hours;
                 $userSummary[$userId]['entryCount']++;
                 
                 if ($entry->getBillable()) {
-                    $userSummary[$userId]['billableHours'] += $hours;
+                    $userSummary[$userId]['billableHours'] += $adjustedHours;
+                    $userSummary[$userId]['actualBillableHours'] += $hours;
                 }
                 
-                $report['totals']['hours'] += $hours;
+                $report['totals']['hours'] += $adjustedHours;
+                $actualTotalHours += $hours;
                 if ($entry->getBillable()) {
-                    $report['totals']['billableHours'] += $hours;
+                    $report['totals']['billableHours'] += $adjustedHours;
+                    $actualTotalBillableHours += $hours;
                 }
             }
             
+            $report['totals']['actualHours'] = round($actualTotalHours, 2);
+            $report['totals']['actualBillableHours'] = round($actualTotalBillableHours, 2);
             $report['totals']['amount'] = $report['totals']['billableHours'] * ($project->getHourlyRate() ?? 0);
             
-            // Add budget usage if available
+            // Add budget usage if available (using adjusted hours)
             if ($project->getBudgetHours()) {
                 $report['budget'] = [
                     'budgetHours' => $project->getBudgetHours(),
-                    'usedHours' => $report['totals']['hours'],
+                    'usedHours' => round($report['totals']['hours'], 2),
+                    'actualUsedHours' => round($actualTotalHours, 2),
                     'remainingHours' => round($project->getBudgetHours() - $report['totals']['hours'], 2),
                     'usagePercent' => round(($report['totals']['hours'] / $project->getBudgetHours()) * 100, 1),
                 ];
@@ -521,6 +714,8 @@ class ReportController extends Controller {
             foreach ($userSummary as &$summary) {
                 $summary['hours'] = round($summary['hours'], 2);
                 $summary['billableHours'] = round($summary['billableHours'], 2);
+                $summary['actualHours'] = round($summary['actualHours'], 2);
+                $summary['actualBillableHours'] = round($summary['actualBillableHours'], 2);
             }
             
             $report['userSummary'] = array_values($userSummary);
@@ -839,12 +1034,48 @@ class ReportController extends Controller {
                 'displayName' => $this->getDisplayName($userId),
             ];
 
-            // Check if user is exempt (e.g., director)
+            // Check if user is exempt (directors, freelancers, interns are not subject to ArbZG)
             try {
                 $settings = $this->employeeSettingsMapper->findByUserId($userId);
-                if ($settings && $settings->getEmploymentType() === 'director') {
+                $employmentType = $settings ? $settings->getEmploymentType() : null;
+                
+                if ($employmentType === 'director') {
                     $employeeResult['exempt'] = true;
                     $employeeResult['exemptReason'] = $this->l10n->t('Geschäftsführer') . ' (§18 Abs. 1 Nr. 1 ArbZG)';
+                    $employeeResult['compliant'] = true;
+                    $employeeResult['violationCount'] = 0;
+                    $employeeResult['warningCount'] = 0;
+                    $employeeResult['violations'] = [];
+                    $employeeResult['warnings'] = [];
+                    $employeeResult['statistics'] = [
+                        'totalHours' => 0,
+                        'averageDailyHours' => 0,
+                        'maxDailyHours' => 0,
+                    ];
+                    $employees[] = $employeeResult;
+                    continue;
+                }
+                
+                if ($employmentType === 'freelance') {
+                    $employeeResult['exempt'] = true;
+                    $employeeResult['exemptReason'] = $this->l10n->t('Freiberufler') . ' - ' . $this->l10n->t('kein Arbeitnehmer');
+                    $employeeResult['compliant'] = true;
+                    $employeeResult['violationCount'] = 0;
+                    $employeeResult['warningCount'] = 0;
+                    $employeeResult['violations'] = [];
+                    $employeeResult['warnings'] = [];
+                    $employeeResult['statistics'] = [
+                        'totalHours' => 0,
+                        'averageDailyHours' => 0,
+                        'maxDailyHours' => 0,
+                    ];
+                    $employees[] = $employeeResult;
+                    continue;
+                }
+                
+                if ($employmentType === 'intern') {
+                    $employeeResult['exempt'] = true;
+                    $employeeResult['exemptReason'] = $this->l10n->t('Praktikant') . ' - ' . $this->l10n->t('kein Arbeitnehmer');
                     $employeeResult['compliant'] = true;
                     $employeeResult['violationCount'] = 0;
                     $employeeResult['warningCount'] = 0;

@@ -48,8 +48,8 @@
             <form @submit.prevent="loadCustomerReport" class="report-form">
                 <div class="form-group">
                     <label>{{ t('timetracking', 'Kunde') }}</label>
-                    <select v-model="customerReportForm.customerId" required>
-                        <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
+                    <select v-model="customerReportForm.customerId" @change="customerReport = null; allCustomersReport = null">
+                        <option value="">{{ t('timetracking', 'Alle Kunden') }}</option>
                         <option v-for="customer in sortedCustomers" :key="customer.id" :value="customer.id">
                             {{ customer.name }}
                         </option>
@@ -57,7 +57,7 @@
                 </div>
                 <div class="form-group">
                     <label>{{ t('timetracking', 'Zeitraum') }}</label>
-                    <select v-model="customerReportForm.periodType" @change="customerReport = null">
+                    <select v-model="customerReportForm.periodType" @change="customerReport = null; allCustomersReport = null">
                         <option value="month">{{ t('timetracking', 'Monat') }}</option>
                         <option value="quarter">{{ t('timetracking', 'Quartal') }}</option>
                         <option value="year">{{ t('timetracking', 'Jahr') }}</option>
@@ -94,8 +94,8 @@
                 
                 <div class="summary-cards">
                     <div class="summary-card">
-                        <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
-                        <div class="summary-value">{{ customerReport.totals.hours }} h</div>
+                        <div class="summary-label">{{ t('timetracking', 'Stunden (Ist)') }}</div>
+                        <div class="summary-value">{{ customerReport.totals.actualHours || customerReport.totals.hours }} h</div>
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">{{ t('timetracking', 'Abrechenbare Stunden') }}</div>
@@ -112,7 +112,7 @@
                     <thead>
                         <tr>
                             <th>{{ t('timetracking', 'Projekt') }}</th>
-                            <th>{{ t('timetracking', 'Stunden') }}</th>
+                            <th>{{ t('timetracking', 'Stunden (Ist)') }}</th>
                             <th>{{ t('timetracking', 'Abrechenbar') }}</th>
                             <th>{{ t('timetracking', 'Stundensatz') }}</th>
                             <th>{{ t('timetracking', 'Betrag') }}</th>
@@ -121,12 +121,72 @@
                     <tbody>
                         <tr v-for="item in customerReport.projects" :key="item.project.id">
                             <td>{{ item.project.name }}</td>
-                            <td>{{ item.hours }} h</td>
+                            <td>{{ item.actualHours || item.hours }} h</td>
                             <td>{{ item.billableHours }} h</td>
                             <td>{{ item.hourlyRate !== null && item.hourlyRate !== undefined ? item.hourlyRate + ' ' + getCurrencySymbol(customerReport.customer.currency) : '-' }}</td>
                             <td>{{ item.amount }} {{ getCurrencySymbol(customerReport.customer.currency) }}</td>
                         </tr>
                     </tbody>
+                </table>
+                <p v-else>{{ t('timetracking', 'Keine Daten vorhanden') }}</p>
+            </div>
+            
+            <!-- All Customers Report -->
+            <div v-if="allCustomersReport" class="report-result">
+                <h3>{{ t('timetracking', 'Alle Kunden') }} - {{ allCustomersReport.period.label }}</h3>
+                
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="summary-label">{{ t('timetracking', 'Stunden (Ist)') }}</div>
+                        <div class="summary-value">{{ allCustomersReport.totals.actualHours }} h</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">{{ t('timetracking', 'Abrechenbare Stunden') }}</div>
+                        <div class="summary-value">{{ allCustomersReport.totals.billableHours }} h</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">{{ t('timetracking', 'Gesamtbetrag') }}</div>
+                        <div class="summary-value">{{ allCustomersReport.totals.amount }} €</div>
+                    </div>
+                </div>
+                
+                <table v-if="allCustomersReport.customers.length > 0" class="all-customers-table">
+                    <thead>
+                        <tr>
+                            <th>{{ t('timetracking', 'Kunde') }} / {{ t('timetracking', 'Projekt') }}</th>
+                            <th class="text-right">{{ t('timetracking', 'Stunden (Ist)') }}</th>
+                            <th class="text-right">{{ t('timetracking', 'Abrechenbar') }}</th>
+                            <th class="text-right">{{ t('timetracking', 'Stundensatz') }}</th>
+                            <th class="text-right">{{ t('timetracking', 'Betrag') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template v-for="item in allCustomersReport.customers" :key="item.customer.id">
+                            <tr class="customer-row">
+                                <td><strong>{{ item.customer.name }}</strong></td>
+                                <td class="text-right"><strong>{{ item.actualHours }} h</strong></td>
+                                <td class="text-right"><strong>{{ item.billableHours }} h</strong></td>
+                                <td></td>
+                                <td class="text-right"><strong>{{ item.amount }} {{ getCurrencySymbol(item.customer.currency) }}</strong></td>
+                            </tr>
+                            <tr v-for="proj in item.projects" :key="proj.project.id" class="project-row">
+                                <td class="indent">{{ proj.project.name }}</td>
+                                <td class="text-right">{{ proj.actualHours }} h</td>
+                                <td class="text-right">{{ proj.billableHours }} h</td>
+                                <td class="text-right">{{ proj.hourlyRate !== null && proj.hourlyRate !== undefined ? proj.hourlyRate + ' ' + getCurrencySymbol(item.customer.currency) : '-' }}</td>
+                                <td class="text-right">{{ proj.amount }} {{ getCurrencySymbol(item.customer.currency) }}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot>
+                        <tr class="grand-total-row">
+                            <td><strong>{{ t('timetracking', 'Gesamt') }}</strong></td>
+                            <td class="text-right"><strong>{{ allCustomersReport.totals.actualHours }} h</strong></td>
+                            <td class="text-right"><strong>{{ allCustomersReport.totals.billableHours }} h</strong></td>
+                            <td></td>
+                            <td class="text-right"><strong>{{ allCustomersReport.totals.amount }} €</strong></td>
+                        </tr>
+                    </tfoot>
                 </table>
                 <p v-else>{{ t('timetracking', 'Keine Daten vorhanden') }}</p>
             </div>
@@ -186,8 +246,8 @@
                 
                 <div class="summary-cards">
                     <div class="summary-card">
-                        <div class="summary-label">{{ t('timetracking', 'Gesamtstunden') }}</div>
-                        <div class="summary-value">{{ projectReport.totals.hours }} h</div>
+                        <div class="summary-label">{{ t('timetracking', 'Stunden (Ist)') }}</div>
+                        <div class="summary-value">{{ projectReport.totals.actualHours }} h</div>
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">{{ t('timetracking', 'Abrechenbare Stunden') }}</div>
@@ -215,7 +275,7 @@
                     <thead>
                         <tr>
                             <th>{{ t('timetracking', 'Benutzer') }}</th>
-                            <th>{{ t('timetracking', 'Stunden') }}</th>
+                            <th>{{ t('timetracking', 'Stunden (Ist)') }}</th>
                             <th>{{ t('timetracking', 'Abrechenbare Stunden') }}</th>
                             <th>{{ t('timetracking', 'Einträge') }}</th>
                         </tr>
@@ -223,7 +283,7 @@
                     <tbody>
                         <tr v-for="user in projectReport.userSummary" :key="user.userId">
                             <td>{{ user.displayName }}</td>
-                            <td>{{ user.hours }} h</td>
+                            <td>{{ user.actualHours }} h</td>
                             <td>{{ user.billableHours }} h</td>
                             <td>{{ user.entryCount }}</td>
                         </tr>
@@ -712,6 +772,7 @@ export default {
             projects: [],
             employees: [],
             customerReport: null,
+            allCustomersReport: null,
             projectReport: null,
             employeeReport: null,
             complianceReport: null,
@@ -845,16 +906,27 @@ export default {
             try {
                 const { customerId, periodType, year, month, quarter } = this.customerReportForm
                 const params = new URLSearchParams({
-                    customerId,
                     periodType,
                     year,
                 })
                 if (periodType === 'month') params.append('month', month)
                 if (periodType === 'quarter') params.append('quarter', quarter)
                 
-                const url = `/apps/timetracking/api/reports/customer?${params.toString()}`
-                const response = await axios.get(generateUrl(url))
-                this.customerReport = response.data
+                let url
+                if (customerId) {
+                    // Single customer report
+                    params.append('customerId', customerId)
+                    url = `/apps/timetracking/api/reports/customer?${params.toString()}`
+                    const response = await axios.get(generateUrl(url))
+                    this.customerReport = response.data
+                    this.allCustomersReport = null
+                } else {
+                    // All customers report
+                    url = `/apps/timetracking/api/reports/all-customers?${params.toString()}`
+                    const response = await axios.get(generateUrl(url))
+                    this.allCustomersReport = response.data
+                    this.customerReport = null
+                }
             } catch (error) {
                 showError(this.t('timetracking', 'Fehler beim Laden des Berichts'))
                 console.error(error)
@@ -1186,6 +1258,53 @@ export default {
 .violation-item.medium {
     background: #fff3cd;
     border-left: 4px solid #ffc107;
+}
+
+/* All Customers Report Styles */
+.all-customers-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.all-customers-table th,
+.all-customers-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.all-customers-table th {
+    text-align: left;
+    background: var(--color-background-dark);
+    font-weight: 600;
+}
+
+.all-customers-table th.text-right,
+.all-customers-table td.text-right {
+    text-align: right;
+}
+
+.all-customers-table .customer-row {
+    background: var(--color-background-dark);
+}
+
+.all-customers-table .customer-row td {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    border-top: 2px solid var(--color-border);
+}
+
+.all-customers-table .project-row td {
+    background: var(--color-main-background);
+}
+
+.all-customers-table .project-row td.indent {
+    padding-left: 30px;
+}
+
+.all-customers-table tfoot .grand-total-row td {
+    background: var(--color-primary-element-light);
+    border-top: 2px solid var(--color-border);
+    font-size: 1.05em;
 }
 
 /* Monthly Overview Styles */
