@@ -20,8 +20,8 @@
                 <p v-if="isOvertime" class="overtime-warning">⚠️ {{ t('timetracking', 'Bitte machen Sie eine Pause!') }}</p>
                 <p class="timer-started-at">{{ t('timetracking', 'Gestartet um') }}: {{ formatTimerStartTime() }}</p>
                 <div class="timer-actions">
-                    <NcButton type="button" @click="openStopDialog">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
-                    <NcButton type="button" @click="confirmCancelTimer">{{ t('timetracking', 'Timer Abbrechen') }}</NcButton>
+                    <NcButton type="button" @click="openStopDialog">{{ t('timetracking', 'Speichern') }}</NcButton>
+                    <NcButton type="button" @click="confirmCancelTimer">{{ t('timetracking', 'Löschen') }}</NcButton>
                 </div>
             </div>
         </div>
@@ -32,7 +32,7 @@
                 <p class="no-timer-display">{{ t('timetracking', 'Kein aktiver Timer') }}</p>
                 <div class="timer-start-options">
                     <div class="timer-start-row">
-                        <NcButton type="button" @click="startTimer()" style="flex: 1">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                        <NcButton type="button" @click="startTimer()" style="flex: 1">{{ t('timetracking', 'Starten') }}</NcButton>
                     </div>
                     <div class="timer-start-row custom-start">
                         <label>{{ t('timetracking', 'Startzeit') }}:</label>

@@ -27,13 +27,13 @@
                     <p v-if="isOvertime" class="overtime-warning">⚠️ {{ t('timetracking', 'Bitte machen Sie eine Pause!') }}</p>
                     <p class="timer-started-at">{{ t('timetracking', 'Gestartet um') }}: {{ formatTimerStartTime() }}</p>
                     <div class="timer-actions">
-                        <NcButton type="button" @click="openStopDialog" style="flex: 1">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
-                        <NcButton type="button" @click="confirmCancelTimer">{{ t('timetracking', 'Timer Abbrechen') }}</NcButton>
+                        <NcButton type="button" @click="openStopDialog" style="flex: 1">{{ t('timetracking', 'Speichern') }}</NcButton>
+                        <NcButton type="button" @click="confirmCancelTimer">{{ t('timetracking', 'Löschen') }}</NcButton>
                     </div>
                 </div>
                 <div v-else>
                     <p class="no-timer-display">{{ t('timetracking', 'Kein aktiver Timer') }}</p>
-                    <NcButton type="button" @click="startTimer()" style="width: 100%; margin-bottom: 8px">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                    <NcButton type="button" @click="startTimer()" style="width: 100%; margin-bottom: 8px">{{ t('timetracking', 'Starten') }}</NcButton>
                     <div class="timer-start-row-compact">
                         <input v-model="customStartTime" type="time" class="custom-time-input-sm">
                         <NcButton type="button" @click="startTimerAtCustomTime">{{ t('timetracking', 'Ab Uhrzeit') }}</NcButton>
