@@ -416,12 +416,19 @@
                     <thead>
                         <tr>
                             <th>{{ t('timetracking', 'Datum') }}</th>
+                            <th>{{ t('timetracking', 'Typ') }}</th>
                             <th>{{ t('timetracking', 'Stunden') }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="day in employeeReport.dailySummary" :key="day.date">
+                        <tr v-for="day in employeeReport.dailySummary" :key="day.date" :class="'day-type-' + (day.type || 'work')">
                             <td>{{ formatDate(day.date) }}</td>
+                            <td>
+                                <span v-if="day.type === 'sick'" class="badge badge-sick">{{ t('timetracking', 'Krank') }}</span>
+                                <span v-else-if="day.type === 'vacation'" class="badge badge-vacation">{{ t('timetracking', 'Urlaub') }}</span>
+                                <span v-else-if="day.type === 'holiday'" class="badge badge-holiday">{{ t('timetracking', 'Feiertag') }}</span>
+                                <span v-else class="badge badge-work">{{ t('timetracking', 'Arbeit') }}</span>
+                            </td>
                             <td>{{ day.hours }} h</td>
                         </tr>
                     </tbody>
@@ -1517,5 +1524,36 @@ export default {
 
 .summary-card.card-danger .summary-value {
     color: #721c24;
+}
+
+/* Daily summary type badges */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+.badge-work {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+.badge-sick {
+    background: #fff3e0;
+    color: #e65100;
+}
+.badge-vacation {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+.badge-holiday {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+.day-type-sick td,
+.day-type-vacation td,
+.day-type-holiday td {
+    opacity: 0.85;
+    font-style: italic;
 }
 </style>

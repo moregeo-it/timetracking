@@ -198,6 +198,19 @@
                 
                 <!-- Common Settings -->
                 
+                <div v-if="isAdmin" class="form-group">
+                    <label>{{ t('timetracking', 'AU-Pflicht ab Tag') }}</label>
+                    <select v-model.number="form.sickNoteRequiredDay" :disabled="!isAdmin">
+                        <option :value="1">{{ t('timetracking', 'Ab 1. Krankheitstag') }}</option>
+                        <option :value="2">{{ t('timetracking', 'Ab 2. Krankheitstag') }}</option>
+                        <option :value="3">{{ t('timetracking', 'Ab 3. Krankheitstag') }}</option>
+                        <option :value="4">{{ t('timetracking', 'Ab 4. Krankheitstag (gesetzlich)') }}</option>
+                    </select>
+                    <p class="hint">
+                        {{ t('timetracking', 'Ab welchem Krankheitstag eine Arbeitsunfähigkeitsbescheinigung vorgelegt werden muss (EFZG §5).') }}
+                    </p>
+                </div>
+                
                 <div v-if="isAdmin" class="form-actions">
                     <NcButton type="submit">
                         {{ editingPeriodId ? t('timetracking', 'Zeitraum speichern') : (showNewPeriodForm ? t('timetracking', 'Zeitraum anlegen') : t('timetracking', 'Einstellungen Speichern')) }}
@@ -293,6 +306,7 @@ export default {
                 employmentStart: '',
                 validFrom: '',
                 validTo: '',
+                sickNoteRequiredDay: 4,
             },
         }
     },
@@ -417,6 +431,7 @@ export default {
                     this.form.employmentStart = this.savedSettings.employmentStart || ''
                     this.form.validFrom = this.savedSettings.validFrom || ''
                     this.form.validTo = this.savedSettings.validTo || ''
+                    this.form.sickNoteRequiredDay = this.savedSettings.sickNoteRequiredDay ?? 4
                 }
             } catch (error) {
                 console.error(error)
@@ -478,6 +493,7 @@ export default {
             this.form.employmentStart = period.employmentStart || ''
             this.form.validFrom = period.validFrom ? period.validFrom.split('T')[0] : ''
             this.form.validTo = period.validTo ? period.validTo.split('T')[0] : ''
+            this.form.sickNoteRequiredDay = period.sickNoteRequiredDay ?? 4
         },
         cancelEdit() {
             this.showNewPeriodForm = false
@@ -492,6 +508,7 @@ export default {
                 this.form.employmentStart = this.savedSettings.employmentStart || ''
                 this.form.validFrom = this.savedSettings.validFrom || ''
                 this.form.validTo = this.savedSettings.validTo || ''
+                this.form.sickNoteRequiredDay = this.savedSettings.sickNoteRequiredDay ?? 4
             }
         },
         async deletePeriod(period) {

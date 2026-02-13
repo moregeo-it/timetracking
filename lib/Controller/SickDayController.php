@@ -50,9 +50,14 @@ class SickDayController extends Controller {
         $isAdmin = $this->isAdmin();
         
         if ($userId !== null && $isAdmin) {
+            // Admin viewing a specific user's sick days
             $sickDays = $this->sickDayMapper->findByUser($userId, $year);
-        } else {
+        } elseif ($isAdmin) {
+            // Admin viewing all sick days
             $sickDays = $this->sickDayMapper->findAll($year);
+        } else {
+            // Non-admin: only show own sick days
+            $sickDays = $this->sickDayMapper->findByUser($this->userId, $year);
         }
         
         $result = [];
@@ -100,20 +105,24 @@ class SickDayController extends Controller {
         string $startDate,
         string $endDate,
         int $days,
-        ?string $notes = null
+        ?string $notes = null,
+        ?string $userId = null
     ): DataResponse {
         try {
+            // Admins can create sick days for other users
+            $targetUserId = ($userId !== null && $this->isAdmin()) ? $userId : $this->userId;
+            
             $start = new DateTime($startDate);
             $end = new DateTime($endDate);
             
-            if ($this->sickDayMapper->hasOverlappingSickDay($this->userId, $start, $end)) {
+            if ($this->sickDayMapper->hasOverlappingSickDay($targetUserId, $start, $end)) {
                 return new DataResponse([
                     'error' => 'Sick day entry overlaps with an existing entry'
                 ], 409);
             }
             
             $sickDay = new SickDay();
-            $sickDay->setUserId($this->userId);
+            $sickDay->setUserId($targetUserId);
             $sickDay->setStartDate($start);
             $sickDay->setEndDate($end);
             $sickDay->setDays($days);

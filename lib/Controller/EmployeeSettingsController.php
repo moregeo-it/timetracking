@@ -130,7 +130,8 @@ class EmployeeSettingsController extends Controller {
         ?string $validFrom = null,
         ?string $validTo = null,
         ?string $targetUserId = null,
-        ?int $periodId = null
+        ?int $periodId = null,
+        ?int $sickNoteRequiredDay = null
     ): DataResponse {
         // Only admins can update settings
         if (!$this->groupManager->isAdmin($this->userId)) {
@@ -184,6 +185,7 @@ class EmployeeSettingsController extends Controller {
         $settings->setHourlyRate($hourlyRate);
         $settings->setValidFrom($validFromDate);
         $settings->setValidTo($validToDate);
+        $settings->setSickNoteRequiredDay($sickNoteRequiredDay ?? 4);
         
         // For freelance workers, vacation days don't apply
         if ($employmentType === 'freelance') {
@@ -221,7 +223,8 @@ class EmployeeSettingsController extends Controller {
         ?float $hourlyRate = null,
         ?string $employmentStart = null,
         ?string $validTo = null,
-        ?string $targetUserId = null
+        ?string $targetUserId = null,
+        ?int $sickNoteRequiredDay = null
     ): DataResponse {
         // Only admins can create settings
         if (!$this->groupManager->isAdmin($this->userId)) {
@@ -249,6 +252,7 @@ class EmployeeSettingsController extends Controller {
         $settings->setHourlyRate($hourlyRate);
         $settings->setValidFrom($validFromDate);
         $settings->setValidTo($validToDate);
+        $settings->setSickNoteRequiredDay($sickNoteRequiredDay ?? 4);
         
         if ($employmentType === 'freelance') {
             $settings->setVacationDaysPerYear(0);

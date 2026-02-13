@@ -282,7 +282,7 @@ export default {
             editingVacation: null,
             isAdmin: getCurrentUser()?.isAdmin || false,
             allUsers: [],
-            selectedUserId: '',
+            selectedUserId: getCurrentUser()?.uid || '',
             form: {
                 startDate: '',
                 endDate: '',
@@ -317,9 +317,9 @@ export default {
             return (this.balance.remainingDays / this.balance.totalDays) * 100
         },
     },
-    mounted() {
+    async mounted() {
         if (this.isAdmin) {
-            this.loadAllUsers()
+            await this.loadAllUsers()
             this.loadPendingRequests()
         }
         this.loadVacations()

@@ -6,6 +6,7 @@ namespace OCA\TimeTracking\Controller;
 use DateTime;
 use DateTimeZone;
 use OCA\TimeTracking\Db\TimeEntryMapper;
+use OCA\TimeTracking\Db\SickDayMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Http\DataDownloadResponse;
@@ -28,6 +29,7 @@ class TimeTrackingPDF extends TCPDF {
 
 class ExportController extends Controller {
     private TimeEntryMapper $timeEntryMapper;
+    private SickDayMapper $sickDayMapper;
     private IGroupManager $groupManager;
     private IUserManager $userManager;
     private IConfig $config;
@@ -43,6 +45,7 @@ class ExportController extends Controller {
         string $appName,
         IRequest $request,
         TimeEntryMapper $timeEntryMapper,
+        SickDayMapper $sickDayMapper,
         IGroupManager $groupManager,
         IUserManager $userManager,
         IConfig $config,
@@ -50,6 +53,7 @@ class ExportController extends Controller {
     ) {
         parent::__construct($appName, $request);
         $this->timeEntryMapper = $timeEntryMapper;
+        $this->sickDayMapper = $sickDayMapper;
         $this->groupManager = $groupManager;
         $this->userManager = $userManager;
         $this->config = $config;
@@ -221,6 +225,54 @@ class ExportController extends Controller {
         $pdf->Cell(35, 7, $this->formatDuration($totalMinutes), 1, 1, 'C');
 
         return $totalMinutes;
+    }
+
+    /**
+     * Add sick days section to the PDF
+     * 
+     * @param TimeTrackingPDF $pdf The PDF object
+     * @param string $userId User ID
+     * @param DateTime $startDate Start of the period
+     * @param DateTime $endDate End of the period
+     */
+    private function addSickDaysSection(TimeTrackingPDF $pdf, string $userId, DateTime $startDate, DateTime $endDate): void {
+        $sickDays = $this->sickDayMapper->findByDateRange($userId, $startDate, $endDate);
+        
+        if (empty($sickDays)) {
+            return;
+        }
+
+        $pdf->Ln(6);
+        $pdf->SetFont('dejavusans', 'B', 11);
+        $pdf->Cell(0, 8, 'Krankheitstage', 0, 1, 'L');
+        $pdf->Ln(2);
+
+        // Table header
+        $pdf->SetFont('dejavusans', 'B', 9);
+        $pdf->SetFillColor(240, 240, 240);
+        $pdf->Cell(57, 7, 'Von', 1, 0, 'C', true);
+        $pdf->Cell(57, 7, 'Bis', 1, 0, 'C', true);
+        $pdf->Cell(56, 7, 'Tage', 1, 1, 'C', true);
+
+        $pdf->SetFont('dejavusans', '', 9);
+        $totalSickDays = 0;
+
+        foreach ($sickDays as $sickDay) {
+            $start = $sickDay->getStartDate();
+            $end = $sickDay->getEndDate();
+            $days = $sickDay->getDays();
+
+            $pdf->Cell(57, 6, $start ? $start->format('d.m.Y') : '', 1, 0, 'C');
+            $pdf->Cell(57, 6, $end ? $end->format('d.m.Y') : '', 1, 0, 'C');
+            $pdf->Cell(56, 6, (string)$days, 1, 1, 'C');
+
+            $totalSickDays += $days;
+        }
+
+        // Total row
+        $pdf->SetFont('dejavusans', 'B', 9);
+        $pdf->Cell(114, 7, 'Gesamt Krankheitstage', 1, 0, 'R');
+        $pdf->Cell(56, 7, (string)$totalSickDays, 1, 1, 'C');
     }
 
     /**
@@ -413,6 +465,9 @@ class ExportController extends Controller {
             $pdf->Cell(85, 7, 'Gesamtjahr', 1, 0, 'R');
             $pdf->Cell(85, 7, $this->formatDuration($grandTotalMinutes), 1, 1, 'C');
 
+            // Add sick days for the year
+            $this->addSickDaysSection($pdf, $userId, $startDate, $endDate);
+
             // Add signature section
             $this->addSignatureSection($pdf);
 
@@ -420,6 +475,7 @@ class ExportController extends Controller {
         } else {
             // Single month - add one page with signature
             $this->addTimesheetSection($pdf, $employeeName, $periodLabel, $entries);
+            $this->addSickDaysSection($pdf, $userId, $startDate, $endDate);
             $this->addSignatureSection($pdf);
             
             $filename = "Arbeitszeitnachweis_{$employeeName}_{$periodLabel}.pdf";

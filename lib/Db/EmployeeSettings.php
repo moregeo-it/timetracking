@@ -31,6 +31,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(\DateTime $createdAt)
  * @method \DateTime getUpdatedAt()
  * @method void setUpdatedAt(\DateTime $updatedAt)
+ * @method int|null getSickNoteRequiredDay()
+ * @method void setSickNoteRequiredDay(?int $sickNoteRequiredDay)
  */
 class EmployeeSettings extends Entity implements JsonSerializable {
     protected $userId;
@@ -42,6 +44,7 @@ class EmployeeSettings extends Entity implements JsonSerializable {
     protected $employmentStart;
     protected $validFrom;  // Date when these settings become effective
     protected $validTo;    // Date when these settings end (null = current/indefinite)
+    protected $sickNoteRequiredDay; // Day of illness when AU is required (EFZG §5, default 4)
     protected $createdAt;
     protected $updatedAt;
 
@@ -66,6 +69,7 @@ class EmployeeSettings extends Entity implements JsonSerializable {
         $this->addType('maxTotalHours', 'float');
         $this->addType('vacationDaysPerYear', 'integer');
         $this->addType('hourlyRate', 'float');
+        $this->addType('sickNoteRequiredDay', 'integer');
         $this->addType('employmentStart', 'datetime');
         $this->addType('validFrom', 'datetime');
         $this->addType('validTo', 'datetime');
@@ -82,6 +86,7 @@ class EmployeeSettings extends Entity implements JsonSerializable {
             'maxTotalHours' => $this->getMaxTotalHours(),
             'vacationDaysPerYear' => $this->getVacationDaysPerYear(),
             'hourlyRate' => $this->getHourlyRate(),
+            'sickNoteRequiredDay' => $this->getSickNoteRequiredDay() ?? 4,
             'employmentStart' => $this->getEmploymentStart()?->format('Y-m-d'),
             'validFrom' => $this->getValidFrom()?->format('Y-m-d'),
             'validTo' => $this->getValidTo()?->format('Y-m-d'),

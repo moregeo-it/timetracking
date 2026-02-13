@@ -184,6 +184,10 @@
         "Erfasste Stunden": "Tracked Hours",
         "Erwartete Stunden": "Expected Hours",
         "Tägliche Übersicht": "Daily Overview",
+        "Typ": "Type",
+        "Krank": "Sick",
+        "Arbeit": "Work",
+        "Feiertag": "Holiday",
         "Woche": "Week",
         "Vertragliche Wochenstunden": "Contractual Weekly Hours",
         "Ø Stunden/Tag": "Avg Hours/Day",
@@ -344,6 +348,12 @@
         "Krankmeldung erstellt": "Sick leave recorded",
         "Krankmeldung überschneidet sich mit einer bestehenden Krankmeldung": "Sick leave overlaps with an existing sick leave entry",
         "Krankmeldung wirklich löschen?": "Really delete sick leave entry?",
-        "Krankmeldung gelöscht": "Sick leave deleted"
+        "Krankmeldung gelöscht": "Sick leave deleted",
+        "AU-Pflicht ab Tag": "Sick Note Required From Day",
+        "Ab 1. Krankheitstag": "From 1st day of illness",
+        "Ab 2. Krankheitstag": "From 2nd day of illness",
+        "Ab 3. Krankheitstag": "From 3rd day of illness",
+        "Ab 4. Krankheitstag (gesetzlich)": "From 4th day of illness (statutory)",
+        "Ab welchem Krankheitstag eine Arbeitsunfähigkeitsbescheinigung vorgelegt werden muss (EFZG §5).": "From which day of illness a doctor's certificate must be presented (EFZG §5)."
     }
 }

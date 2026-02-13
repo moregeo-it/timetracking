@@ -184,7 +184,7 @@ export default {
             editingSickDay: null,
             isAdmin: getCurrentUser()?.isAdmin || false,
             allUsers: [],
-            selectedUserId: '',
+            selectedUserId: getCurrentUser()?.uid || '',
             form: {
                 startDate: '',
                 endDate: '',
@@ -204,9 +204,9 @@ export default {
             return user ? (user.displayName || user.id) : null
         },
     },
-    mounted() {
+    async mounted() {
         if (this.isAdmin) {
-            this.loadAllUsers()
+            await this.loadAllUsers()
         }
         this.loadSickDays()
         this.loadSummary()
@@ -282,23 +282,29 @@ export default {
         },
         async saveSickDay() {
             try {
+                const data = { ...this.form }
+                // Admin creating sick day for selected employee
+                if (this.isAdmin && this.selectedUserId) {
+                    data.userId = this.selectedUserId
+                }
+
                 if (this.editingSickDay) {
                     await axios.put(
                         generateUrl(`/apps/timetracking/api/sick-days/${this.editingSickDay.id}`),
-                        this.form
+                        data
                     )
                     showSuccess(t('timetracking', 'Krankmeldung aktualisiert'))
                 } else {
                     await axios.post(
                         generateUrl('/apps/timetracking/api/sick-days'),
-                        this.form
+                        data
                     )
                     showSuccess(t('timetracking', 'Krankmeldung erstellt'))
                 }
                 
                 this.closeModal()
-                this.loadSickDays()
-                this.loadSummary()
+                await this.loadSickDays()
+                await this.loadSummary()
             } catch (error) {
                 if (error.response?.status === 409) {
                     showError(t('timetracking', 'Krankmeldung überschneidet sich mit einer bestehenden Krankmeldung'))
@@ -316,8 +322,8 @@ export default {
             try {
                 await axios.delete(generateUrl(`/apps/timetracking/api/sick-days/${id}`))
                 showSuccess(t('timetracking', 'Krankmeldung gelöscht'))
-                this.loadSickDays()
-                this.loadSummary()
+                await this.loadSickDays()
+                await this.loadSummary()
             } catch (error) {
                 showError(t('timetracking', 'Fehler beim Löschen'))
                 console.error(error)

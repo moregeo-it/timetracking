@@ -256,9 +256,10 @@ class ReportController extends Controller {
      * @param DateTime $startDate Start of the date range
      * @param DateTime $endDate End of the date range
      * @param float $dailyHours Average daily working hours (weeklyHours / 5)
+     * @param string $employmentType Employment type of the user (used to exclude sick days for interns/freelancers)
      * @return array Array with vacation days, sick days, holiday days, and total credited hours
      */
-    private function calculateCreditedHours(string $userId, DateTime $startDate, DateTime $endDate, float $dailyHours): array {
+    private function calculateCreditedHours(string $userId, DateTime $startDate, DateTime $endDate, float $dailyHours, string $employmentType = 'contract'): array {
         $vacationDays = 0;
         $sickDaysCount = 0;
         $publicHolidayDays = 0;
@@ -267,28 +268,25 @@ class ReportController extends Controller {
         $holidayDates = [];
         
         // Get approved vacations in the date range
+        // Use the stored days count directly — some employees work on Saturdays
         $vacations = $this->vacationMapper->findByDateRange($userId, $startDate, $endDate);
         foreach ($vacations as $vacation) {
             if ($vacation->getStatus() !== 'approved') {
                 continue;
             }
             
-            // Iterate through each day of the vacation
+            // Credit the entered number of days directly
+            $vacationDays += $vacation->getDays();
+            
+            // Collect individual dates for the daily summary display
             $vacStart = $vacation->getStartDate();
             $vacEnd = $vacation->getEndDate();
-            
             $current = clone $vacStart;
             while ($current <= $vacEnd) {
-                // Only count if within our date range
                 if ($current >= $startDate && $current <= $endDate) {
-                    $dayOfWeek = (int)$current->format('N'); // 1=Monday, 7=Sunday
-                    // Only count weekdays (Mon-Fri)
-                    if ($dayOfWeek <= 5) {
-                        $dateStr = $current->format('Y-m-d');
-                        if (!in_array($dateStr, $vacationDates)) {
-                            $vacationDates[] = $dateStr;
-                            $vacationDays++;
-                        }
+                    $dateStr = $current->format('Y-m-d');
+                    if (!in_array($dateStr, $vacationDates)) {
+                        $vacationDates[] = $dateStr;
                     }
                 }
                 $current->modify('+1 day');
@@ -296,37 +294,40 @@ class ReportController extends Controller {
         }
         
         // Get sick days in the date range
-        $sickDayEntries = $this->sickDayMapper->findByDateRange($userId, $startDate, $endDate);
-        foreach ($sickDayEntries as $sickDay) {
-            $sickStart = $sickDay->getStartDate();
-            $sickEnd = $sickDay->getEndDate();
-            
-            $current = clone $sickStart;
-            while ($current <= $sickEnd) {
-                if ($current >= $startDate && $current <= $endDate) {
-                    $dayOfWeek = (int)$current->format('N');
-                    // Only count weekdays (Mon-Fri) and don't double-count with vacation days
-                    if ($dayOfWeek <= 5) {
+        // Use the stored days count directly — some employees work on Saturdays
+        // Sick days for interns and freelancers do NOT add to credited hours
+        $includeSickDays = !in_array($employmentType, ['intern', 'freelance']);
+        if ($includeSickDays) {
+            $sickDayEntries = $this->sickDayMapper->findByDateRange($userId, $startDate, $endDate);
+            foreach ($sickDayEntries as $sickDay) {
+                // Credit the entered number of days directly
+                $sickDaysCount += $sickDay->getDays();
+                
+                // Collect individual dates for the daily summary display
+                $sickStart = $sickDay->getStartDate();
+                $sickEnd = $sickDay->getEndDate();
+                $current = clone $sickStart;
+                while ($current <= $sickEnd) {
+                    if ($current >= $startDate && $current <= $endDate) {
                         $dateStr = $current->format('Y-m-d');
                         if (!in_array($dateStr, $sickDates) && !in_array($dateStr, $vacationDates)) {
                             $sickDates[] = $dateStr;
-                            $sickDaysCount++;
                         }
                     }
+                    $current->modify('+1 day');
                 }
-                $current->modify('+1 day');
             }
         }
         
-        // Get public holidays in the date range
+        // Get public holidays in the date range (Mon-Sat, as some employees work Saturdays)
         $holidays = $this->publicHolidayMapper->findByDateRange($startDate, $endDate);
         foreach ($holidays as $holiday) {
             $holidayDate = $holiday->getDate();
             $dayOfWeek = (int)$holidayDate->format('N');
             $dateStr = $holidayDate->format('Y-m-d');
             
-            // Only count weekdays (Mon-Fri) and don't double-count with vacation or sick days
-            if ($dayOfWeek <= 5 && !in_array($dateStr, $holidayDates) && !in_array($dateStr, $vacationDates) && !in_array($dateStr, $sickDates)) {
+            // Count Mon-Sat (exclude only Sundays) and don't double-count
+            if ($dayOfWeek <= 6 && !in_array($dateStr, $holidayDates) && !in_array($dateStr, $vacationDates) && !in_array($dateStr, $sickDates)) {
                 $holidayDates[] = $dateStr;
                 $publicHolidayDays++;
             }
@@ -338,10 +339,13 @@ class ReportController extends Controller {
         return [
             'vacationDays' => $vacationDays,
             'vacationHours' => round($vacationDays * $dailyHours, 2),
+            'vacationDates' => $vacationDates,
             'sickDays' => $sickDaysCount,
             'sickDayHours' => round($sickDaysCount * $dailyHours, 2),
+            'sickDates' => $sickDates,
             'publicHolidayDays' => $publicHolidayDays,
             'publicHolidayHours' => round($publicHolidayDays * $dailyHours, 2),
+            'holidayDates' => $holidayDates,
             'totalCreditedDays' => $totalCreditedDays,
             'totalCreditedHours' => $totalCreditedHours,
         ];
@@ -833,6 +837,7 @@ class ReportController extends Controller {
             $report['dailySummary'][] = [
                 'date' => $date,
                 'hours' => round($hours, 2),
+                'type' => 'work',
             ];
             if ($hours > 0) {
                 $report['totals']['workDays']++;
@@ -886,8 +891,68 @@ class ReportController extends Controller {
                 
                 // Calculate credited hours for vacations and public holidays
                 if ($rangeStart && $rangeEnd) {
-                    $creditedHours = $this->calculateCreditedHours($userId, $rangeStart, $rangeEnd, $dailyContractHours);
+                    $creditedHours = $this->calculateCreditedHours($userId, $rangeStart, $rangeEnd, $dailyContractHours, $settings->getEmploymentType());
                     $report['totals']['creditedHours'] = $creditedHours;
+                    
+                    // Add credited days (vacation, sick, holiday) to dailySummary
+                    $existingDates = array_column($report['dailySummary'], 'date');
+                    foreach ($creditedHours['vacationDates'] ?? [] as $date) {
+                        if (!in_array($date, $existingDates)) {
+                            $report['dailySummary'][] = [
+                                'date' => $date,
+                                'hours' => $dailyContractHours,
+                                'type' => 'vacation',
+                            ];
+                        } else {
+                            // Mark existing work day also as vacation
+                            foreach ($report['dailySummary'] as &$day) {
+                                if ($day['date'] === $date) {
+                                    $day['type'] = 'vacation';
+                                    break;
+                                }
+                            }
+                            unset($day);
+                        }
+                    }
+                    foreach ($creditedHours['sickDates'] ?? [] as $date) {
+                        if (!in_array($date, $existingDates)) {
+                            $report['dailySummary'][] = [
+                                'date' => $date,
+                                'hours' => $dailyContractHours,
+                                'type' => 'sick',
+                            ];
+                        } else {
+                            foreach ($report['dailySummary'] as &$day) {
+                                if ($day['date'] === $date) {
+                                    $day['type'] = 'sick';
+                                    break;
+                                }
+                            }
+                            unset($day);
+                        }
+                    }
+                    foreach ($creditedHours['holidayDates'] ?? [] as $date) {
+                        if (!in_array($date, $existingDates)) {
+                            $report['dailySummary'][] = [
+                                'date' => $date,
+                                'hours' => $dailyContractHours,
+                                'type' => 'holiday',
+                            ];
+                        } else {
+                            foreach ($report['dailySummary'] as &$day) {
+                                if ($day['date'] === $date) {
+                                    $day['type'] = 'holiday';
+                                    break;
+                                }
+                            }
+                            unset($day);
+                        }
+                    }
+                    
+                    // Sort dailySummary by date
+                    usort($report['dailySummary'], function($a, $b) {
+                        return strcmp($a['date'], $b['date']);
+                    });
                     
                     // Calculate effective hours (worked + credited)
                     $workedHours = $report['totals']['hours'];
@@ -995,7 +1060,7 @@ class ReportController extends Controller {
                 // Calculate credited hours for non-freelance employees
                 if ($settings->getEmploymentType() !== 'freelance' && $rangeStart && $rangeEnd) {
                     $dailyContractHours = $settings->getWeeklyHours() / 5;
-                    $creditedHours = $this->calculateCreditedHours($userId, $rangeStart, $rangeEnd, $dailyContractHours);
+                    $creditedHours = $this->calculateCreditedHours($userId, $rangeStart, $rangeEnd, $dailyContractHours, $settings->getEmploymentType());
                     $employeeData['creditedHours'] = $creditedHours;
                     $employeeData['effectiveHours'] = round($hours + $creditedHours['totalCreditedHours'], 2);
                 }

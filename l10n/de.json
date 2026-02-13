@@ -184,6 +184,10 @@
         "Erfasste Stunden": "Erfasste Stunden",
         "Erwartete Stunden": "Erwartete Stunden",
         "Tägliche Übersicht": "Tägliche Übersicht",
+        "Typ": "Typ",
+        "Krank": "Krank",
+        "Arbeit": "Arbeit",
+        "Feiertag": "Feiertag",
         "Woche": "Woche",
         "Vertragliche Wochenstunden": "Vertragliche Wochenstunden",
         "Ø Stunden/Tag": "Ø Stunden/Tag",
@@ -344,6 +348,12 @@
         "Krankmeldung erstellt": "Krankmeldung erstellt",
         "Krankmeldung überschneidet sich mit einer bestehenden Krankmeldung": "Krankmeldung überschneidet sich mit einer bestehenden Krankmeldung",
         "Krankmeldung wirklich löschen?": "Krankmeldung wirklich löschen?",
-        "Krankmeldung gelöscht": "Krankmeldung gelöscht"
+        "Krankmeldung gelöscht": "Krankmeldung gelöscht",
+        "AU-Pflicht ab Tag": "AU-Pflicht ab Tag",
+        "Ab 1. Krankheitstag": "Ab 1. Krankheitstag",
+        "Ab 2. Krankheitstag": "Ab 2. Krankheitstag",
+        "Ab 3. Krankheitstag": "Ab 3. Krankheitstag",
+        "Ab 4. Krankheitstag (gesetzlich)": "Ab 4. Krankheitstag (gesetzlich)",
+        "Ab welchem Krankheitstag eine Arbeitsunfähigkeitsbescheinigung vorgelegt werden muss (EFZG §5).": "Ab welchem Krankheitstag eine Arbeitsunfähigkeitsbescheinigung vorgelegt werden muss (EFZG §5)."
     }
 }
