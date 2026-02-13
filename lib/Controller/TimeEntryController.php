@@ -332,19 +332,31 @@ class TimeEntryController extends Controller {
     /**
      * @NoAdminRequired
      * 
-     * Start a new timer. The start time is the current server time (stored as UTC timestamp).
+     * Start a new timer. Optionally specify a custom start time.
+     * 
+     * @param int|null $projectId Optional project ID
+     * @param string|null $description Optional description
+     * @param string|null $startTime Optional ISO 8601 datetime for custom start time (e.g., "2026-02-13T08:30:00+01:00"). Defaults to now.
      */
-    public function startTimer(?int $projectId = null, ?string $description = null): DataResponse {
+    public function startTimer(?int $projectId = null, ?string $description = null, ?string $startTime = null): DataResponse {
         // Check if there's already a running timer
         $running = $this->mapper->findRunningTimer($this->userId);
         if ($running) {
             return new DataResponse(['error' => 'Timer already running'], 400);
         }
         
-        $nowTs = time();
+        if ($startTime !== null) {
+            $startTs = $this->parseIsoToTimestamp($startTime);
+            // Don't allow start time in the future
+            if ($startTs > time()) {
+                return new DataResponse(['error' => 'Startzeit darf nicht in der Zukunft liegen'], 400);
+            }
+        } else {
+            $startTs = time();
+        }
         
         // Check date restrictions (Sundays and public holidays)
-        $dateRestriction = $this->checkDateRestriction($nowTs);
+        $dateRestriction = $this->checkDateRestriction($startTs);
         if ($dateRestriction !== null) {
             return new DataResponse($dateRestriction, 400);
         }
@@ -354,7 +366,7 @@ class TimeEntryController extends Controller {
             $entry->setProjectId($projectId);
         }
         $entry->setUserId($this->userId);
-        $entry->setStartTimestamp($nowTs);
+        $entry->setStartTimestamp($startTs);
         $entry->setDescription($description);
         $entry->setBillable(true);
         $entry->setCreatedAt(new \DateTime());
@@ -406,6 +418,21 @@ class TimeEntryController extends Controller {
         $running->setUpdatedAt(new \DateTime());
         
         return new DataResponse($this->mapper->update($running));
+    }
+
+    /**
+     * @NoAdminRequired
+     * 
+     * Cancel the running timer. The timer entry is deleted without saving.
+     */
+    public function cancelTimer(): DataResponse {
+        $running = $this->mapper->findRunningTimer($this->userId);
+        if (!$running) {
+            return new DataResponse(['error' => 'No running timer'], 400);
+        }
+        
+        $this->mapper->delete($running);
+        return new DataResponse(['success' => true]);
     }
 
     /**

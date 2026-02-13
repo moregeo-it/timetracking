@@ -18,7 +18,11 @@
                 <h3>{{ t('timetracking', 'Zeiterfassung') }}</h3>
                 <div :class="['timer-display', { overtime: isOvertime }]">{{ timerDisplay }}</div>
                 <p v-if="isOvertime" class="overtime-warning">⚠️ {{ t('timetracking', 'Bitte machen Sie eine Pause!') }}</p>
-                <NcButton type="button" @click="openStopDialog" style="width: 100%">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
+                <p class="timer-started-at">{{ t('timetracking', 'Gestartet um') }}: {{ formatTimerStartTime() }}</p>
+                <div class="timer-actions">
+                    <NcButton type="button" @click="openStopDialog">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
+                    <NcButton type="button" @click="confirmCancelTimer">{{ t('timetracking', 'Timer Abbrechen') }}</NcButton>
+                </div>
             </div>
         </div>
         
@@ -26,7 +30,16 @@
             <div class="timer-card">
                 <h3>{{ t('timetracking', 'Zeiterfassung') }}</h3>
                 <p class="no-timer-display">{{ t('timetracking', 'Kein aktiver Timer') }}</p>
-                <NcButton type="button" @click="startTimer" style="width: 100%">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                <div class="timer-start-options">
+                    <div class="timer-start-row">
+                        <NcButton type="button" @click="startTimer()" style="flex: 1">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                    </div>
+                    <div class="timer-start-row custom-start">
+                        <label>{{ t('timetracking', 'Startzeit') }}:</label>
+                        <input v-model="customStartTime" type="time" class="custom-time-input">
+                        <NcButton type="button" @click="startTimerAtCustomTime">{{ t('timetracking', 'Timer ab Uhrzeit starten') }}</NcButton>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -239,6 +252,7 @@ export default {
             employmentType: null,
             filterStartDate: weekAgo.toISOString().split('T')[0],
             filterEndDate: today,
+            customStartTime: '',
             manualForm: {
                 projectId: '',
                 date: today,
@@ -384,13 +398,43 @@ export default {
                 console.error(error)
             }
         },
+        startTimerAtCustomTime() {
+            if (!this.customStartTime) {
+                showError(this.t('timetracking', 'Bitte eine Startzeit eingeben'))
+                return
+            }
+            // Build ISO 8601 datetime from today's date + the chosen time
+            const today = new Date()
+            const [hours, minutes] = this.customStartTime.split(':').map(Number)
+            const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, 0)
+            // Don't allow future times
+            if (startDate > new Date()) {
+                showError(this.t('timetracking', 'Startzeit darf nicht in der Zukunft liegen'))
+                return
+            }
+            this.startTimer(startDate.toISOString())
+        },
+        confirmCancelTimer() {
+            if (confirm(this.t('timetracking', 'Timer wirklich abbrechen? Die erfasste Zeit wird nicht gespeichert.'))) {
+                this.cancelTimer()
+            }
+        },
+        formatTimerStartTime() {
+            if (!this.runningTimer?.startTime) return '-'
+            return new Date(this.runningTimer.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+        },
         onTimerStarted() {
             this.runningProjectName = ''
+            this.customStartTime = ''
             this.checkDailyCompliance()
         },
         onTimerStopped() {
             this.runningProjectName = ''
             this.loadEntries()
+            this.checkDailyCompliance()
+        },
+        onTimerCancelled() {
+            this.runningProjectName = ''
             this.checkDailyCompliance()
         },
         async addManualEntry() {
@@ -559,6 +603,48 @@ export default {
 .timer-card.running {
     border-color: #2e7d32;
     background: var(--color-background-hover);
+}
+
+.timer-started-at {
+    font-size: 13px;
+    color: var(--color-text-maxcontrast);
+    margin: 0 0 15px 0;
+}
+
+.timer-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.timer-start-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.timer-start-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.timer-start-row.custom-start {
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border);
+}
+
+.timer-start-row.custom-start label {
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.custom-time-input {
+    padding: 6px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100px;
 }
 
 .no-timer-display {

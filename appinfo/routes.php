@@ -26,6 +26,7 @@ return [
         ['name' => 'time_entry#delete', 'url' => '/api/time-entries/{id}', 'verb' => 'DELETE'],
         ['name' => 'time_entry#start_timer', 'url' => '/api/time-entries/start', 'verb' => 'POST'],
         ['name' => 'time_entry#stop_timer', 'url' => '/api/time-entries/stop', 'verb' => 'POST'],
+        ['name' => 'time_entry#cancel_timer', 'url' => '/api/time-entries/cancel', 'verb' => 'POST'],
         ['name' => 'time_entry#check_daily_compliance', 'url' => '/api/time-entries/compliance', 'verb' => 'GET'],
         
         // Report routes

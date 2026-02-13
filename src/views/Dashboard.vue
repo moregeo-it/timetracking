@@ -25,11 +25,19 @@
                 <div v-if="runningTimer" class="timer-running">
                     <div :class="['timer-display', { overtime: isOvertime }]">{{ timerDisplay }}</div>
                     <p v-if="isOvertime" class="overtime-warning">⚠️ {{ t('timetracking', 'Bitte machen Sie eine Pause!') }}</p>
-                    <NcButton type="button" @click="openStopDialog" style="width: 100%">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
+                    <p class="timer-started-at">{{ t('timetracking', 'Gestartet um') }}: {{ formatTimerStartTime() }}</p>
+                    <div class="timer-actions">
+                        <NcButton type="button" @click="openStopDialog" style="flex: 1">{{ t('timetracking', 'Timer Stoppen') }}</NcButton>
+                        <NcButton type="button" @click="confirmCancelTimer">{{ t('timetracking', 'Timer Abbrechen') }}</NcButton>
+                    </div>
                 </div>
                 <div v-else>
                     <p class="no-timer-display">{{ t('timetracking', 'Kein aktiver Timer') }}</p>
-                    <NcButton type="button" @click="startTimer" style="width: 100%">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                    <NcButton type="button" @click="startTimer()" style="width: 100%; margin-bottom: 8px">{{ t('timetracking', 'Timer Starten') }}</NcButton>
+                    <div class="timer-start-row-compact">
+                        <input v-model="customStartTime" type="time" class="custom-time-input-sm">
+                        <NcButton type="button" @click="startTimerAtCustomTime">{{ t('timetracking', 'Ab Uhrzeit') }}</NcButton>
+                    </div>
                 </div>
             </div>
         </div>
@@ -94,6 +102,7 @@ export default {
             recentEntries: [],
             projects: [],
             customers: [],
+            customStartTime: '',
         }
     },
     mounted() {
@@ -186,12 +195,37 @@ export default {
             return project ? project.name : this.t('timetracking', 'Unbekannt')
         },
         t,
+        formatTimerStartTime() {
+            if (!this.runningTimer?.startTime) return '-'
+            return new Date(this.runningTimer.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+        },
+        startTimerAtCustomTime() {
+            if (!this.customStartTime) {
+                return
+            }
+            const today = new Date()
+            const [hours, minutes] = this.customStartTime.split(':').map(Number)
+            const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, 0)
+            if (startDate > new Date()) {
+                return
+            }
+            this.startTimer(startDate.toISOString())
+        },
+        confirmCancelTimer() {
+            if (confirm(this.t('timetracking', 'Timer wirklich abbrechen? Die erfasste Zeit wird nicht gespeichert.'))) {
+                this.cancelTimer()
+            }
+        },
         onTimerStarted() {
             this.runningProject = null
+            this.customStartTime = ''
         },
         onTimerStopped() {
             this.runningProject = null
             this.loadData()
+        },
+        onTimerCancelled() {
+            this.runningProject = null
         },
     },
 }
@@ -261,6 +295,33 @@ export default {
     color: #c62828;
     font-weight: bold;
     margin: 5px 0;
+}
+
+.timer-started-at {
+    font-size: 12px;
+    color: var(--color-text-maxcontrast);
+    margin: 0 0 10px 0;
+}
+
+.timer-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.timer-start-row-compact {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-time-input-sm {
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 13px;
+    width: 90px;
 }
 
 .recent-entries {

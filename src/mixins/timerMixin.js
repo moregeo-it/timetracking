@@ -62,23 +62,53 @@ export default {
                 hours.toString().padStart(2, '0') + ':' +
                 minutes.toString().padStart(2, '0') + ' '
         },
-        async startTimer() {
+        /**
+         * Start a timer. If startTime is provided (ISO 8601 string), the timer
+         * starts at that time instead of "now".
+         * @param {string|null} startTime Optional ISO 8601 datetime string
+         */
+        async startTimer(startTime = null) {
             try {
+                const payload = {}
+                if (startTime) {
+                    payload.startTime = startTime
+                }
                 const response = await axios.post(
                     generateUrl('/apps/timetracking/api/time-entries/start'),
-                    {}
+                    payload
                 )
                 this.runningTimer = response.data
                 this.onTimerStarted()
                 this.startTimerDisplay()
                 showSuccess(t('timetracking', 'Timer gestartet'))
             } catch (error) {
-                showError(t('timetracking', 'Fehler beim Starten des Timers'))
+                if (error.response?.data?.error) {
+                    showError(error.response.data.error)
+                } else {
+                    showError(t('timetracking', 'Fehler beim Starten des Timers'))
+                }
                 console.error(error)
             }
         },
         openStopDialog() {
             this.showStopDialog = true
+        },
+        async cancelTimer() {
+            try {
+                await axios.post(generateUrl('/apps/timetracking/api/time-entries/cancel'))
+                showSuccess(t('timetracking', 'Timer abgebrochen'))
+                this.runningTimer = null
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval)
+                    this.timerInterval = null
+                }
+                this.timerDisplay = 'n/a'
+                this.timerSeconds = 0
+                this.onTimerCancelled()
+            } catch (error) {
+                showError(t('timetracking', 'Fehler beim Abbrechen des Timers'))
+                console.error(error)
+            }
         },
         async stopTimerWithDetails(details) {
             try {
@@ -110,6 +140,9 @@ export default {
         },
         onTimerStopped() {
             // Override in component to refresh data
+        },
+        onTimerCancelled() {
+            // Override in component if needed
         },
     },
 }
