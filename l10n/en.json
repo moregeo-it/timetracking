@@ -316,6 +316,24 @@
         "Bitte machen Sie eine Pause!": "Please take a break!",
         "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Working time over 6 hours - Please take required breaks!",
         "Einträge aus vergangenen Monaten können nicht bearbeitet werden": "Entries from past months cannot be edited",
-        "Einträge aus vergangenen Monaten können nicht gelöscht werden": "Entries from past months cannot be deleted"
+        "Einträge aus vergangenen Monaten können nicht gelöscht werden": "Entries from past months cannot be deleted",
+        "Krankmeldungen": "Sick Leave",
+        "Krankheitstage": "Sick Days",
+        "Krankheitstage gesamt": "Total Sick Days",
+        "Lohnfortzahlung (max. 42 Tage/Fall)": "Continued pay (max. 42 days/case)",
+        "EFZG §3": "EFZG §3",
+        "Krankmeldung erfassen": "Record Sick Leave",
+        "Krankmeldungsübersicht": "Sick Leave Overview",
+        "Keine Krankmeldungen vorhanden": "No sick leave entries available",
+        "Krankmeldung bearbeiten": "Edit Sick Leave",
+        "Anzahl der Krankheitstage eingeben": "Enter number of sick days",
+        "Bitte Wochenenden und Feiertage nicht mitzählen.": "Please do not count weekends and public holidays.",
+        "Optional: Hinweise zur Krankmeldung...": "Optional: Notes about the sick leave...",
+        "Fehler beim Laden der Krankmeldungen": "Error loading sick leave data",
+        "Krankmeldung aktualisiert": "Sick leave updated",
+        "Krankmeldung erstellt": "Sick leave recorded",
+        "Krankmeldung überschneidet sich mit einer bestehenden Krankmeldung": "Sick leave overlaps with an existing sick leave entry",
+        "Krankmeldung wirklich löschen?": "Really delete sick leave entry?",
+        "Krankmeldung gelöscht": "Sick leave deleted"
     }
 }

@@ -377,13 +377,17 @@
                     <strong>{{ t('timetracking', 'Erwartete Stunden') }}:</strong> {{ employeeReport.totals.expectedHours }} h<br>
                     <strong>{{ t('timetracking', 'Erfasste Stunden') }}:</strong> {{ employeeReport.totals.hours }} h
                     
-                    <!-- Credited hours for vacation and public holidays -->
+                    <!-- Credited hours for vacation, sick days and public holidays -->
                     <template v-if="employeeReport.totals.creditedHours">
                         <br><br>
                         <strong>{{ t('timetracking', 'Gutgeschriebene Stunden:') }}</strong><br>
                         <span class="indent">
                             {{ t('timetracking', 'Urlaubstage') }}: {{ employeeReport.totals.creditedHours.vacationDays }} 
                             ({{ employeeReport.totals.creditedHours.vacationHours }} h)
+                        </span><br>
+                        <span class="indent">
+                            {{ t('timetracking', 'Krankheitstage') }}: {{ employeeReport.totals.creditedHours.sickDays }} 
+                            ({{ employeeReport.totals.creditedHours.sickDayHours }} h)
                         </span><br>
                         <span class="indent">
                             {{ t('timetracking', 'Feiertage') }}: {{ employeeReport.totals.creditedHours.publicHolidayDays }} 

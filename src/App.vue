@@ -33,6 +33,11 @@
                     :name="t('timetracking', 'Urlaub')"
                     icon="icon-calendar-dark">
                 </NcAppNavigationItem>
+                <NcAppNavigationItem
+                    :to="{ path: '/sick-days' }"
+                    :name="t('timetracking', 'Krankmeldungen')"
+                    icon="icon-error">
+                </NcAppNavigationItem>
             </NcAppNavigationList>
             
             <template #footer>

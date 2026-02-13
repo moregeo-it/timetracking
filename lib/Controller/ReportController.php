@@ -10,6 +10,7 @@ use OCA\TimeTracking\Db\ProjectMultiplierMapper;
 use OCA\TimeTracking\Db\CustomerMapper;
 use OCA\TimeTracking\Db\EmployeeSettingsMapper;
 use OCA\TimeTracking\Db\VacationMapper;
+use OCA\TimeTracking\Db\SickDayMapper;
 use OCA\TimeTracking\Db\PublicHolidayMapper;
 use OCA\TimeTracking\Service\ComplianceService;
 use OCP\AppFramework\Controller;
@@ -26,6 +27,7 @@ class ReportController extends Controller {
     private CustomerMapper $customerMapper;
     private EmployeeSettingsMapper $employeeSettingsMapper;
     private VacationMapper $vacationMapper;
+    private SickDayMapper $sickDayMapper;
     private PublicHolidayMapper $publicHolidayMapper;
     private ComplianceService $complianceService;
     private IGroupManager $groupManager;
@@ -42,6 +44,7 @@ class ReportController extends Controller {
         CustomerMapper $customerMapper,
         EmployeeSettingsMapper $employeeSettingsMapper,
         VacationMapper $vacationMapper,
+        SickDayMapper $sickDayMapper,
         PublicHolidayMapper $publicHolidayMapper,
         ComplianceService $complianceService,
         IGroupManager $groupManager,
@@ -56,6 +59,7 @@ class ReportController extends Controller {
         $this->customerMapper = $customerMapper;
         $this->employeeSettingsMapper = $employeeSettingsMapper;
         $this->vacationMapper = $vacationMapper;
+        $this->sickDayMapper = $sickDayMapper;
         $this->publicHolidayMapper = $publicHolidayMapper;
         $this->complianceService = $complianceService;
         $this->groupManager = $groupManager;
@@ -242,18 +246,24 @@ class ReportController extends Controller {
     }
 
     /**
-     * Calculate credited hours for vacations and public holidays in a date range
+     * Calculate credited hours for vacations, sick days, and public holidays in a date range
      * 
-     * @param string $userId User ID to check vacations for
+     * Under German law (EFZG §3), employers must continue paying wages during sick leave
+     * for up to 6 weeks (42 calendar days) per illness case. Sick days are credited
+     * similarly to vacation days in working time reports.
+     * 
+     * @param string $userId User ID to check vacations/sick days for
      * @param DateTime $startDate Start of the date range
      * @param DateTime $endDate End of the date range
      * @param float $dailyHours Average daily working hours (weeklyHours / 5)
-     * @return array Array with vacation days, holiday days, and total credited hours
+     * @return array Array with vacation days, sick days, holiday days, and total credited hours
      */
     private function calculateCreditedHours(string $userId, DateTime $startDate, DateTime $endDate, float $dailyHours): array {
         $vacationDays = 0;
+        $sickDaysCount = 0;
         $publicHolidayDays = 0;
         $vacationDates = [];
+        $sickDates = [];
         $holidayDates = [];
         
         // Get approved vacations in the date range
@@ -285,6 +295,29 @@ class ReportController extends Controller {
             }
         }
         
+        // Get sick days in the date range
+        $sickDayEntries = $this->sickDayMapper->findByDateRange($userId, $startDate, $endDate);
+        foreach ($sickDayEntries as $sickDay) {
+            $sickStart = $sickDay->getStartDate();
+            $sickEnd = $sickDay->getEndDate();
+            
+            $current = clone $sickStart;
+            while ($current <= $sickEnd) {
+                if ($current >= $startDate && $current <= $endDate) {
+                    $dayOfWeek = (int)$current->format('N');
+                    // Only count weekdays (Mon-Fri) and don't double-count with vacation days
+                    if ($dayOfWeek <= 5) {
+                        $dateStr = $current->format('Y-m-d');
+                        if (!in_array($dateStr, $sickDates) && !in_array($dateStr, $vacationDates)) {
+                            $sickDates[] = $dateStr;
+                            $sickDaysCount++;
+                        }
+                    }
+                }
+                $current->modify('+1 day');
+            }
+        }
+        
         // Get public holidays in the date range
         $holidays = $this->publicHolidayMapper->findByDateRange($startDate, $endDate);
         foreach ($holidays as $holiday) {
@@ -292,19 +325,21 @@ class ReportController extends Controller {
             $dayOfWeek = (int)$holidayDate->format('N');
             $dateStr = $holidayDate->format('Y-m-d');
             
-            // Only count weekdays (Mon-Fri) and don't double-count with vacation days
-            if ($dayOfWeek <= 5 && !in_array($dateStr, $holidayDates) && !in_array($dateStr, $vacationDates)) {
+            // Only count weekdays (Mon-Fri) and don't double-count with vacation or sick days
+            if ($dayOfWeek <= 5 && !in_array($dateStr, $holidayDates) && !in_array($dateStr, $vacationDates) && !in_array($dateStr, $sickDates)) {
                 $holidayDates[] = $dateStr;
                 $publicHolidayDays++;
             }
         }
         
-        $totalCreditedDays = $vacationDays + $publicHolidayDays;
+        $totalCreditedDays = $vacationDays + $sickDaysCount + $publicHolidayDays;
         $totalCreditedHours = round($totalCreditedDays * $dailyHours, 2);
         
         return [
             'vacationDays' => $vacationDays,
             'vacationHours' => round($vacationDays * $dailyHours, 2),
+            'sickDays' => $sickDaysCount,
+            'sickDayHours' => round($sickDaysCount * $dailyHours, 2),
             'publicHolidayDays' => $publicHolidayDays,
             'publicHolidayHours' => round($publicHolidayDays * $dailyHours, 2),
             'totalCreditedDays' => $totalCreditedDays,

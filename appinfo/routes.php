@@ -57,6 +57,14 @@ return [
         ['name' => 'vacation#approve', 'url' => '/api/vacations/{id}/approve', 'verb' => 'POST'],
         ['name' => 'vacation#reject', 'url' => '/api/vacations/{id}/reject', 'verb' => 'POST'],
         
+        // Sick day routes
+        ['name' => 'sick_day#index', 'url' => '/api/sick-days', 'verb' => 'GET'],
+        ['name' => 'sick_day#show', 'url' => '/api/sick-days/{id}', 'verb' => 'GET'],
+        ['name' => 'sick_day#create', 'url' => '/api/sick-days', 'verb' => 'POST'],
+        ['name' => 'sick_day#update', 'url' => '/api/sick-days/{id}', 'verb' => 'PUT'],
+        ['name' => 'sick_day#destroy', 'url' => '/api/sick-days/{id}', 'verb' => 'DELETE'],
+        ['name' => 'sick_day#summary', 'url' => '/api/sick-days/summary/{year}', 'verb' => 'GET'],
+        
         // Employee settings routes
         ['name' => 'employee_settings#get', 'url' => '/api/employee-settings', 'verb' => 'GET'],
         ['name' => 'employee_settings#create', 'url' => '/api/employee-settings', 'verb' => 'POST'],

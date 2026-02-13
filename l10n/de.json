@@ -316,6 +316,24 @@
         "Bitte machen Sie eine Pause!": "Bitte machen Sie eine Pause!",
         "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!": "Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!",
         "Einträge aus vergangenen Monaten können nicht bearbeitet werden": "Einträge aus vergangenen Monaten können nicht bearbeitet werden",
-        "Einträge aus vergangenen Monaten können nicht gelöscht werden": "Einträge aus vergangenen Monaten können nicht gelöscht werden"
+        "Einträge aus vergangenen Monaten können nicht gelöscht werden": "Einträge aus vergangenen Monaten können nicht gelöscht werden",
+        "Krankmeldungen": "Krankmeldungen",
+        "Krankheitstage": "Krankheitstage",
+        "Krankheitstage gesamt": "Krankheitstage gesamt",
+        "Lohnfortzahlung (max. 42 Tage/Fall)": "Lohnfortzahlung (max. 42 Tage/Fall)",
+        "EFZG §3": "EFZG §3",
+        "Krankmeldung erfassen": "Krankmeldung erfassen",
+        "Krankmeldungsübersicht": "Krankmeldungsübersicht",
+        "Keine Krankmeldungen vorhanden": "Keine Krankmeldungen vorhanden",
+        "Krankmeldung bearbeiten": "Krankmeldung bearbeiten",
+        "Anzahl der Krankheitstage eingeben": "Anzahl der Krankheitstage eingeben",
+        "Bitte Wochenenden und Feiertage nicht mitzählen.": "Bitte Wochenenden und Feiertage nicht mitzählen.",
+        "Optional: Hinweise zur Krankmeldung...": "Optional: Hinweise zur Krankmeldung...",
+        "Fehler beim Laden der Krankmeldungen": "Fehler beim Laden der Krankmeldungen",
+        "Krankmeldung aktualisiert": "Krankmeldung aktualisiert",
+        "Krankmeldung erstellt": "Krankmeldung erstellt",
+        "Krankmeldung überschneidet sich mit einer bestehenden Krankmeldung": "Krankmeldung überschneidet sich mit einer bestehenden Krankmeldung",
+        "Krankmeldung wirklich löschen?": "Krankmeldung wirklich löschen?",
+        "Krankmeldung gelöscht": "Krankmeldung gelöscht"
     }
 }
