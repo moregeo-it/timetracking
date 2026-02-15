@@ -76,6 +76,10 @@
                     <div class="stat-label">{{ t('timetracking', 'Jahresanspruch') }}</div>
                     <div class="stat-value primary">{{ balance.totalDays }} {{ t('timetracking', 'Tage') }}</div>
                 </div>
+                <div v-if="balance.carryOver !== 0" class="stat-item">
+                    <div class="stat-label">{{ t('timetracking', 'Übertrag Vorjahre') }}</div>
+                    <div class="stat-value" :class="balance.carryOver >= 0 ? 'success' : 'used'">{{ balance.carryOver > 0 ? '+' : '' }}{{ balance.carryOver }} {{ t('timetracking', 'Tage') }}</div>
+                </div>
                 <div class="stat-item">
                     <div class="stat-label">{{ t('timetracking', 'Genommen') }}</div>
                     <div class="stat-value used">{{ balance.usedDays }} {{ t('timetracking', 'Tage') }}</div>
@@ -302,19 +306,22 @@ export default {
             return user ? (user.displayName || user.id) : null
         },
         hasVacationEntitlement() {
-            return this.balance && this.balance.totalDays > 0
+            return this.balance && (this.balance.totalWithCarryOver || this.balance.totalDays) > 0
         },
         usedPercentage() {
-            if (!this.balance || this.balance.totalDays === 0) return 0
-            return (this.balance.usedDays / this.balance.totalDays) * 100
+            const total = this.balance?.totalWithCarryOver || this.balance?.totalDays || 0
+            if (!this.balance || total === 0) return 0
+            return Math.max(0, (this.balance.usedDays / total) * 100)
         },
         pendingPercentage() {
-            if (!this.balance || this.balance.totalDays === 0) return 0
-            return (this.balance.pendingDays / this.balance.totalDays) * 100
+            const total = this.balance?.totalWithCarryOver || this.balance?.totalDays || 0
+            if (!this.balance || total === 0) return 0
+            return Math.max(0, (this.balance.pendingDays / total) * 100)
         },
         remainingPercentage() {
-            if (!this.balance || this.balance.totalDays === 0) return 0
-            return (this.balance.remainingDays / this.balance.totalDays) * 100
+            const total = this.balance?.totalWithCarryOver || this.balance?.totalDays || 0
+            if (!this.balance || total === 0) return 0
+            return Math.max(0, (this.balance.remainingDays / total) * 100)
         },
     },
     async mounted() {
@@ -414,9 +421,14 @@ export default {
                     )
                     showSuccess(t('timetracking', 'Urlaub aktualisiert'))
                 } else {
+                    const payload = { ...this.form }
+                    // Admin creating vacation for another employee
+                    if (this.isAdmin && this.selectedUserId) {
+                        payload.userId = this.selectedUserId
+                    }
                     await axios.post(
                         generateUrl('/apps/timetracking/api/vacations'),
-                        this.form
+                        payload
                     )
                     showSuccess(t('timetracking', 'Urlaubsantrag erstellt'))
                 }

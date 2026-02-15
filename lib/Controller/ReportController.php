@@ -246,6 +246,62 @@ class ReportController extends Controller {
     }
 
     /**
+     * Resolve the date range for a 'total' period report for an employee.
+     * Returns the earliest employment start date and today as end date.
+     *
+     * @param string $userId User ID
+     * @return array [DateTime $rangeStart, DateTime $rangeEnd, array $allPeriods]
+     */
+    private function resolveTotalDateRange(string $userId): array {
+        $allPeriods = $this->employeeSettingsMapper->findAllByUserId($userId);
+        $earliestStart = null;
+        foreach ($allPeriods as $period) {
+            $start = $period->getEmploymentStart() ?? $period->getValidFrom();
+            if ($start !== null && ($earliestStart === null || $start < $earliestStart)) {
+                $earliestStart = $start;
+            }
+        }
+        $rangeStart = $earliestStart ?? new DateTime('2020-01-01');
+        $rangeEnd = new DateTime();
+        $rangeEnd->setTime(23, 59, 59);
+        return [$rangeStart, $rangeEnd, $allPeriods];
+    }
+
+    /**
+     * Calculate expected working hours across multiple employment settings periods.
+     * Counts Mon-Fri workdays in each period's effective date range and multiplies
+     * by the period-specific daily hours (weeklyHours / 5).
+     *
+     * @param array $settingsPeriods Array of EmployeeSettings objects
+     * @param DateTime $rangeStart Overall start date
+     * @param DateTime $rangeEnd Overall end date
+     * @return float Total expected hours, rounded to 2 decimal places
+     */
+    private function calculateExpectedHoursFromPeriods(array $settingsPeriods, DateTime $rangeStart, DateTime $rangeEnd): float {
+        $totalExpected = 0;
+        foreach ($settingsPeriods as $period) {
+            $pStart = $period->getValidFrom() ?? $rangeStart;
+            $pEnd = $period->getValidTo() ?? $rangeEnd;
+            // Clamp to report range
+            $effectiveStart = ($pStart > $rangeStart) ? $pStart : $rangeStart;
+            $effectiveEnd = ($pEnd < $rangeEnd) ? $pEnd : $rangeEnd;
+            if ($effectiveStart > $effectiveEnd) {
+                continue;
+            }
+            $workdays = 0;
+            $current = clone $effectiveStart;
+            while ($current <= $effectiveEnd) {
+                if ((int)$current->format('N') <= 5) {
+                    $workdays++;
+                }
+                $current->modify('+1 day');
+            }
+            $totalExpected += $workdays * ($period->getWeeklyHours() / 5);
+        }
+        return round($totalExpected, 2);
+    }
+
+    /**
      * Calculate credited hours for vacations, sick days, and public holidays in a date range
      * 
      * Under German law (EFZG §3), employers must continue paying wages during sick leave
@@ -789,18 +845,31 @@ class ReportController extends Controller {
         [$rangeStart, $rangeEnd] = $this->getDateRange($periodType, $year, $month, $quarter, $startDate, $endDate);
         
         $settings = $this->employeeSettingsMapper->findByUserId($userId);
+        
+        // For 'total' period type, resolve date range from employment settings (start of employment to today)
+        $allSettingsPeriods = null;
+        if ($periodType === 'total') {
+            [$rangeStart, $rangeEnd, $allSettingsPeriods] = $this->resolveTotalDateRange($userId);
+        }
+        
         $entries = $this->timeEntryMapper->findByUser(
             $userId,
             $this->dateTimeToTimestamp($rangeStart),
             $this->dateTimeToTimestamp($rangeEnd)
         );
         
+        // Build period label — for 'total', include the resolved date range
+        $periodLabel = $this->getPeriodLabel($periodType, $year, $month, $quarter, $startDate, $endDate);
+        if ($periodType === 'total' && $rangeStart && $rangeEnd) {
+            $periodLabel = $this->l10n->t('Gesamt') . ' (' . $rangeStart->format('d.m.Y') . ' – ' . $rangeEnd->format('d.m.Y') . ')';
+        }
+        
         $report = [
             'userId' => $userId,
             'employeeSettings' => $settings,
             'period' => [
                 'type' => $periodType,
-                'label' => $this->getPeriodLabel($periodType, $year, $month, $quarter, $startDate, $endDate),
+                'label' => $periodLabel,
                 'year' => $year,
                 'month' => $month,
                 'quarter' => $quarter,
@@ -890,6 +959,12 @@ class ReportController extends Controller {
                         break;
                     case 'year':
                         $report['totals']['expectedHours'] = round($settings->getWeeklyHours() * 52, 2);
+                        break;
+                    case 'total':
+                        // Calculate expected hours across all employment settings periods
+                        // (handles different weekly hours in different periods correctly)
+                        $periods = $allSettingsPeriods ?? $this->employeeSettingsMapper->findAllByUserId($userId);
+                        $report['totals']['expectedHours'] = $this->calculateExpectedHoursFromPeriods($periods, $rangeStart, $rangeEnd);
                         break;
                 }
                 
@@ -1061,12 +1136,28 @@ class ReportController extends Controller {
                 $employeeData['employmentType'] = $settings->getEmploymentType();
                 $employeeData['weeklyHours'] = $settings->getWeeklyHours();
                 
+                // Resolve date range for 'total' period type per employee
+                $empRangeStart = $rangeStart;
+                $empRangeEnd = $rangeEnd;
+                $empAllPeriods = null;
+                if ($periodType === 'total') {
+                    [$empRangeStart, $empRangeEnd, $empAllPeriods] = $this->resolveTotalDateRange($userId);
+                }
+                
                 // Calculate credited hours for non-freelance employees
-                if ($settings->getEmploymentType() !== 'freelance' && $rangeStart && $rangeEnd) {
+                if ($settings->getEmploymentType() !== 'freelance' && $empRangeStart && $empRangeEnd) {
                     $dailyContractHours = $settings->getWeeklyHours() / 5;
-                    $creditedHours = $this->calculateCreditedHours($userId, $rangeStart, $rangeEnd, $dailyContractHours, $settings->getEmploymentType());
+                    $creditedHours = $this->calculateCreditedHours($userId, $empRangeStart, $empRangeEnd, $dailyContractHours, $settings->getEmploymentType());
                     $employeeData['creditedHours'] = $creditedHours;
                     $employeeData['effectiveHours'] = round($hours + $creditedHours['totalCreditedHours'], 2);
+                    
+                    // For 'total' period, also calculate expected hours and balance per employee
+                    if ($periodType === 'total') {
+                        $periods = $empAllPeriods ?? [$settings];
+                        $expectedHours = $this->calculateExpectedHoursFromPeriods($periods, $empRangeStart, $empRangeEnd);
+                        $employeeData['expectedHours'] = $expectedHours;
+                        $employeeData['balance'] = round($employeeData['effectiveHours'] - $expectedHours, 2);
+                    }
                 }
             }
             

@@ -312,10 +312,11 @@
                         <option value="month">{{ t('timetracking', 'Monat') }}</option>
                         <option value="quarter">{{ t('timetracking', 'Quartal') }}</option>
                         <option value="year">{{ t('timetracking', 'Jahr') }}</option>
+                        <option value="total">{{ t('timetracking', 'Gesamt (ab Beschäftigungsbeginn)') }}</option>
                         <option value="custom">{{ t('timetracking', 'Benutzerdefiniert') }}</option>
                     </select>
                 </div>
-                <div class="form-group" v-if="employeeReportForm.periodType !== 'custom'">
+                <div class="form-group" v-if="employeeReportForm.periodType !== 'custom' && employeeReportForm.periodType !== 'total'">
                     <label>{{ t('timetracking', 'Jahr') }}</label>
                     <input v-model.number="employeeReportForm.year" type="number" :min="2020" :max="2030" required>
                 </div>
@@ -486,6 +487,9 @@
                             <th>{{ t('timetracking', 'Einträge') }}</th>
                             <th>{{ t('timetracking', 'Stundensatz') }}</th>
                             <th>{{ t('timetracking', 'Umsatz') }}</th>
+                            <th v-if="employeeReport.period.type === 'total'">{{ t('timetracking', 'Soll') }}</th>
+                            <th v-if="employeeReport.period.type === 'total'">{{ t('timetracking', 'Effektiv') }}</th>
+                            <th v-if="employeeReport.period.type === 'total'">{{ t('timetracking', 'Saldo') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -496,6 +500,11 @@
                             <td>{{ emp.entryCount }}</td>
                             <td>{{ emp.hourlyRate ? emp.hourlyRate + ' €' : '-' }}</td>
                             <td>{{ emp.revenue ? emp.revenue + ' €' : '-' }}</td>
+                            <td v-if="employeeReport.period.type === 'total'">{{ emp.expectedHours !== undefined ? emp.expectedHours + ' h' : '-' }}</td>
+                            <td v-if="employeeReport.period.type === 'total'">{{ emp.effectiveHours !== undefined ? emp.effectiveHours + ' h' : '-' }}</td>
+                            <td v-if="employeeReport.period.type === 'total'" :class="{ positive: emp.balance >= 0, negative: emp.balance < 0 }">
+                                {{ emp.balance !== undefined ? (emp.balance >= 0 ? '+' : '') + emp.balance + ' h' : '-' }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>

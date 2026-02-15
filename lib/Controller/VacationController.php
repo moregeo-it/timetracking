@@ -234,33 +234,47 @@ class VacationController extends Controller {
         string $startDate,
         string $endDate,
         int $days,
-        ?string $notes = null
+        ?string $notes = null,
+        ?string $userId = null
     ): DataResponse {
         try {
+            // Admins can create vacations for other employees
+            $targetUserId = $this->userId;
+            if ($userId !== null && $userId !== '' && $userId !== $this->userId) {
+                if (!$this->isAdmin()) {
+                    return new DataResponse(['error' => 'Only admins can create vacations for other users'], 403);
+                }
+                $targetUserId = $userId;
+            }
+            
             $start = new DateTime($startDate);
             $end = new DateTime($endDate);
             
             // Check for overlapping vacations
-            if ($this->vacationMapper->hasOverlappingVacation($this->userId, $start, $end)) {
+            if ($this->vacationMapper->hasOverlappingVacation($targetUserId, $start, $end)) {
                 return new DataResponse([
                     'error' => 'Vacation request overlaps with an existing vacation'
                 ], 409);
             }
             
             $vacation = new Vacation();
-            $vacation->setUserId($this->userId);
+            $vacation->setUserId($targetUserId);
             $vacation->setStartDate($start);
             $vacation->setEndDate($end);
             $vacation->setDays($days);
-            $vacation->setStatus('pending');
+            // When an admin creates a vacation for another employee, auto-approve it
+            $isAdminCreatingForOther = $this->isAdmin() && $targetUserId !== $this->userId;
+            $vacation->setStatus($isAdminCreatingForOther ? 'approved' : 'pending');
             $vacation->setNotes($notes);
             $vacation->setCreatedAt(new DateTime());
             $vacation->setUpdatedAt(new DateTime());
 
             $result = $this->vacationMapper->insert($vacation);
             
-            // Notify admins about the new vacation request
-            $this->notifyAdminsAboutNewVacationRequest($vacation);
+            // Only notify admins when an employee submits their own request
+            if (!$isAdminCreatingForOther) {
+                $this->notifyAdminsAboutNewVacationRequest($vacation);
+            }
             
             return new DataResponse($result);
         } catch (\Exception $e) {
@@ -365,9 +379,11 @@ class VacationController extends Controller {
                 $targetUserId = $userId;
             }
             
-            // Get employee settings to determine vacation days per year
-            $settings = $this->employeeSettingsMapper->findByUserId($targetUserId);
-            $totalDays = $settings ? $settings->getVacationDaysPerYear() : 20;
+            // Calculate prorated vacation entitlement based on employment periods within the year.
+            // If an employee started mid-year or has varying settings periods with different
+            // vacation day entitlements, the total is calculated proportionally per period.
+            // This follows German law (§ 5 BUrlG) which requires prorating for partial years.
+            $totalDays = $this->calculateProratedVacationDays($targetUserId, $year);
             
             // Calculate used days (approved vacations)
             $usedDays = $this->vacationMapper->getTotalDaysUsed($targetUserId, $year);
@@ -381,17 +397,155 @@ class VacationController extends Controller {
                 }
             }
             
+            // Calculate carry-over from previous years:
+            // Sum of (entitlement - used) for each year from employment start to year-1
+            $carryOver = $this->calculateCarryOver($targetUserId, $year);
+            
+            $totalWithCarryOver = $totalDays + $carryOver;
+            
             return new DataResponse([
                 'year' => $year,
-                'totalDays' => $totalDays,
-                'usedDays' => $usedDays,
-                'pendingDays' => $pendingDays,
-                'remainingDays' => $totalDays - $usedDays - $pendingDays,
-                'availableDays' => $totalDays - $usedDays,
+                'totalDays' => round($totalDays, 2),
+                'carryOver' => round($carryOver, 2),
+                'totalWithCarryOver' => round($totalWithCarryOver, 2),
+                'usedDays' => round($usedDays, 2),
+                'pendingDays' => round($pendingDays, 2),
+                'remainingDays' => round($totalWithCarryOver - $usedDays - $pendingDays, 2),
+                'availableDays' => round($totalWithCarryOver - $usedDays, 2),
             ]);
         } catch (\Exception $e) {
             return new DataResponse(['error' => $e->getMessage()], 400);
         }
+    }
+
+    /**
+     * Calculate prorated vacation days for a given year based on employment periods.
+     *
+     * Considers:
+     * - Employment start date (employmentStart or validFrom): if mid-year, entitlement
+     *   is prorated from that date to year-end (1/12 per full month, § 5 BUrlG).
+     * - Employment end date (validTo): if mid-year, entitlement is prorated to that date.
+     * - Multiple settings periods with potentially different vacationDaysPerYear values:
+     *   each period contributes proportionally to the months it covers within the year.
+     *
+     * @param string $userId The user ID
+     * @param int $year The year to calculate for
+     * @return float Prorated vacation day entitlement, rounded to 1 decimal
+     */
+    private function calculateProratedVacationDays(string $userId, int $year): float {
+        $yearStart = new DateTime("$year-01-01");
+        $yearEnd = new DateTime("$year-12-31");
+        
+        // Get all settings periods that overlap with this year
+        $periods = $this->employeeSettingsMapper->findByUserIdInRange($userId, $yearStart, $yearEnd);
+        
+        if (empty($periods)) {
+            // Fallback: use current settings (full year assumed)
+            $settings = $this->employeeSettingsMapper->findByUserId($userId);
+            return $settings ? (float)$settings->getVacationDaysPerYear() : 20.0;
+        }
+        
+        $totalEntitlement = 0.0;
+        
+        foreach ($periods as $period) {
+            $vacationDaysPerYear = $period->getVacationDaysPerYear();
+            if ($vacationDaysPerYear <= 0) {
+                continue; // Freelancers etc. with 0 vacation days
+            }
+            
+            // Determine effective start of this period within the year.
+            // Use validFrom (the period boundary) rather than employmentStart (global hire date).
+            $periodStart = $period->getValidFrom();
+            $effectiveStart = ($periodStart !== null && $periodStart > $yearStart) ? $periodStart : $yearStart;
+            
+            // If the employee's actual employment started after the period start,
+            // they're not entitled to vacation before their hire date (§ 5 BUrlG proration).
+            // Only apply this when employmentStart falls within the queried year.
+            $employmentStart = $period->getEmploymentStart();
+            if ($employmentStart !== null && $employmentStart > $effectiveStart && $employmentStart <= $yearEnd) {
+                $effectiveStart = $employmentStart;
+            }
+            
+            // Determine effective end of this period within the year
+            $periodEnd = $period->getValidTo();
+            $effectiveEnd = ($periodEnd !== null && $periodEnd < $yearEnd) ? $periodEnd : $yearEnd;
+            
+            if ($effectiveStart > $effectiveEnd) {
+                continue;
+            }
+            
+            // Calculate the number of full months covered (§ 5 BUrlG: 1/12 per full month)
+            $startMonth = (int)$effectiveStart->format('n'); // 1-12
+            $startDay = (int)$effectiveStart->format('j');
+            $endMonth = (int)$effectiveEnd->format('n');
+            $endDay = (int)$effectiveEnd->format('j');
+            $endDaysInMonth = (int)$effectiveEnd->format('t');
+            
+            // Count full months: a month counts if the employee was employed for
+            // the entire month or started on the 1st / ended on the last day.
+            $fullMonths = 0;
+            for ($m = $startMonth; $m <= $endMonth; $m++) {
+                $monthStart = ($m === $startMonth) ? $startDay : 1;
+                $monthEnd = ($m === $endMonth) ? $endDay : (int)(new DateTime("$year-$m-01"))->format('t');
+                $daysInMonth = (int)(new DateTime("$year-$m-01"))->format('t');
+                
+                // Month counts as full if it starts on day 1 and ends on last day
+                if ($monthStart === 1 && $monthEnd === $daysInMonth) {
+                    $fullMonths++;
+                }
+            }
+            
+            // Prorate: vacationDaysPerYear × (fullMonths / 12)
+            $periodEntitlement = $vacationDaysPerYear * ($fullMonths / 12);
+            $totalEntitlement += $periodEntitlement;
+        }
+        
+        return round($totalEntitlement, 2);
+    }
+
+    /**
+     * Calculate vacation carry-over from all previous years.
+     *
+     * For each year from the employee's employment start year up to (but not including)
+     * the given year, the difference (entitlement − used) is accumulated. A positive
+     * carry-over means the employee has unused days from the past; a negative value
+     * means they took more vacation than entitled (overspent).
+     *
+     * @param string $userId The user ID
+     * @param int $year The target year (carry-over is calculated up to year-1)
+     * @return float Cumulative carry-over days (can be negative)
+     */
+    private function calculateCarryOver(string $userId, int $year): float {
+        // Find the earliest employment year from all settings periods
+        $allPeriods = $this->employeeSettingsMapper->findAllByUserId($userId);
+        if (empty($allPeriods)) {
+            return 0.0;
+        }
+
+        $earliestYear = $year; // fallback
+        foreach ($allPeriods as $period) {
+            $start = $period->getEmploymentStart() ?? $period->getValidFrom();
+            if ($start !== null) {
+                $y = (int)$start->format('Y');
+                if ($y < $earliestYear) {
+                    $earliestYear = $y;
+                }
+            }
+        }
+
+        // If employment started in the same year or later, no carry-over
+        if ($earliestYear >= $year) {
+            return 0.0;
+        }
+
+        $carryOver = 0.0;
+        for ($y = $earliestYear; $y < $year; $y++) {
+            $entitlement = $this->calculateProratedVacationDays($userId, $y);
+            $used = $this->vacationMapper->getTotalDaysUsed($userId, $y);
+            $carryOver += ($entitlement - $used);
+        }
+
+        return round($carryOver, 2);
     }
 
     /**
