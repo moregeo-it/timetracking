@@ -256,7 +256,7 @@ class ReportController extends Controller {
      * @param DateTime $startDate Start of the date range
      * @param DateTime $endDate End of the date range
      * @param float $dailyHours Average daily working hours (weeklyHours / 5)
-     * @param string $employmentType Employment type of the user (used to exclude sick days for interns/freelancers)
+     * @param string $employmentType Employment type of the user (used to exclude sick days and public holidays for interns/freelancers)
      * @return array Array with vacation days, sick days, holiday days, and total credited hours
      */
     private function calculateCreditedHours(string $userId, DateTime $startDate, DateTime $endDate, float $dailyHours, string $employmentType = 'contract'): array {
@@ -320,16 +320,20 @@ class ReportController extends Controller {
         }
         
         // Get public holidays in the date range (Mon-Sat, as some employees work Saturdays)
-        $holidays = $this->publicHolidayMapper->findByDateRange($startDate, $endDate);
-        foreach ($holidays as $holiday) {
-            $holidayDate = $holiday->getDate();
-            $dayOfWeek = (int)$holidayDate->format('N');
-            $dateStr = $holidayDate->format('Y-m-d');
-            
-            // Count Mon-Sat (exclude only Sundays) and don't double-count
-            if ($dayOfWeek <= 6 && !in_array($dateStr, $holidayDates) && !in_array($dateStr, $vacationDates) && !in_array($dateStr, $sickDates)) {
-                $holidayDates[] = $dateStr;
-                $publicHolidayDays++;
+        // Public holidays for interns and freelancers do NOT add to credited hours
+        $includePublicHolidays = !in_array($employmentType, ['intern', 'freelance']);
+        if ($includePublicHolidays) {
+            $holidays = $this->publicHolidayMapper->findByDateRange($startDate, $endDate);
+            foreach ($holidays as $holiday) {
+                $holidayDate = $holiday->getDate();
+                $dayOfWeek = (int)$holidayDate->format('N');
+                $dateStr = $holidayDate->format('Y-m-d');
+                
+                // Count Mon-Sat (exclude only Sundays) and don't double-count
+                if ($dayOfWeek <= 6 && !in_array($dateStr, $holidayDates) && !in_array($dateStr, $vacationDates) && !in_array($dateStr, $sickDates)) {
+                    $holidayDates[] = $dateStr;
+                    $publicHolidayDays++;
+                }
             }
         }
         
