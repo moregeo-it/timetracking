@@ -799,14 +799,14 @@ class ReportController extends Controller {
             $report['totals']['actualBillableHours'] = round($actualTotalBillableHours, 2);
             $report['totals']['amount'] = $report['totals']['billableHours'] * ($project->getHourlyRate() ?? 0);
             
-            // Add budget usage if available (using adjusted hours)
+            // Add budget usage if available (using adjusted billable hours)
             if ($project->getBudgetHours()) {
                 $report['budget'] = [
                     'budgetHours' => $project->getBudgetHours(),
-                    'usedHours' => round($report['totals']['hours'], 2),
-                    'actualUsedHours' => round($actualTotalHours, 2),
-                    'remainingHours' => round($project->getBudgetHours() - $report['totals']['hours'], 2),
-                    'usagePercent' => round(($report['totals']['hours'] / $project->getBudgetHours()) * 100, 1),
+                    'usedHours' => round($report['totals']['billableHours'], 2),
+                    'actualUsedHours' => round($actualTotalBillableHours, 2),
+                    'remainingHours' => round($project->getBudgetHours() - $report['totals']['billableHours'], 2),
+                    'usagePercent' => round(($report['totals']['billableHours'] / $project->getBudgetHours()) * 100, 1),
                 ];
             }
             
@@ -825,6 +825,13 @@ class ReportController extends Controller {
                     $description = $this->l10n->t('(Kein Kommentar)');
                 }
                 $hours = ($entry->getDurationMinutes() ?? 0) / 60;
+
+                // Apply employment type multiplier for billable hours
+                $entryDate = new DateTime('@' . $entry->getStartTimestamp());
+                $employmentType = $this->getEmploymentTypeForUser($entry->getUserId(), $entryDate);
+                $multiplier = $this->projectMultiplierMapper->getMultiplierValue($project->getId(), $employmentType);
+                $adjustedHours = $hours * $multiplier;
+
                 if (!isset($commentSummary[$description])) {
                     $commentSummary[$description] = [
                         'description' => $description,
@@ -835,7 +842,7 @@ class ReportController extends Controller {
                 }
                 $commentSummary[$description]['actualHours'] += $hours;
                 if ($entry->getBillable()) {
-                    $commentSummary[$description]['billableHours'] += $hours;
+                    $commentSummary[$description]['billableHours'] += $adjustedHours;
                 }
                 $commentSummary[$description]['entryCount']++;
             }
