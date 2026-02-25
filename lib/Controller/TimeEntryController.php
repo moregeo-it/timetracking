@@ -7,6 +7,7 @@ use DateTime;
 use DateTimeZone;
 use OCA\TimeTracking\Db\TimeEntry;
 use OCA\TimeTracking\Db\TimeEntryMapper;
+use OCA\TimeTracking\Db\ProjectMapper;
 use OCA\TimeTracking\Db\EmployeeSettingsMapper;
 use OCA\TimeTracking\Db\PublicHolidayMapper;
 use OCA\TimeTracking\Service\ComplianceService;
@@ -16,6 +17,7 @@ use OCP\IRequest;
 
 class TimeEntryController extends Controller {
     private TimeEntryMapper $mapper;
+    private ProjectMapper $projectMapper;
     private EmployeeSettingsMapper $employeeSettingsMapper;
     private PublicHolidayMapper $publicHolidayMapper;
     private ComplianceService $complianceService;
@@ -25,6 +27,7 @@ class TimeEntryController extends Controller {
         string $appName,
         IRequest $request,
         TimeEntryMapper $mapper,
+        ProjectMapper $projectMapper,
         EmployeeSettingsMapper $employeeSettingsMapper,
         PublicHolidayMapper $publicHolidayMapper,
         ComplianceService $complianceService,
@@ -32,6 +35,7 @@ class TimeEntryController extends Controller {
     ) {
         parent::__construct($appName, $request);
         $this->mapper = $mapper;
+        $this->projectMapper = $projectMapper;
         $this->employeeSettingsMapper = $employeeSettingsMapper;
         $this->publicHolidayMapper = $publicHolidayMapper;
         $this->complianceService = $complianceService;
@@ -158,6 +162,19 @@ class TimeEntryController extends Controller {
      */
     public function create(int $projectId, string $startTime, ?string $endTime = null,
                           ?string $description = null, ?bool $billable = true): DataResponse {
+        // Check if project requires a description
+        try {
+            $project = $this->projectMapper->find($projectId);
+            if ($project->getRequireDescription() && empty(trim($description ?? ''))) {
+                return new DataResponse([
+                    'error' => 'Dieses Projekt erfordert eine Beschreibung',
+                    'code' => 'DESCRIPTION_REQUIRED'
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            return new DataResponse(['error' => 'Project not found'], 404);
+        }
+
         $startTs = $this->parseIsoToTimestamp($startTime);
         
         // Check date restrictions (Sundays and public holidays)
@@ -272,6 +289,22 @@ class TimeEntryController extends Controller {
             if ($projectId !== null) {
                 $entry->setProjectId($projectId);
             }
+
+            // Check if the (possibly updated) project requires a description
+            $effectiveProjectId = $projectId ?? $entry->getProjectId();
+            try {
+                $project = $this->projectMapper->find($effectiveProjectId);
+                $effectiveDescription = $description !== null ? $description : $entry->getDescription();
+                if ($project->getRequireDescription() && empty(trim($effectiveDescription ?? ''))) {
+                    return new DataResponse([
+                        'error' => 'Dieses Projekt erfordert eine Beschreibung',
+                        'code' => 'DESCRIPTION_REQUIRED'
+                    ], 400);
+                }
+            } catch (\Exception $e) {
+                // Project not found - skip validation
+            }
+
             if ($description !== null) {
                 $entry->setDescription($description);
             }

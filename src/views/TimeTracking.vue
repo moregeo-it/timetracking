@@ -83,8 +83,8 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>{{ t('timetracking', 'Beschreibung') }}</label>
-                    <input v-model="manualForm.description" type="text">
+                    <label>{{ t('timetracking', 'Beschreibung') }}{{ isDescriptionRequired(manualForm.projectId) ? ' *' : '' }}</label>
+                    <input v-model="manualForm.description" type="text" :required="isDescriptionRequired(manualForm.projectId)">
                 </div>
                 <p v-if="manualEntryOvertime" class="overtime-warning">
                     ⚠️ {{ t('timetracking', 'Arbeitszeit über 6 Stunden - Bitte Pausenzeiten einhalten!') }}
@@ -191,8 +191,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>{{ t('timetracking', 'Beschreibung') }}</label>
-                        <input v-model="editForm.description" type="text">
+                        <label>{{ t('timetracking', 'Beschreibung') }}{{ isDescriptionRequired(editForm.projectId) ? ' *' : '' }}</label>
+                        <input v-model="editForm.description" type="text" :required="isDescriptionRequired(editForm.projectId)">
                     </div>
                     
                     <div class="form-group">
@@ -439,6 +439,12 @@ export default {
         },
         async addManualEntry() {
             try {
+                // Client-side check for required description
+                if (this.isDescriptionRequired(this.manualForm.projectId) && !this.manualForm.description.trim()) {
+                    showError(this.t('timetracking', 'Dieses Projekt erfordert eine Beschreibung'))
+                    return
+                }
+
                 // Parse date and time components explicitly to ensure local time interpretation
                 const [year, month, day] = this.manualForm.date.split('-').map(Number)
                 const [startHours, startMinutes] = this.manualForm.startTime.split(':').map(Number)
@@ -463,6 +469,8 @@ export default {
             } catch (error) {
                 if (error.response?.status === 409) {
                     showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
+                } else if (error.response?.data?.code === 'DESCRIPTION_REQUIRED') {
+                    showError(this.t('timetracking', 'Dieses Projekt erfordert eine Beschreibung'))
                 } else {
                     showError(this.t('timetracking', 'Fehler beim Hinzufügen'))
                 }
@@ -509,6 +517,12 @@ export default {
         },
         async saveEditedEntry() {
             try {
+                // Client-side check for required description
+                if (this.isDescriptionRequired(this.editForm.projectId) && !this.editForm.description.trim()) {
+                    showError(this.t('timetracking', 'Dieses Projekt erfordert eine Beschreibung'))
+                    return
+                }
+
                 const [year, month, day] = this.editForm.date.split('-').map(Number)
                 const [startHours, startMinutes] = this.editForm.startTime.split(':').map(Number)
                 const [endHours, endMinutes] = this.editForm.endTime.split(':').map(Number)
@@ -531,6 +545,8 @@ export default {
             } catch (error) {
                 if (error.response?.status === 409) {
                     showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
+                } else if (error.response?.data?.code === 'DESCRIPTION_REQUIRED') {
+                    showError(this.t('timetracking', 'Dieses Projekt erfordert eine Beschreibung'))
                 } else {
                     showError(this.t('timetracking', 'Fehler beim Speichern'))
                 }
@@ -560,6 +576,11 @@ export default {
             const hours = Math.floor(minutes / 60)
             const mins = minutes % 60
             return `${hours}:${mins.toString().padStart(2, '0')}`
+        },
+        isDescriptionRequired(projectId) {
+            if (!projectId) return false
+            const project = this.projects.find(p => p.id === parseInt(projectId))
+            return project ? !!project.requireDescription : false
         },
         isCurrentMonth(isoDateTimeStr) {
             // Directors can always edit/delete entries

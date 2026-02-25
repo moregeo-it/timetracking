@@ -9,9 +9,11 @@ use OCP\DB\Types;
 use OCP\Migration\IOutput;
 use OCP\Migration\SimpleMigrationStep;
 
-class Version1000Date20260104000000 extends SimpleMigrationStep {
-    
-    public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper {
+class Version1000Date20260104000000 extends SimpleMigrationStep
+{
+
+    public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper
+    {
         /** @var ISchemaWrapper $schema */
         $schema = $schemaClosure();
 
@@ -28,7 +30,7 @@ class Version1000Date20260104000000 extends SimpleMigrationStep {
                 'length' => 255,
             ]);
             $table->addColumn('active', Types::BOOLEAN, [
-			          'notnull' => false,
+                'notnull' => false,
                 'default' => true,
             ]);
             $table->addColumn('created_at', Types::DATETIME, [
@@ -71,7 +73,7 @@ class Version1000Date20260104000000 extends SimpleMigrationStep {
                 'scale' => 2,
             ]);
             $table->addColumn('active', Types::BOOLEAN, [
-			          'notnull' => false,
+                'notnull' => false,
                 'default' => true,
             ]);
             $table->addColumn('created_at', Types::DATETIME, [
@@ -117,7 +119,7 @@ class Version1000Date20260104000000 extends SimpleMigrationStep {
                 'notnull' => false,
             ]);
             $table->addColumn('billable', Types::BOOLEAN, [
-			          'notnull' => false,
+                'notnull' => false,
                 'default' => true,
             ]);
             $table->addColumn('created_at', Types::DATETIME, [

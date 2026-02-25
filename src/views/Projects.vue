@@ -148,6 +148,12 @@
                             {{ t('timetracking', 'Aktiv') }}
                         </label>
                     </div>
+                    <div class="form-group">
+                        <label>
+                            <input v-model="form.requireDescription" type="checkbox">
+                            {{ t('timetracking', 'Beschreibung bei Zeiterfassung verpflichtend') }}
+                        </label>
+                    </div>
                     <div class="dialog-actions">
                         <NcButton type="button" @click="closeDialog">{{ t('timetracking', 'Abbrechen') }}</NcButton>
                         <NcButton type="submit">{{ t('timetracking', 'Speichern') }}</NcButton>
@@ -216,6 +222,7 @@ export default {
                 startDate: '',
                 endDate: '',
                 active: true,
+                requireDescription: false,
                 multipliers: {
                     director: null,
                     contract: null,
@@ -325,6 +332,7 @@ export default {
                 startDate: project.startDate || '',
                 endDate: project.endDate || '',
                 active: project.active,
+                requireDescription: project.requireDescription || false,
                 multipliers: {
                     director: project.multipliers?.director ?? null,
                     contract: project.multipliers?.contract ?? null,
@@ -396,6 +404,7 @@ export default {
                 startDate: '',
                 endDate: '',
                 active: true,
+                requireDescription: false,
                 multipliers: {
                     director: null,
                     contract: null,

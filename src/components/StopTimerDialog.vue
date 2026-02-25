@@ -17,8 +17,9 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>{{ t('timetracking', 'Beschreibung') }}</label>
-                    <input v-model="form.description" type="text" :placeholder="t('timetracking', 'Was haben Sie gemacht?')">
+                    <label>{{ t('timetracking', 'Beschreibung') }}{{ isDescriptionRequired ? ' *' : '' }}</label>
+                    <input v-model="form.description" type="text" :placeholder="t('timetracking', 'Was haben Sie gemacht?')" :required="isDescriptionRequired">
+                    <p v-if="descriptionError" class="field-error">{{ descriptionError }}</p>
                 </div>
                 <div class="form-group">
                     <label>
@@ -79,6 +80,7 @@ export default {
                 description: this.initialDescription || '',
                 billable: true,
             },
+            descriptionError: '',
         }
     },
     computed: {
@@ -87,6 +89,11 @@ export default {
                 .filter(p => p.active)
                 .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
         },
+        isDescriptionRequired() {
+            if (!this.form.projectId) return false
+            const project = this.projects.find(p => p.id === parseInt(this.form.projectId))
+            return project ? !!project.requireDescription : false
+        },
     },
     watch: {
         show(newVal) {
@@ -94,6 +101,7 @@ export default {
                 this.form.projectId = this.initialProjectId || ''
                 this.form.description = this.initialDescription || ''
                 this.form.billable = true
+                this.descriptionError = ''
             }
         },
     },
@@ -110,6 +118,11 @@ export default {
             if (!this.form.projectId) {
                 return
             }
+            if (this.isDescriptionRequired && !this.form.description.trim()) {
+                this.descriptionError = t('timetracking', 'Dieses Projekt erfordert eine Beschreibung')
+                return
+            }
+            this.descriptionError = ''
             this.$emit('confirm', {
                 projectId: this.form.projectId,
                 description: this.form.description,
@@ -179,5 +192,11 @@ export default {
     margin-top: 25px;
     padding-top: 20px;
     border-top: 1px solid var(--color-border);
+}
+
+.field-error {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 4px;
 }
 </style>

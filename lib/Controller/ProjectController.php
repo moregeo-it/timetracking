@@ -115,7 +115,7 @@ class ProjectController extends Controller {
     public function create(int $customerId, string $name, ?string $description = null,
                           ?float $hourlyRate = null, ?float $budgetHours = null,
                           ?string $startDate = null, ?string $endDate = null,
-                          ?array $multipliers = null): DataResponse {
+                          ?array $multipliers = null, ?bool $requireDescription = false): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can create projects'], 403);
         }
@@ -128,6 +128,7 @@ class ProjectController extends Controller {
         $project->setStartDate($startDate);
         $project->setEndDate($endDate);
         $project->setActive(true);
+        $project->setRequireDescription($requireDescription ?? false);
         $project->setCreatedAt(new \DateTime());
         $project->setUpdatedAt(new \DateTime());
         
@@ -147,7 +148,7 @@ class ProjectController extends Controller {
     public function update(int $id, string $name, ?string $description = null,
                           ?float $hourlyRate = null, ?float $budgetHours = null,
                           ?string $startDate = null, ?string $endDate = null, ?bool $active = null,
-                          ?array $multipliers = null): DataResponse {
+                          ?array $multipliers = null, ?bool $requireDescription = null): DataResponse {
         if (!$this->isAdmin()) {
             return new DataResponse(['error' => 'Only administrators can update projects'], 403);
         }
@@ -162,6 +163,9 @@ class ProjectController extends Controller {
             $project->setEndDate($endDate);
             if ($active !== null) {
                 $project->setActive($active);
+            }
+            if ($requireDescription !== null) {
+                $project->setRequireDescription($requireDescription);
             }
             $project->setUpdatedAt(new \DateTime());
             
