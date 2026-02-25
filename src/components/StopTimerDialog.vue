@@ -23,9 +23,9 @@
                 </div>
                 <div class="form-group">
                     <label>
-                        <input v-model="form.billable" type="checkbox" style="margin: 0 0.5rem 0 0">
-                        {{ t('timetracking', 'Abrechenbar') }}
+                        <input :checked="form.billable" type="checkbox" style="margin: 0 0.5rem 0 0" @change="onBillableChange($event)">
                     </label>
+                    {{ t('timetracking', 'Abrechenbar') }}
                 </div>
                 <div class="dialog-actions">
                     <NcButton type="button" @click="cancel">{{ t('timetracking', 'Abbrechen') }}</NcButton>
@@ -113,6 +113,15 @@ export default {
         },
         cancel() {
             this.$emit('cancel')
+        },
+        onBillableChange(event) {
+            if (!event.target.checked) {
+                if (!confirm(t('timetracking', 'Sind Sie sicher, dass dieser Eintrag nicht abrechenbar sein soll?'))) {
+                    event.target.checked = true
+                    return
+                }
+            }
+            this.form.billable = event.target.checked
         },
         submit() {
             if (!this.form.projectId) {

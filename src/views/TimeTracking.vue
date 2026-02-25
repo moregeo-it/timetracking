@@ -91,7 +91,7 @@
                 </p>
                 <div class="form-group">
                     <label>
-                        <input v-model="manualForm.billable" type="checkbox" style="margin: 0 0.5rem 0 0">
+                        <input :checked="manualForm.billable" type="checkbox" style="margin: 0 0.5rem 0 0" @change="onManualBillableChange($event)">
                         {{ t('timetracking', 'Abrechenbar') }}
                     </label>
                 </div>
@@ -197,7 +197,7 @@
                     
                     <div class="form-group">
                         <label>
-                            <input v-model="editForm.billable" type="checkbox" style="margin: 0 0.5rem 0 0">
+                            <input :checked="editForm.billable" type="checkbox" style="margin: 0 0.5rem 0 0" @change="onEditBillableChange($event)">
                             {{ t('timetracking', 'Abrechenbar') }}
                         </label>
                     </div>
@@ -581,6 +581,24 @@ export default {
             if (!projectId) return false
             const project = this.projects.find(p => p.id === parseInt(projectId))
             return project ? !!project.requireDescription : false
+        },
+        onManualBillableChange(event) {
+            if (!event.target.checked) {
+                if (!confirm(this.t('timetracking', 'Sind Sie sicher, dass dieser Eintrag nicht abrechenbar sein soll?'))) {
+                    event.target.checked = true
+                    return
+                }
+            }
+            this.manualForm.billable = event.target.checked
+        },
+        onEditBillableChange(event) {
+            if (!event.target.checked) {
+                if (!confirm(this.t('timetracking', 'Sind Sie sicher, dass dieser Eintrag nicht abrechenbar sein soll?'))) {
+                    event.target.checked = true
+                    return
+                }
+            }
+            this.editForm.billable = event.target.checked
         },
         isCurrentMonth(isoDateTimeStr) {
             // Directors can always edit/delete entries
