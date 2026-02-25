@@ -817,6 +817,38 @@ class ReportController extends Controller {
                 $summary['actualBillableHours'] = round($summary['actualBillableHours'], 2);
             }
             
+            // Build comment summary: group entries by description, sum hours
+            $commentSummary = [];
+            foreach ($entries as $entry) {
+                $description = trim($entry->getDescription() ?? '');
+                if ($description === '') {
+                    $description = $this->l10n->t('(Kein Kommentar)');
+                }
+                $hours = ($entry->getDurationMinutes() ?? 0) / 60;
+                if (!isset($commentSummary[$description])) {
+                    $commentSummary[$description] = [
+                        'description' => $description,
+                        'actualHours' => 0,
+                        'billableHours' => 0,
+                        'entryCount' => 0,
+                    ];
+                }
+                $commentSummary[$description]['actualHours'] += $hours;
+                if ($entry->getBillable()) {
+                    $commentSummary[$description]['billableHours'] += $hours;
+                }
+                $commentSummary[$description]['entryCount']++;
+            }
+            foreach ($commentSummary as &$cs) {
+                $cs['actualHours'] = round($cs['actualHours'], 2);
+                $cs['billableHours'] = round($cs['billableHours'], 2);
+            }
+            // Sort by actual hours descending
+            usort($commentSummary, function ($a, $b) {
+                return $b['actualHours'] <=> $a['actualHours'];
+            });
+            $report['commentSummary'] = array_values($commentSummary);
+            
             $report['userSummary'] = array_values($userSummary);
             $report['totals']['hours'] = round($report['totals']['hours'], 2);
             $report['totals']['billableHours'] = round($report['totals']['billableHours'], 2);

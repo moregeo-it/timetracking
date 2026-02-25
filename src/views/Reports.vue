@@ -290,6 +290,32 @@
                     </tbody>
                 </table>
                 <p v-else>{{ t('timetracking', 'Keine Daten vorhanden') }}</p>
+                
+                <h4
+                    style="cursor: pointer; user-select: none;">
+                    {{ t('timetracking', 'Kommentare') }}
+                </h4>
+                <div>
+                    <table v-if="projectReport.commentSummary && projectReport.commentSummary.length > 0">
+                        <thead>
+                            <tr>
+                                <th>{{ t('timetracking', 'Kommentar') }}</th>
+                                <th>{{ t('timetracking', 'Stunden (Ist)') }}</th>
+                                <th>{{ t('timetracking', 'Abrechenbare Stunden') }}</th>
+                                <th>{{ t('timetracking', 'Einträge') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(comment, index) in projectReport.commentSummary" :key="index">
+                                <td style="white-space: normal;">{{ comment.description }}</td>
+                                <td>{{ comment.actualHours }} h</td>
+                                <td>{{ comment.billableHours }} h</td>
+                                <td>{{ comment.entryCount }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p v-else>{{ t('timetracking', 'Keine Kommentare vorhanden') }}</p>
+                </div>
             </div>
         </div>
         
