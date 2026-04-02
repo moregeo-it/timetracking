@@ -156,6 +156,11 @@ class EmployeeSettingsController extends Controller {
             if ($settings->getUserId() !== $userIdToUpdate) {
                 return new DataResponse(['error' => 'Period does not belong to this user'], 400);
             }
+            
+            // Validate no overlapping periods exist (excluding the current period)
+            if ($this->mapper->hasOverlappingPeriod($userIdToUpdate, $validFromDate, $validToDate, $periodId)) {
+                return new DataResponse(['error' => 'The updated employment period overlaps with an existing period'], 409);
+            }
         } else {
             // Check if there's an existing open-ended period that needs to be closed
             $existingSettings = $this->mapper->findByUserId($userIdToUpdate);
@@ -163,6 +168,11 @@ class EmployeeSettingsController extends Controller {
             if ($existingSettings && $validFromDate) {
                 // Close the previous period
                 $this->mapper->closePreviousPeriod($userIdToUpdate, $validFromDate);
+                
+                // Validate no overlapping periods exist after closing
+                if ($this->mapper->hasOverlappingPeriod($userIdToUpdate, $validFromDate, $validToDate)) {
+                    return new DataResponse(['error' => 'The new employment period overlaps with an existing period'], 409);
+                }
                 
                 // Create new period
                 $settings = new EmployeeSettings();
@@ -242,6 +252,11 @@ class EmployeeSettingsController extends Controller {
         
         // Close any existing open-ended period
         $this->mapper->closePreviousPeriod($userIdToCreate, $validFromDate);
+        
+        // Validate no overlapping periods exist
+        if ($this->mapper->hasOverlappingPeriod($userIdToCreate, $validFromDate, $validToDate)) {
+            return new DataResponse(['error' => 'The new employment period overlaps with an existing period'], 409);
+        }
         
         // Create new period
         $settings = new EmployeeSettings();
