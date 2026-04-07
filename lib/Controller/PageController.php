@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\TimeTracking\Controller;
 
+use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IRequest;
@@ -12,16 +13,19 @@ use OCP\IL10N;
 class PageController extends Controller {
     private IInitialStateService $initialStateService;
     private IL10N $l10n;
+    private IAppManager $appManager;
 
     public function __construct(
         string $appName,
         IRequest $request,
         IInitialStateService $initialStateService,
-        IL10N $l10n
+        IL10N $l10n,
+        IAppManager $appManager
     ) {
         parent::__construct($appName, $request);
         $this->initialStateService = $initialStateService;
         $this->l10n = $l10n;
+        $this->appManager = $appManager;
     }
 
     /**
@@ -41,7 +45,7 @@ class PageController extends Controller {
      */
     private function loadTranslations(): array {
         $lang = $this->l10n->getLanguageCode();
-        $appPath = \OC_App::getAppPath('timetracking');
+        $appPath = $this->appManager->getAppPath('timetracking');
         
         // Try to load the user's language, fall back to English, then German
         $langFile = $appPath . '/l10n/' . $lang . '.json';
