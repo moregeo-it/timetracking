@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\TimeTracking\Controller;
 
 use OCA\TimeTracking\Db\DefaultMultiplierMapper;
+use OCA\TimeTracking\Db\TimeEntry;
 use OCA\TimeTracking\Db\TimeEntryMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
@@ -65,10 +66,19 @@ class AdminController extends Controller {
     }
 
     /**
+     * Parse an ISO 8601 datetime string to a Unix timestamp
+     * @param string $isoDateTime
+     * @return int
+     */
+    private function parseIsoToTimestamp(string $isoDateTime): int {
+        return (new \DateTime($isoDateTime))->getTimestamp();
+    }
+
+    /**
      * Get time entries for a specific user (admin only)
      * @NoAdminRequired
      */
-    public function timeEntries(?string $userId = null): DataResponse {
+    public function timeEntries(?string $userId = null, ?string $startDate = null, ?string $endDate = null): DataResponse {
         if (!$this->groupManager->isAdmin($this->userId)) {
             return new DataResponse(['error' => 'Unauthorized'], 403);
         }
@@ -77,7 +87,21 @@ class AdminController extends Controller {
             return new DataResponse(['error' => 'userId required'], 400);
         }
 
-        $entries = $this->timeEntryMapper->findByUser($userId, null, null);
+        $startTs = null;
+        $endTs = null;
+
+        if ($startDate) {
+            $startTs = strlen($startDate) === 10
+                ? (new \DateTime($startDate . 'T00:00:00Z'))->getTimestamp()
+                : $this->parseIsoToTimestamp($startDate);
+        }
+        if ($endDate) {
+            $endTs = strlen($endDate) === 10
+                ? (new \DateTime($endDate . 'T23:59:59Z'))->getTimestamp()
+                : $this->parseIsoToTimestamp($endDate);
+        }
+
+        $entries = $this->timeEntryMapper->findByUser($userId, $startTs, $endTs);
         return new DataResponse(array_map(function ($entry) {
             return $entry->jsonSerialize();
         }, $entries));
@@ -106,5 +130,102 @@ class AdminController extends Controller {
 
         $this->defaultMultiplierMapper->setDefaults($multipliers);
         return new DataResponse($this->defaultMultiplierMapper->getDefaultsAsArray());
+    }
+
+    /**
+     * Create a time entry for any user (admin only)
+     * @NoAdminRequired
+     */
+    public function createTimeEntry(string $userId, int $projectId, string $startTime,
+                                    ?string $endTime = null, ?string $description = null,
+                                    ?bool $billable = true): DataResponse {
+        if (!$this->groupManager->isAdmin($this->userId)) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+
+        $startTs = $this->parseIsoToTimestamp($startTime);
+        $endTs = $endTime ? $this->parseIsoToTimestamp($endTime) : null;
+
+        if ($endTs && $this->timeEntryMapper->hasOverlappingEntry($userId, $startTs, $endTs)) {
+            return new DataResponse(['error' => 'Time entry overlaps with an existing entry'], 409);
+        }
+
+        $entry = new TimeEntry();
+        $entry->setProjectId($projectId);
+        $entry->setUserId($userId);
+        $entry->setStartTimestamp($startTs);
+        if ($endTs !== null) {
+            $entry->setEndTimestamp($endTs);
+        }
+        $entry->setDescription($description);
+        $entry->setBillable($billable ?? true);
+        $entry->setCreatedAt(new \DateTime());
+        $entry->setUpdatedAt(new \DateTime());
+
+        return new DataResponse($this->timeEntryMapper->insert($entry));
+    }
+
+    /**
+     * Update a time entry for any user (admin only)
+     * Admins bypass the current-month and ownership restrictions.
+     * @NoAdminRequired
+     */
+    public function updateTimeEntry(int $id, string $startTime, ?string $endTime = null,
+                                    ?int $projectId = null, ?string $description = null,
+                                    ?bool $billable = null): DataResponse {
+        if (!$this->groupManager->isAdmin($this->userId)) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $entry = $this->timeEntryMapper->find($id);
+
+            $startTs = $this->parseIsoToTimestamp($startTime);
+            $entry->setStartTimestamp($startTs);
+
+            if ($endTime) {
+                $endTs = $this->parseIsoToTimestamp($endTime);
+
+                // Overlap check using the entry owner's userId (not the admin's)
+                if ($this->timeEntryMapper->hasOverlappingEntry($entry->getUserId(), $startTs, $endTs, $id)) {
+                    return new DataResponse(['error' => 'Time entry overlaps with an existing entry'], 409);
+                }
+
+                $entry->setEndTimestamp($endTs);
+            }
+
+            if ($projectId !== null) {
+                $entry->setProjectId($projectId);
+            }
+            if ($description !== null) {
+                $entry->setDescription($description);
+            }
+            if ($billable !== null) {
+                $entry->setBillable($billable);
+            }
+            $entry->setUpdatedAt(new \DateTime());
+
+            return new DataResponse($this->timeEntryMapper->update($entry));
+        } catch (\Exception $e) {
+            return new DataResponse(['error' => 'Time entry not found'], 404);
+        }
+    }
+
+    /**
+     * Delete a time entry for any user (admin only)
+     * @NoAdminRequired
+     */
+    public function deleteTimeEntry(int $id): DataResponse {
+        if (!$this->groupManager->isAdmin($this->userId)) {
+            return new DataResponse(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $entry = $this->timeEntryMapper->find($id);
+            $this->timeEntryMapper->delete($entry);
+            return new DataResponse(['success' => true]);
+        } catch (\Exception $e) {
+            return new DataResponse(['error' => 'Time entry not found'], 404);
+        }
     }
 }

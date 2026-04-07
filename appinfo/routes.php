@@ -76,6 +76,9 @@ return [
         // Admin routes
         ['name' => 'admin#users', 'url' => '/api/admin/users', 'verb' => 'GET'],
         ['name' => 'admin#time_entries', 'url' => '/api/admin/time-entries', 'verb' => 'GET'],
+        ['name' => 'admin#create_time_entry', 'url' => '/api/admin/time-entries', 'verb' => 'POST'],
+        ['name' => 'admin#update_time_entry', 'url' => '/api/admin/time-entries/{id}', 'verb' => 'PUT'],
+        ['name' => 'admin#delete_time_entry', 'url' => '/api/admin/time-entries/{id}', 'verb' => 'DELETE'],
         ['name' => 'admin#get_default_multipliers', 'url' => '/api/admin/default-multipliers', 'verb' => 'GET'],
         ['name' => 'admin#update_default_multipliers', 'url' => '/api/admin/default-multipliers', 'verb' => 'PUT'],
         

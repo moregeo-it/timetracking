@@ -29,6 +29,12 @@
                     icon="icon-category-monitoring">
                 </NcAppNavigationItem>
                 <NcAppNavigationItem
+                    v-if="isAdmin"
+                    :to="{ path: '/admin/time-entries' }"
+                    :name="t('timetracking', 'Mitarbeiterzeiterfassung')"
+                    icon="icon-group">
+                </NcAppNavigationItem>
+                <NcAppNavigationItem
                     :to="{ path: '/vacations' }"
                     :name="t('timetracking', 'Urlaub')"
                     icon="icon-calendar-dark">

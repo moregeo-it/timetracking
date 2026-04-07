@@ -99,120 +99,16 @@
             </form>
         </div>
         
-        <div class="entries-section">
-            <h2>{{ t('timetracking', 'Letzte Einträge') }}</h2>
-            <div class="date-filter">
-                <label>
-                    {{ t('timetracking', 'Von') }}:
-                    <input v-model="filterStartDate" type="date" @change="loadEntries" size="12">
-                </label>
-                <label>
-                    {{ t('timetracking', 'Bis') }}:
-                    <input v-model="filterEndDate" type="date" @change="loadEntries" size="12">
-                </label>
-            </div>
-            
-            <table v-if="entries.length > 0">
-                <thead>
-                    <tr>
-                        <th>{{ t('timetracking', 'Datum') }}</th>
-                        <th>{{ t('timetracking', 'Projekt') }}</th>
-                        <th>{{ t('timetracking', 'Start') }}</th>
-                        <th>{{ t('timetracking', 'Ende') }}</th>
-                        <th>{{ t('timetracking', 'Dauer (Std.)') }}</th>
-                        <th>{{ t('timetracking', 'Beschreibung') }}</th>
-                        <th>{{ t('timetracking', 'Aktionen') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="entry in entries" :key="entry.id" :class="{ 'past-month': !isCurrentMonth(entry.startTime) }">
-                        <td>{{ formatDate(entry.startTime) }}</td>
-                        <td>{{ getProjectName(entry.projectId) }}</td>
-                        <td>{{ formatTime(entry.startTime) }}</td>
-                        <td>{{ formatTime(entry.endTime) }}</td>
-                        <td>{{ formatDuration(entry.durationMinutes) }}</td>
-                        <td>{{ entry.description || '-' }}</td>
-                        <td class="actions">
-                            <NcButton 
-                                type="button" 
-                                @click="openEditModal(entry)" 
-                                :title="isCurrentMonth(entry.startTime) ? t('timetracking', 'Bearbeiten') : t('timetracking', 'Einträge aus vergangenen Monaten können nicht bearbeitet werden')"
-                                :disabled="!isCurrentMonth(entry.startTime)">
-                                <template #icon>
-                                    <Pencil :size="20" />
-                                </template>
-                            </NcButton>
-                            <NcButton 
-                                type="button" 
-                                @click="deleteEntry(entry.id)" 
-                                :title="isCurrentMonth(entry.startTime) ? t('timetracking', 'Löschen') : t('timetracking', 'Einträge aus vergangenen Monaten können nicht gelöscht werden')"
-                                :disabled="!isCurrentMonth(entry.startTime)">
-                                <template #icon>
-                                    <Delete :size="20" />
-                                </template>
-                            </NcButton>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <p v-else>{{ t('timetracking', 'Keine Einträge vorhanden') }}</p>
-        </div>
-        
-        <!-- Edit Entry Modal -->
-        <NcModal v-if="showEditModal" @close="closeEditModal" size="normal">
-            <div class="modal-content">
-                <h2>{{ t('timetracking', 'Eintrag bearbeiten') }}</h2>
-                
-                <form @submit.prevent="saveEditedEntry">
-                    <div class="form-group">
-                        <label>{{ t('timetracking', 'Projekt') }} *</label>
-                        <select v-model="editForm.projectId" required>
-                            <option value="">{{ t('timetracking', 'Bitte wählen') }}</option>
-                            <option v-for="project in sortedProjects" :key="project.id" :value="project.id">
-                                {{ project.name }} ({{ getCustomerName(project.customerId) }})
-                            </option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>{{ t('timetracking', 'Datum') }} *</label>
-                        <input v-model="editForm.date" type="date" required>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>{{ t('timetracking', 'Start') }} *</label>
-                            <input v-model="editForm.startTime" type="time" required>
-                        </div>
-                        <div class="form-group">
-                            <label>{{ t('timetracking', 'Ende') }} *</label>
-                            <input v-model="editForm.endTime" type="time" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>{{ t('timetracking', 'Beschreibung') }}{{ isDescriptionRequired(editForm.projectId) ? ' *' : '' }}</label>
-                        <input v-model="editForm.description" type="text" :required="isDescriptionRequired(editForm.projectId)">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input :checked="editForm.billable" type="checkbox" style="margin: 0 0.5rem 0 0" @change="onEditBillableChange($event)">
-                            {{ t('timetracking', 'Abrechenbar') }}
-                        </label>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <NcButton type="button" @click="closeEditModal">
-                            {{ t('timetracking', 'Abbrechen') }}
-                        </NcButton>
-                        <NcButton type="submit">
-                            {{ t('timetracking', 'Speichern') }}
-                        </NcButton>
-                    </div>
-                </form>
-            </div>
-        </NcModal>
+        <TimeEntryList
+            :entries="entries"
+            :projects="projects"
+            :customers="customers"
+            :can-edit-all="employmentType === 'director'"
+            :loading="loading"
+            :save-fn="saveEntry"
+            :delete-fn="deleteEntry"
+            @filter-change="onFilterChange"
+        />
     </div>
 </template>
 
@@ -221,20 +117,17 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcModal } from '@nextcloud/vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import { NcButton } from '@nextcloud/vue'
 import StopTimerDialog from '../components/StopTimerDialog.vue'
+import TimeEntryList from '../components/TimeEntryList.vue'
 import timerMixin from '../mixins/timerMixin.js'
 
 export default {
     name: 'TimeTracking',
     components: {
         NcButton,
-        NcModal,
-        Delete,
-        Pencil,
         StopTimerDialog,
+        TimeEntryList,
     },
     mixins: [timerMixin],
     data() {
@@ -243,7 +136,6 @@ export default {
         weekAgo.setDate(weekAgo.getDate() - 7)
         
         return {
-            runningProjectName: '',
             projects: [],
             customers: [],
             entries: [],
@@ -261,16 +153,7 @@ export default {
                 description: '',
                 billable: true,
             },
-            showEditModal: false,
-            editingEntry: null,
-            editForm: {
-                projectId: '',
-                date: '',
-                startTime: '',
-                endTime: '',
-                description: '',
-                billable: true,
-            },
+            loading: false,
         }
     },
     computed: {
@@ -372,6 +255,7 @@ export default {
             }
         },
         async loadEntries() {
+            this.loading = true
             try {
                 // Send dates with timezone info - convert local date boundaries to ISO 8601
                 const startOfDay = new Date(this.filterStartDate + 'T00:00:00')
@@ -382,6 +266,55 @@ export default {
             } catch (error) {
                 showError(this.t('timetracking', 'Fehler beim Laden der Einträge'))
                 console.error(error)
+            } finally {
+                this.loading = false
+            }
+        },
+        onFilterChange({ startDate, endDate }) {
+            this.filterStartDate = startDate
+            this.filterEndDate = endDate
+            this.loadEntries()
+        },
+        async saveEntry({ id, form }) {
+            try {
+                const [year, month, day] = form.date.split('-').map(Number)
+                const [startHours, startMinutes] = form.startTime.split(':').map(Number)
+                const [endHours, endMinutes] = form.endTime.split(':').map(Number)
+                const startDateTime = new Date(year, month - 1, day, startHours, startMinutes, 0)
+                const endDateTime = new Date(year, month - 1, day, endHours, endMinutes, 0)
+
+                await axios.put(generateUrl(`/apps/timetracking/api/time-entries/${id}`), {
+                    projectId: form.projectId,
+                    startTime: startDateTime.toISOString(),
+                    endTime: endDateTime.toISOString(),
+                    description: form.description,
+                    billable: form.billable,
+                })
+                showSuccess(this.t('timetracking', 'Eintrag aktualisiert'))
+                this.loadEntries()
+                this.checkDailyCompliance()
+            } catch (error) {
+                if (error.response?.status === 409) {
+                    showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
+                } else if (error.response?.data?.code === 'DESCRIPTION_REQUIRED') {
+                    showError(this.t('timetracking', 'Dieses Projekt erfordert eine Beschreibung'))
+                } else {
+                    showError(this.t('timetracking', 'Fehler beim Speichern'))
+                }
+                console.error(error)
+                throw error
+            }
+        },
+        async deleteEntry(id) {
+            try {
+                await axios.delete(generateUrl(`/apps/timetracking/api/time-entries/${id}`))
+                showSuccess(this.t('timetracking', 'Eintrag gelöscht'))
+                this.loadEntries()
+                this.checkDailyCompliance()
+            } catch (error) {
+                showError(this.t('timetracking', 'Fehler beim Löschen'))
+                console.error(error)
+                throw error
             }
         },
         t,
@@ -391,7 +324,6 @@ export default {
                 const running = response.data.find(e => !e.endTime)
                 if (running) {
                     this.runningTimer = running
-                    this.runningProjectName = this.getProjectName(running.projectId)
                     this.startTimerDisplay()
                 }
             } catch (error) {
@@ -424,17 +356,14 @@ export default {
             return new Date(this.runningTimer.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
         },
         onTimerStarted() {
-            this.runningProjectName = ''
             this.customStartTime = ''
             this.checkDailyCompliance()
         },
         onTimerStopped() {
-            this.runningProjectName = ''
             this.loadEntries()
             this.checkDailyCompliance()
         },
         onTimerCancelled() {
-            this.runningProjectName = ''
             this.checkDailyCompliance()
         },
         async addManualEntry() {
@@ -477,105 +406,9 @@ export default {
                 console.error(error)
             }
         },
-        async deleteEntry(id) {
-            if (!confirm('Möchten Sie diesen Eintrag wirklich löschen?')) {
-                return
-            }
-            
-            try {
-                await axios.delete(generateUrl('/apps/timetracking/api/time-entries/' + id))
-                showSuccess('Eintrag gelöscht')
-                this.loadEntries()
-                this.checkDailyCompliance()
-            } catch (error) {
-                showError('Fehler beim Löschen')
-                console.error(error)
-            }
-        },
-        openEditModal(entry) {
-            this.editingEntry = entry
-            // Parse the ISO datetime strings to local date/time
-            const startDate = new Date(entry.startTime)
-            const endDate = entry.endTime ? new Date(entry.endTime) : null
-            
-            this.editForm.projectId = entry.projectId || ''
-            // Use local date components to avoid timezone issues with toISOString()
-            const year = startDate.getFullYear()
-            const month = String(startDate.getMonth() + 1).padStart(2, '0')
-            const day = String(startDate.getDate()).padStart(2, '0')
-            this.editForm.date = `${year}-${month}-${day}`
-            this.editForm.startTime = startDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })
-            this.editForm.endTime = endDate ? endDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }) : ''
-            this.editForm.description = entry.description || ''
-            this.editForm.billable = entry.billable ?? true
-            
-            this.showEditModal = true
-        },
-        closeEditModal() {
-            this.showEditModal = false
-            this.editingEntry = null
-        },
-        async saveEditedEntry() {
-            try {
-                // Client-side check for required description
-                if (this.isDescriptionRequired(this.editForm.projectId) && !this.editForm.description.trim()) {
-                    showError(this.t('timetracking', 'Dieses Projekt erfordert eine Beschreibung'))
-                    return
-                }
-
-                const [year, month, day] = this.editForm.date.split('-').map(Number)
-                const [startHours, startMinutes] = this.editForm.startTime.split(':').map(Number)
-                const [endHours, endMinutes] = this.editForm.endTime.split(':').map(Number)
-                
-                const startDateTime = new Date(year, month - 1, day, startHours, startMinutes, 0)
-                const endDateTime = new Date(year, month - 1, day, endHours, endMinutes, 0)
-                
-                await axios.put(generateUrl(`/apps/timetracking/api/time-entries/${this.editingEntry.id}`), {
-                    projectId: this.editForm.projectId,
-                    startTime: startDateTime.toISOString(),
-                    endTime: endDateTime.toISOString(),
-                    description: this.editForm.description,
-                    billable: this.editForm.billable,
-                })
-                
-                showSuccess(this.t('timetracking', 'Eintrag aktualisiert'))
-                this.closeEditModal()
-                this.loadEntries()
-                this.checkDailyCompliance()
-            } catch (error) {
-                if (error.response?.status === 409) {
-                    showError(this.t('timetracking', 'Zeiteintrag überschneidet sich mit einem bestehenden Eintrag'))
-                } else if (error.response?.data?.code === 'DESCRIPTION_REQUIRED') {
-                    showError(this.t('timetracking', 'Dieses Projekt erfordert eine Beschreibung'))
-                } else {
-                    showError(this.t('timetracking', 'Fehler beim Speichern'))
-                }
-                console.error(error)
-            }
-        },
-        getProjectName(projectId) {
-            const project = this.projects.find(p => p.id === projectId)
-            return project ? project.name : 'Unbekannt'
-        },
         getCustomerName(customerId) {
             const customer = this.customers.find(c => c.id === customerId)
             return customer ? customer.name : 'Unbekannt'
-        },
-        formatDate(isoDateTimeStr) {
-            // Parse ISO 8601 string and display as local date
-            if (!isoDateTimeStr) return '-'
-            return new Date(isoDateTimeStr).toLocaleDateString(undefined)
-        },
-        formatTime(isoDateTimeStr) {
-            // Parse ISO 8601 string and display as local time
-            if (!isoDateTimeStr) return '-'
-            return new Date(isoDateTimeStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-        },
-        formatDuration(minutes) {
-            if (!minutes) return '-'
-            const hours = Math.floor(minutes / 60)
-            const mins = minutes % 60
-            return `${hours}:${mins.toString().padStart(2, '0')}`
         },
         isDescriptionRequired(projectId) {
             if (!projectId) return false
@@ -590,26 +423,6 @@ export default {
                 }
             }
             this.manualForm.billable = event.target.checked
-        },
-        onEditBillableChange(event) {
-            if (!event.target.checked) {
-                if (!confirm(this.t('timetracking', 'Sind Sie sicher, dass dieser Eintrag nicht abrechenbar sein soll?'))) {
-                    event.target.checked = true
-                    return
-                }
-            }
-            this.editForm.billable = event.target.checked
-        },
-        isCurrentMonth(isoDateTimeStr) {
-            // Directors can always edit/delete entries
-            if (this.employmentType === 'director') {
-                return true
-            }
-            if (!isoDateTimeStr) return false
-            const entryDate = new Date(isoDateTimeStr)
-            const now = new Date()
-            return entryDate.getFullYear() === now.getFullYear() && 
-                   entryDate.getMonth() === now.getMonth()
         },
     },
 }
@@ -727,53 +540,6 @@ export default {
 
 .manual-entry-section h3 {
     margin-top: 0;
-}
-
-.entries-section h2 {
-    margin-bottom: 16px;
-}
-
-.past-month {
-    opacity: 0.6;
-    background-color: var(--color-background-dark);
-}
-
-.past-month td {
-    color: var(--color-text-maxcontrast);
-}
-
-.actions {
-    white-space: nowrap;
-}
-
-.actions :deep(button) {
-    display: inline-block;
-    margin-right: 4px;
-}
-
-.actions :deep(button:last-child) {
-    margin-right: 0;
-}
-
-.actions :deep(button:disabled) {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.modal-content {
-    padding: 20px;
-}
-
-.modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
 }
 
 /* Compliance Alerts */

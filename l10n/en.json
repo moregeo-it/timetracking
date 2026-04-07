@@ -1,5 +1,9 @@
 {
     "translations": {
+        "Mitarbeiterzeiterfassung": "Employee Time Tracking",
+        "Zeiteintrag erfassen": "Record Time Entry",
+        "Bitte wählen Sie einen Mitarbeiter aus.": "Please select an employee.",
+        "Fehler beim Laden der Mitarbeiter": "Error loading employees",
         "Dashboard": "Dashboard",
         "Zeiterfassung": "Time Tracking",
         "Kunden": "Customers",

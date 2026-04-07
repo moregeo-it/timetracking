@@ -1,5 +1,9 @@
 {
     "translations": {
+        "Mitarbeiterzeiterfassung": "Mitarbeiterzeiterfassung",
+        "Zeiteintrag erfassen": "Zeiteintrag erfassen",
+        "Bitte wählen Sie einen Mitarbeiter aus.": "Bitte wählen Sie einen Mitarbeiter aus.",
+        "Fehler beim Laden der Mitarbeiter": "Fehler beim Laden der Mitarbeiter",
         "Dashboard": "Dashboard",
         "Zeiterfassung": "Zeiterfassung",
         "Kunden": "Kunden",

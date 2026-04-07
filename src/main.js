@@ -12,6 +12,7 @@ import Vacations from './views/Vacations.vue'
 import SickDays from './views/SickDays.vue'
 import PublicHolidays from './views/PublicHolidays.vue'
 import EmployeeSettings from './views/EmployeeSettings.vue'
+import AdminTimeTracking from './views/AdminTimeTracking.vue'
 
 // Load translations from initial state and register them
 try {
@@ -33,6 +34,7 @@ const routes = [
     { path: '/sick-days', component: SickDays },
     { path: '/public-holidays', component: PublicHolidays },
     { path: '/settings', component: EmployeeSettings },
+    { path: '/admin/time-entries', component: AdminTimeTracking },
 ]
 
 const router = createRouter({
