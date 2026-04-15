@@ -179,23 +179,17 @@ class EmployeeSettingsMapper extends QBMapper {
             $startCondition->add($qb->expr()->gte('valid_to', $qb->createNamedParameter($validFromStr)));
         }
         
+        $qb->andWhere($startCondition);
+
         // New period end is after or at existing start (or existing has no start, or new period has no end)
-        $endCondition = $qb->expr()->orX(
-            $qb->expr()->isNull('valid_from')
-        );
+        // If validToStr is null (open-ended), the new period overlaps with everything - no end condition needed
         if ($validToStr !== null) {
-            $endCondition->add($qb->expr()->lte('valid_from', $qb->createNamedParameter($validToStr)));
-        } else {
-            // If new period has no end date, it overlaps with anything that doesn't have an end date
-            // or anything that ends after the new period starts
             $endCondition = $qb->expr()->orX(
                 $qb->expr()->isNull('valid_from'),
-                $qb->expr()->eq('1', '1') // Always true - open-ended period can overlap with anything
+                $qb->expr()->lte('valid_from', $qb->createNamedParameter($validToStr))
             );
+            $qb->andWhere($endCondition);
         }
-        
-        $qb->andWhere($startCondition)
-           ->andWhere($endCondition);
         
         $result = $qb->executeQuery();
         $count = (int)$result->fetchOne();
